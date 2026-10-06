@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice and Receipt from Kiini</title>
+    <style>
+.cta-button:hover {
+  background: linear-gradient(135deg, #FFA500 0%, #FFB733 100%);
+}
+</style>
+</head>
+<body style="font-family: Arial, Helvetica, sans-serif; line-height: 1.6; color: #33344F; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #F2F3F7;">
+    <div class="email-container" style="background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+        <!-- Header -->
+        <div class="header" style="background-color: #001D3D; border-bottom: 3px solid #E78200; color: white; padding: 24px 32px; text-align: left;">
+            <img src="{{company_logo_url}}" alt="{{company_name}}" style="max-width: 150px; height: 28px;">
+        </div>
+
+        <!-- Content -->
+        <div class="content" style="padding: 32px;">
+            <div class="greeting" style="font-size: 18px; color: #333; margin-bottom: 20px;">
+                Dear <strong>{{client_name}}</strong>,
+            </div>
+
+            <div class="message" style="color: #555; margin-bottom: 25px;">
+                <p>Thank you for your business! We are pleased to confirm that we have received your payment.</p>
+                <p>Please find attached your invoice and official receipt for the services provided. We appreciate your prompt payment and continued trust in Kiini.</p>
+            </div>
+
+            <!-- Invoice Details -->
+            <div class="invoice-details" style="background-color: #F8F8FA; border-left: 4px solid #E78200; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #080828; font-size: 16px;">Transaction Summary</h3>
+                <div class="detail-row" style="display: block; padding: 8px 0; border-bottom: 1px solid #E3E4EC;">
+                    <span class="detail-label" style="font-weight: 600; color: #666;">Invoice Number:</span>
+                    <span class="detail-value" style="color: #333;">{{invoice_number}}</span>
+                </div>
+                <div class="detail-row" style="display: block; padding: 8px 0; border-bottom: 1px solid #E3E4EC;">
+                    <span class="detail-label" style="font-weight: 600; color: #666;">Receipt Number:</span>
+                    <span class="detail-value" style="color: #333;">{{receipt_number}}</span>
+                </div>
+                <div class="detail-row" style="display: block; padding: 8px 0; border-bottom: 1px solid #E3E4EC;">
+                    <span class="detail-label" style="font-weight: 600; color: #666;">Invoice Date:</span>
+                    <span class="detail-value" style="color: #333;">{{invoice_date}}</span>
+                </div>
+                <div class="detail-row" style="display: block; padding: 8px 0; border-bottom: 1px solid #E3E4EC;">
+                    <span class="detail-label" style="font-weight: 600; color: #666;">Payment Date:</span>
+                    <span class="detail-value" style="color: #333;">{{payment_date}}</span>
+                </div>
+                <div class="detail-row" style="display: block; padding: 8px 0; border-bottom: 1px solid #E3E4EC;">
+                    <span class="detail-label" style="font-weight: 600; color: #666;">Payment Method:</span>
+                    <span class="detail-value" style="color: #333;">{{payment_method}}</span>
+                </div>
+                <div class="detail-row" style="display: block; padding: 8px 0; border-bottom: none;">
+                    <span class="detail-label" style="font-weight: 600; color: #666;">Amount Paid:</span>
+                    <span class="detail-value amount-total" style="font-size: 20px; font-weight: bold; color: #E78200;">KES {{amount_paid}}</span>
+                </div>
+            </div>
+
+            <!-- Attachments -->
+            <div class="attachments" style="background-color: #FFF7E7; border: 1px solid #F1D6A8; border-radius: 4px; padding: 15px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #080828; font-size: 16px;">Attached Documents</h3>
+                <div class="attachment-item" style="display: block; padding: 10px; background-color: white; border-radius: 4px; margin: 8px 0; border: 1px solid #E3E4EC;">
+                    <div class="attachment-icon" style="width: 40px; height: 40px; background-color: #FF8C00; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 12px;">📄</div>
+                    <div>
+                        <strong>{{invoice_pdf_filename}}</strong><br>
+                        <small style="color: #666;">Invoice Document</small>
+                    </div>
+                </div>
+                <div class="attachment-item" style="display: block; padding: 10px; background-color: white; border-radius: 4px; margin: 8px 0; border: 1px solid #E3E4EC;">
+                    <div class="attachment-icon" style="width: 40px; height: 40px; background-color: #FF8C00; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 12px;">🧾</div>
+                    <div>
+                        <strong>{{receipt_pdf_filename}}</strong><br>
+                        <small style="color: #666;">Official Receipt</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="message" style="color: #555; margin-bottom: 25px;">
+                <p>If you have any questions about this invoice or receipt, please don't hesitate to contact us. We're here to help!</p>
+            </div>
+
+            <center>
+                <a href="{{app_url}}/crm/client-portal" class="cta-button" style="display: inline-block; background-color: #E78200; color: #080828; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; text-align: center;">
+                    View in Client Portal
+                </a>
+            </center>
+
+            <!-- Payment Info (for future invoices) -->
+            <div class="payment-info" style="background-color: #E6F4F1; border-left: 4px solid #0E6B66; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #0E6B66; font-size: 16px;">Payment Information (For Future Reference)</h3>
+                <p style="margin: 5px 0;"><strong>Bank:</strong> Equity Bank Kenya</p>
+                <p style="margin: 5px 0;"><strong>Account Name:</strong> Kiini</p>
+                <p style="margin: 5px 0;"><strong>Account Number:</strong> 1234567890</p>
+                <p style="margin: 5px 0;"><strong>M-Pesa Paybill:</strong> 123456</p>
+                <p style="margin: 5px 0;"><strong>Account Number:</strong> KIINI</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer" style="background-color: #ffffff; color: #62647A; padding: 24px 32px; text-align: left; font-size: 12px; border-top: 1px solid #E3E4EC;">
+            <div class="footer-tagline" style="color: #0E6B66; font-style: italic; font-size: 14px; margin-bottom: 15px;">
+                — Redefining Technology!!! —
+            </div>
+            <div class="contact-info" style="margin: 15px 0; color: #62647A;">
+                <strong>{{company_name}}</strong> &middot; {{company_address}}<br>
+                Email: <a href="mailto:{{company_email}}" style="color: #0E6B66; text-decoration: none;">{{company_email}}</a><br>
+                Phone: {{company_phone}}<br>
+                Website: <a href="{{company_website}}" style="color: #0E6B66; text-decoration: none;">{{company_website}}</a>
+            </div>
+            <div class="social-links" style="margin-top: 15px;">
+                <a href="{{company_facebook_url}}" style="color: #FF8C00; margin: 0 10px; text-decoration: none;">Facebook</a> |
+                <a href="{{company_twitter_url}}" style="color: #FF8C00; margin: 0 10px; text-decoration: none;">Twitter</a> |
+                <a href="{{company_linkedin_url}}" style="color: #FF8C00; margin: 0 10px; text-decoration: none;">LinkedIn</a> |
+                <a href="{{company_instagram_url}}" style="color: #FF8C00; margin: 0 10px; text-decoration: none;">Instagram</a>
+            </div>
+            <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                © {{app_name}}. All rights reserved.<br>
+                This email and any attachments are confidential and intended solely for the recipient.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,2620 @@
+{
+  "rootFiles": [
+    "Account",
+    "Accounting",
+    "AccountingManagement",
+    "AccountSettings",
+    "Activity",
+    "ActivityTrail",
+    "AdminManagement",
+    "AdvancedAnalytics",
+    "AdvancedReports",
+    "AIHub",
+    "AIInsights",
+    "AiRecommendations",
+    "AllowancesDeductions",
+    "AllowancesManagement",
+    "AnalyticsHub",
+    "AndroidApp",
+    "AnomalyDetection",
+    "ApiDocumentation",
+    "ApiMarketplace",
+    "ApiRevenue",
+    "AppAnalytics",
+    "Approvals",
+    "AssetDetails",
+    "AssetManagement",
+    "Attendance",
+    "AttendanceDetails",
+    "Attribution",
+    "AuditLogs",
+    "AutomationWorkflows",
+    "BackupManagement",
+    "BankReconciliation",
+    "BankReconciliationDetails",
+    "BecomeAPartner",
+    "Benefits",
+    "BillingDashboard",
+    "BiTools",
+    "Blog",
+    "BookADemo",
+    "BudgetDetail",
+    "BudgetDetails",
+    "Budgets",
+    "BulkExport",
+    "BulkImport",
+    "BulkOperations",
+    "BusinessRulesEngine",
+    "CacheManager",
+    "Calendar",
+    "CannedResponses",
+    "ChangePassword",
+    "ChartOfAccounts",
+    "ChartOfAccountsDetails",
+    "ChatbotAgent",
+    "Checkout",
+    "ChurnPrediction",
+    "ClientDashboard",
+    "ClientDetails",
+    "ClientPerformance",
+    "ClientPortal",
+    "Clients",
+    "CohortAnalysis",
+    "Collaboration",
+    "CollaborationHub",
+    "Communications",
+    "ComplianceManagement",
+    "ComponentLibrary",
+    "ComponentShowcase",
+    "ContactDetails",
+    "Contacts",
+    "ContractDetails",
+    "ContractManagement",
+    "ContractTemplates",
+    "ConversionAnalytics",
+    "CreateAllowance",
+    "CreateAttendance",
+    "CreateBenefit",
+    "CreateBudget",
+    "CreateClient",
+    "CreateCommunication",
+    "CreateContact",
+    "CreateCreditNote",
+    "CreateDebitNote",
+    "CreateDeduction",
+    "CreateDepartment",
+    "CreateEmployee",
+    "CreateEstimate",
+    "CreateExpense",
+    "CreateImprest",
+    "CreateInvoice",
+    "CreateLeaveRequest",
+    "CreateLPO",
+    "CreateOpportunity",
+    "CreateOrder",
+    "CreatePayment",
+    "CreatePayroll",
+    "CreateProduct",
+    "CreateProject",
+    "CreatePurchaseOrder",
+    "CreateQuote",
+    "CreateReceipt",
+    "CreateSalaryStructure",
+    "CreateService",
+    "CreateServiceInvoice",
+    "CreateServiceTemplate",
+    "CreateSupplier",
+    "CreateTicket",
+    "CreateUser",
+    "CreateWarranty",
+    "CreateWorkOrder",
+    "CreditNoteDetails",
+    "CreditNotes",
+    "CurrencyConverter",
+    "CustomerPortal",
+    "CustomerReports",
+    "CustomFieldsManager",
+    "CustomReportBuilder",
+    "DarkMode",
+    "Dashboard",
+    "DashboardBuilderPro",
+    "DashboardHome",
+    "DatabaseTuning",
+    "DataWarehouse",
+    "DealRegistry",
+    "DebitNoteDetails",
+    "DebitNotes",
+    "DeductionsManagement",
+    "DeliveryNoteDetails",
+    "DeliveryNotes",
+    "DeliveryTracking",
+    "Demo",
+    "DepartmentDetails",
+    "DepartmentPayrollReports",
+    "Departments",
+    "DesignSystem",
+    "DisciplinaryRecords",
+    "DockerOrchestration",
+    "Documentation",
+    "DocumentLibrary",
+    "DocumentManagement",
+    "DocumentTemplates",
+    "EditAllowance",
+    "EditAttendance",
+    "EditBankReconciliation",
+    "EditBenefit",
+    "EditBudget",
+    "EditChartOfAccounts",
+    "EditClient",
+    "EditContact",
+    "EditCreditNote",
+    "EditDebitNote",
+    "EditDeduction",
+    "EditDepartment",
+    "EditEmployee",
+    "EditEstimate",
+    "EditExpense",
+    "EditInvoice",
+    "EditLeave",
+    "EditLPO",
+    "EditOpportunity",
+    "EditOrder",
+    "EditPayment",
+    "EditPayroll",
+    "EditProduct",
+    "EditProject",
+    "EditProposal",
+    "EditReceipt",
+    "EditSalaryStructure",
+    "EditService",
+    "EditServiceInvoice",
+    "EditSupplier",
+    "EditTicket",
+    "EditUser",
+    "EditWarranty",
+    "EditWorkOrder",
+    "EmailCalendarIntegration",
+    "EmailQueue",
+    "EmailQueueAdmin",
+    "EmployeeContracts",
+    "EmployeeDetails",
+    "Employees",
+    "Encryption",
+    "EnhancedChangePassword",
+    "EnhancedReceiptManagement",
+    "EnhancedRolesPage.example",
+    "EnterpriseSettings",
+    "EnterpriseTenantsManagement",
+    "EstimateDetails",
+    "Estimates",
+    "EtlMonitor",
+    "ExecutiveDashboard",
+    "ExpenseBudgetReport",
+    "Expenses",
+    "ExpensesDetails",
+    "FeatureFlags",
+    "FinanceDashboard",
+    "FinanceSettings",
+    "FinancialDashboard",
+    "FinancialReports",
+    "Forecasting",
+    "ForgotPassword",
+    "FunnelAnalysis",
+    "GlobalSearch",
+    "GlobalSettings",
+    "GRN",
+    "GRNDetails",
+    "GRNManagement",
+    "Holidays",
+    "Home",
+    "HR",
+    "HRAnalytics",
+    "HRAnalyticsDashboard",
+    "HRAnalyticsPage",
+    "HRAutomation",
+    "HRDashboard",
+    "HRDetails",
+    "HRModule",
+    "HRPayrollManagement",
+    "HRReports",
+    "ICTAnalytics",
+    "ICTDashboard",
+    "ICTSystemSettings",
+    "ImportExcel",
+    "ImprestDetails",
+    "Imprests",
+    "Integrations",
+    "Internationalization",
+    "Inventory",
+    "InvoiceDetails",
+    "Invoices",
+    "IosApp",
+    "JobGroupDetails",
+    "JobGroups",
+    "KenyanPayrollCalculator",
+    "KnowledgeBase",
+    "KPITracking",
+    "LandingPage",
+    "LeadDetails",
+    "Leads",
+    "LeadsDetails",
+    "LeaveBalances",
+    "LeaveManagement",
+    "LeaveManagementDetails",
+    "Login",
+    "LPODetails",
+    "LPOs",
+    "LPOsEnhanced",
+    "MaintenanceAdmin",
+    "MaintenancePage",
+    "MarginTracking",
+    "Messages",
+    "MFA",
+    "MicroservicesConfig",
+    "MobileAppManagement",
+    "MobileResponsiveness",
+    "MonthlyTrends",
+    "MpesaConfig",
+    "MultiTenancy",
+    "NlpProcessor",
+    "Notes",
+    "NotFound",
+    "NotificationCenter",
+    "Notifications",
+    "OfflineSync",
+    "Onboarding",
+    "Opportunities",
+    "OpportunityDetails",
+    "OrderDetails",
+    "Orders",
+    "OrganizationUsersManagement",
+    "OverduePayments",
+    "PartnerPortal",
+    "PaymentDetails",
+    "PaymentPlans",
+    "PaymentReconciliation",
+    "PaymentReports",
+    "Payments",
+    "Payroll",
+    "PayrollAnalytics",
+    "PayrollApprovals",
+    "PayrollDetails",
+    "PayrollProcessing",
+    "PayslipManagement",
+    "Payslips",
+    "PenTesting",
+    "PerformanceReviews",
+    "PerformanceTuning",
+    "Presence",
+    "Pricing",
+    "PrivacyPolicy",
+    "Procurement",
+    "ProcurementDeliveryNotesEnhanced",
+    "ProcurementGRNEnhanced",
+    "ProcurementLPOEnhanced",
+    "ProcurementManagement",
+    "ProcurementMaster",
+    "ProductDetails",
+    "Products",
+    "Profile",
+    "ProjectAnalytics",
+    "ProjectDetails",
+    "ProjectMilestones",
+    "ProjectReports",
+    "Projects",
+    "ProjectsManagement",
+    "ProposalDetails",
+    "Proposals",
+    "ProposalTemplates",
+    "QueryOptimization",
+    "QuotationDetails",
+    "Quotations",
+    "QuoteDetails",
+    "Quotes",
+    "QuoteTemplate",
+    "RealtimeChat",
+    "ReceiptDetails",
+    "Receipts",
+    "ReconciliationDiscrepancies",
+    "Recruitment",
+    "RecurringExpenses",
+    "RecurringInvoices",
+    "RegionalCompliance",
+    "ReportBuilder",
+    "ReportBuilderPro",
+    "Reports",
+    "ReportsDetails",
+    "ResetPassword",
+    "RevenueForecasting",
+    "Roles",
+    "RuleBuilder",
+    "SalaryStructures",
+    "Sales",
+    "SalesPipeline",
+    "SalesReports",
+    "SchedulerDashboard",
+    "SdkGenerator",
+    "Search",
+    "Security",
+    "SecurityCompliance",
+    "ServerlessComputing",
+    "ServiceDetails",
+    "ServiceInvoiceDetails",
+    "ServiceInvoices",
+    "Services",
+    "ServiceTemplateDetails",
+    "ServiceTemplates",
+    "Settings",
+    "SettingsIntegrationExample",
+    "Signup",
+    "SmsQueue",
+    "SmsQueueAdmin",
+    "SSO",
+    "StaffChat",
+    "StaffChatPage",
+    "StrategicPlanning",
+    "StripeConfig",
+    "SubscriptionDetails",
+    "Subscriptions",
+    "SuperAdminDashboard",
+    "SupplierDetails",
+    "Suppliers",
+    "SystemHealth",
+    "TaskDetails",
+    "Tasks",
+    "TaskScheduler",
+    "TaxCompliance",
+    "TaxComplianceReports",
+    "TaxInformation",
+    "TermsAndConditions",
+    "TestPDFGeneration",
+    "ThirdPartyIntegrations",
+    "ThreatDetection",
+    "TicketDetails",
+    "Tickets",
+    "TimesheetDetails",
+    "Timesheets",
+    "TimeTracking",
+    "Tools",
+    "Training",
+    "TroubleshootingGuide",
+    "UnifiedLanding",
+    "UsageMetering",
+    "UserDetails",
+    "UserGuide",
+    "VerifyEmail",
+    "VersionControl",
+    "VulnerabilityScan",
+    "Warehouses",
+    "WarrantyDetails",
+    "WarrantyManagement",
+    "Webhooks",
+    "WorkflowAutomation",
+    "WorkflowBuilder",
+    "WorkOrderDetails",
+    "WorkOrders"
+  ],
+  "orgFiles": [
+    "OrgAccounting",
+    "OrgActivity",
+    "OrgAI",
+    "OrgApprovalDetail",
+    "OrgApprovals",
+    "OrgAssets",
+    "OrgAttendance",
+    "OrgAttendanceDetail",
+    "OrgBankReconciliation",
+    "OrgBilling",
+    "OrgBudgetDetail",
+    "OrgBudgets",
+    "OrgCalendar",
+    "OrgCannedResponses",
+    "OrgChartOfAccounts",
+    "OrgClientDetail",
+    "OrgCommunications",
+    "OrgContactDetail",
+    "OrgContacts",
+    "OrgContractDetail",
+    "OrgContracts",
+    "OrgContractTemplates",
+    "OrgCreateAttendance",
+    "OrgCreateClient",
+    "OrgCreateContract",
+    "OrgCreateExpense",
+    "OrgCreateInvoice",
+    "OrgCreateLeave",
+    "OrgCreateProcurement",
+    "OrgCreateProject",
+    "OrgCreateProposal",
+    "OrgCreateQuotation",
+    "OrgCreateReceipt",
+    "OrgCreateSupplier",
+    "OrgCreateTicket",
+    "OrgCreateWorkOrder",
+    "OrgCreditNotes",
+    "OrgCRM",
+    "OrgDashboard",
+    "OrgDebitNotes",
+    "OrgDeliveryNotes",
+    "OrgDepartments",
+    "OrgDocuments",
+    "OrgEditApproval",
+    "OrgEditAttendance",
+    "OrgEditBudget",
+    "OrgEditContact",
+    "OrgEditContract",
+    "OrgEditEstimate",
+    "OrgEditExpense",
+    "OrgEditInvoice",
+    "OrgEditLead",
+    "OrgEditLeave",
+    "OrgEditPayment",
+    "OrgEditProcurement",
+    "OrgEditProject",
+    "OrgEditProposal",
+    "OrgEditQuotation",
+    "OrgEditReceipt",
+    "OrgEditSupplier",
+    "OrgEditTicket",
+    "OrgEditWorkOrder",
+    "OrgEmployees",
+    "OrgEstimateDetail",
+    "OrgEstimates",
+    "OrgExpenseDetail",
+    "OrgExpenses",
+    "OrgFinancialDashboard",
+    "OrgForecasting",
+    "OrgGRN",
+    "OrgHR",
+    "OrgImprests",
+    "OrgInventory",
+    "OrgInvoiceDetail",
+    "OrgInvoices",
+    "OrgJobGroups",
+    "OrgKnowledgebase",
+    "OrgLeadDetail",
+    "OrgLeads",
+    "OrgLeave",
+    "OrgLeaveDetail",
+    "OrgModulePage",
+    "OrgOrders",
+    "OrgPaymentDetail",
+    "OrgPayments",
+    "OrgPayroll",
+    "OrgPerformanceReviews",
+    "OrgProcurement",
+    "OrgProcurementDetail",
+    "OrgProducts",
+    "OrgProjectDetail",
+    "OrgProjects",
+    "OrgProposalDetail",
+    "OrgProposals",
+    "OrgPurchaseOrders",
+    "OrgQuotationDetail",
+    "OrgQuotations",
+    "OrgReceiptDetail",
+    "OrgReceipts",
+    "OrgReports",
+    "OrgSalesPipeline",
+    "OrgServiceInvoices",
+    "OrgServices",
+    "OrgServiceTemplates",
+    "OrgSettings",
+    "OrgStaff",
+    "OrgStaffChat",
+    "OrgSubscriptions",
+    "OrgSupplierDetail",
+    "OrgSuppliers",
+    "OrgTasks",
+    "OrgTaxCompliance",
+    "OrgTicketDetail",
+    "OrgTickets",
+    "OrgTimesheets",
+    "OrgWarranty",
+    "OrgWorkOrderDetail",
+    "OrgWorkOrders",
+    "_moduleTemplate"
+  ],
+  "missing": [
+    {
+      "page": "Account",
+      "candidates": [
+        "OrgAccount",
+        "OrgAccounts"
+      ]
+    },
+    {
+      "page": "AccountingManagement",
+      "candidates": [
+        "OrgAccountingManagement",
+        "OrgAccountingManagements"
+      ]
+    },
+    {
+      "page": "AccountSettings",
+      "candidates": [
+        "OrgAccountSettings",
+        "OrgAccountSetting"
+      ]
+    },
+    {
+      "page": "ActivityTrail",
+      "candidates": [
+        "OrgActivityTrail",
+        "OrgActivityTrails"
+      ]
+    },
+    {
+      "page": "AdminManagement",
+      "candidates": [
+        "OrgAdminManagement",
+        "OrgAdminManagements"
+      ]
+    },
+    {
+      "page": "AdvancedAnalytics",
+      "candidates": [
+        "OrgAdvancedAnalytics",
+        "OrgAdvancedAnalytic"
+      ]
+    },
+    {
+      "page": "AdvancedReports",
+      "candidates": [
+        "OrgAdvancedReports",
+        "OrgAdvancedReport"
+      ]
+    },
+    {
+      "page": "AIHub",
+      "candidates": [
+        "OrgAIHub",
+        "OrgAIHubs"
+      ]
+    },
+    {
+      "page": "AIInsights",
+      "candidates": [
+        "OrgAIInsights",
+        "OrgAIInsight"
+      ]
+    },
+    {
+      "page": "AiRecommendations",
+      "candidates": [
+        "OrgAiRecommendations",
+        "OrgAiRecommendation"
+      ]
+    },
+    {
+      "page": "AllowancesDeductions",
+      "candidates": [
+        "OrgAllowancesDeductions",
+        "OrgAllowancesDeduction"
+      ]
+    },
+    {
+      "page": "AllowancesManagement",
+      "candidates": [
+        "OrgAllowancesManagement",
+        "OrgAllowancesManagements"
+      ]
+    },
+    {
+      "page": "AnalyticsHub",
+      "candidates": [
+        "OrgAnalyticsHub",
+        "OrgAnalyticsHubs"
+      ]
+    },
+    {
+      "page": "AndroidApp",
+      "candidates": [
+        "OrgAndroidApp",
+        "OrgAndroidApps"
+      ]
+    },
+    {
+      "page": "AnomalyDetection",
+      "candidates": [
+        "OrgAnomalyDetection",
+        "OrgAnomalyDetections"
+      ]
+    },
+    {
+      "page": "ApiDocumentation",
+      "candidates": [
+        "OrgApiDocumentation",
+        "OrgApiDocumentations"
+      ]
+    },
+    {
+      "page": "ApiMarketplace",
+      "candidates": [
+        "OrgApiMarketplace",
+        "OrgApiMarketplaces"
+      ]
+    },
+    {
+      "page": "ApiRevenue",
+      "candidates": [
+        "OrgApiRevenue",
+        "OrgApiRevenues"
+      ]
+    },
+    {
+      "page": "AppAnalytics",
+      "candidates": [
+        "OrgAppAnalytics",
+        "OrgAppAnalytic"
+      ]
+    },
+    {
+      "page": "AssetDetails",
+      "candidates": [
+        "OrgAssetDetails",
+        "OrgAssetDetail"
+      ]
+    },
+    {
+      "page": "AssetManagement",
+      "candidates": [
+        "OrgAssetManagement",
+        "OrgAssetManagements"
+      ]
+    },
+    {
+      "page": "Attribution",
+      "candidates": [
+        "OrgAttribution",
+        "OrgAttributions"
+      ]
+    },
+    {
+      "page": "AuditLogs",
+      "candidates": [
+        "OrgAuditLogs",
+        "OrgAuditLog"
+      ]
+    },
+    {
+      "page": "AutomationWorkflows",
+      "candidates": [
+        "OrgAutomationWorkflows",
+        "OrgAutomationWorkflow"
+      ]
+    },
+    {
+      "page": "BackupManagement",
+      "candidates": [
+        "OrgBackupManagement",
+        "OrgBackupManagements"
+      ]
+    },
+    {
+      "page": "BankReconciliationDetails",
+      "candidates": [
+        "OrgBankReconciliationDetails",
+        "OrgBankReconciliationDetail"
+      ]
+    },
+    {
+      "page": "BecomeAPartner",
+      "candidates": [
+        "OrgBecomeAPartner",
+        "OrgBecomeAPartners"
+      ]
+    },
+    {
+      "page": "Benefits",
+      "candidates": [
+        "OrgBenefits",
+        "OrgBenefit"
+      ]
+    },
+    {
+      "page": "BillingDashboard",
+      "candidates": [
+        "OrgBillingDashboard",
+        "OrgBillingDashboards"
+      ]
+    },
+    {
+      "page": "BiTools",
+      "candidates": [
+        "OrgBiTools",
+        "OrgBiTool"
+      ]
+    },
+    {
+      "page": "Blog",
+      "candidates": [
+        "OrgBlog",
+        "OrgBlogs"
+      ]
+    },
+    {
+      "page": "BookADemo",
+      "candidates": [
+        "OrgBookADemo",
+        "OrgBookADemos"
+      ]
+    },
+    {
+      "page": "BulkExport",
+      "candidates": [
+        "OrgBulkExport",
+        "OrgBulkExports"
+      ]
+    },
+    {
+      "page": "BulkImport",
+      "candidates": [
+        "OrgBulkImport",
+        "OrgBulkImports"
+      ]
+    },
+    {
+      "page": "BulkOperations",
+      "candidates": [
+        "OrgBulkOperations",
+        "OrgBulkOperation"
+      ]
+    },
+    {
+      "page": "BusinessRulesEngine",
+      "candidates": [
+        "OrgBusinessRulesEngine",
+        "OrgBusinessRulesEngines"
+      ]
+    },
+    {
+      "page": "CacheManager",
+      "candidates": [
+        "OrgCacheManager",
+        "OrgCacheManagers"
+      ]
+    },
+    {
+      "page": "ChangePassword",
+      "candidates": [
+        "OrgChangePassword",
+        "OrgChangePasswords"
+      ]
+    },
+    {
+      "page": "ChartOfAccountsDetails",
+      "candidates": [
+        "OrgChartOfAccountsDetails",
+        "OrgChartOfAccountsDetail"
+      ]
+    },
+    {
+      "page": "ChatbotAgent",
+      "candidates": [
+        "OrgChatbotAgent",
+        "OrgChatbotAgents"
+      ]
+    },
+    {
+      "page": "Checkout",
+      "candidates": [
+        "OrgCheckout",
+        "OrgCheckouts"
+      ]
+    },
+    {
+      "page": "ChurnPrediction",
+      "candidates": [
+        "OrgChurnPrediction",
+        "OrgChurnPredictions"
+      ]
+    },
+    {
+      "page": "ClientDashboard",
+      "candidates": [
+        "OrgClientDashboard",
+        "OrgClientDashboards"
+      ]
+    },
+    {
+      "page": "ClientPerformance",
+      "candidates": [
+        "OrgClientPerformance",
+        "OrgClientPerformances"
+      ]
+    },
+    {
+      "page": "ClientPortal",
+      "candidates": [
+        "OrgClientPortal",
+        "OrgClientPortals"
+      ]
+    },
+    {
+      "page": "Clients",
+      "candidates": [
+        "OrgClients",
+        "OrgClient"
+      ]
+    },
+    {
+      "page": "CohortAnalysis",
+      "candidates": [
+        "OrgCohortAnalysis",
+        "OrgCohortAnalysi"
+      ]
+    },
+    {
+      "page": "Collaboration",
+      "candidates": [
+        "OrgCollaboration",
+        "OrgCollaborations"
+      ]
+    },
+    {
+      "page": "CollaborationHub",
+      "candidates": [
+        "OrgCollaborationHub",
+        "OrgCollaborationHubs"
+      ]
+    },
+    {
+      "page": "ComplianceManagement",
+      "candidates": [
+        "OrgComplianceManagement",
+        "OrgComplianceManagements"
+      ]
+    },
+    {
+      "page": "ComponentLibrary",
+      "candidates": [
+        "OrgComponentLibrary",
+        "OrgComponentLibrarys"
+      ]
+    },
+    {
+      "page": "ComponentShowcase",
+      "candidates": [
+        "OrgComponentShowcase",
+        "OrgComponentShowcases"
+      ]
+    },
+    {
+      "page": "ContractManagement",
+      "candidates": [
+        "OrgContractManagement",
+        "OrgContractManagements"
+      ]
+    },
+    {
+      "page": "ConversionAnalytics",
+      "candidates": [
+        "OrgConversionAnalytics",
+        "OrgConversionAnalytic"
+      ]
+    },
+    {
+      "page": "CreateAllowance",
+      "candidates": [
+        "OrgCreateAllowance",
+        "OrgCreateAllowances"
+      ]
+    },
+    {
+      "page": "CreateBenefit",
+      "candidates": [
+        "OrgCreateBenefit",
+        "OrgCreateBenefits"
+      ]
+    },
+    {
+      "page": "CreateBudget",
+      "candidates": [
+        "OrgCreateBudget",
+        "OrgCreateBudgets"
+      ]
+    },
+    {
+      "page": "CreateCommunication",
+      "candidates": [
+        "OrgCreateCommunication",
+        "OrgCreateCommunications"
+      ]
+    },
+    {
+      "page": "CreateContact",
+      "candidates": [
+        "OrgCreateContact",
+        "OrgCreateContacts"
+      ]
+    },
+    {
+      "page": "CreateCreditNote",
+      "candidates": [
+        "OrgCreateCreditNote",
+        "OrgCreateCreditNotes"
+      ]
+    },
+    {
+      "page": "CreateDebitNote",
+      "candidates": [
+        "OrgCreateDebitNote",
+        "OrgCreateDebitNotes"
+      ]
+    },
+    {
+      "page": "CreateDeduction",
+      "candidates": [
+        "OrgCreateDeduction",
+        "OrgCreateDeductions"
+      ]
+    },
+    {
+      "page": "CreateDepartment",
+      "candidates": [
+        "OrgCreateDepartment",
+        "OrgCreateDepartments"
+      ]
+    },
+    {
+      "page": "CreateEmployee",
+      "candidates": [
+        "OrgCreateEmployee",
+        "OrgCreateEmployees"
+      ]
+    },
+    {
+      "page": "CreateEstimate",
+      "candidates": [
+        "OrgCreateEstimate",
+        "OrgCreateEstimates"
+      ]
+    },
+    {
+      "page": "CreateImprest",
+      "candidates": [
+        "OrgCreateImprest",
+        "OrgCreateImprests"
+      ]
+    },
+    {
+      "page": "CreateLeaveRequest",
+      "candidates": [
+        "OrgCreateLeaveRequest",
+        "OrgCreateLeaveRequests"
+      ]
+    },
+    {
+      "page": "CreateLPO",
+      "candidates": [
+        "OrgCreateLPO",
+        "OrgCreateLPOs"
+      ]
+    },
+    {
+      "page": "CreateOpportunity",
+      "candidates": [
+        "OrgCreateOpportunity",
+        "OrgCreateOpportunitys"
+      ]
+    },
+    {
+      "page": "CreateOrder",
+      "candidates": [
+        "OrgCreateOrder",
+        "OrgCreateOrders"
+      ]
+    },
+    {
+      "page": "CreatePayment",
+      "candidates": [
+        "OrgCreatePayment",
+        "OrgCreatePayments"
+      ]
+    },
+    {
+      "page": "CreatePayroll",
+      "candidates": [
+        "OrgCreatePayroll",
+        "OrgCreatePayrolls"
+      ]
+    },
+    {
+      "page": "CreateProduct",
+      "candidates": [
+        "OrgCreateProduct",
+        "OrgCreateProducts"
+      ]
+    },
+    {
+      "page": "CreatePurchaseOrder",
+      "candidates": [
+        "OrgCreatePurchaseOrder",
+        "OrgCreatePurchaseOrders"
+      ]
+    },
+    {
+      "page": "CreateQuote",
+      "candidates": [
+        "OrgCreateQuote",
+        "OrgCreateQuotes"
+      ]
+    },
+    {
+      "page": "CreateSalaryStructure",
+      "candidates": [
+        "OrgCreateSalaryStructure",
+        "OrgCreateSalaryStructures"
+      ]
+    },
+    {
+      "page": "CreateService",
+      "candidates": [
+        "OrgCreateService",
+        "OrgCreateServices"
+      ]
+    },
+    {
+      "page": "CreateServiceInvoice",
+      "candidates": [
+        "OrgCreateServiceInvoice",
+        "OrgCreateServiceInvoices"
+      ]
+    },
+    {
+      "page": "CreateServiceTemplate",
+      "candidates": [
+        "OrgCreateServiceTemplate",
+        "OrgCreateServiceTemplates"
+      ]
+    },
+    {
+      "page": "CreateUser",
+      "candidates": [
+        "OrgCreateUser",
+        "OrgCreateUsers"
+      ]
+    },
+    {
+      "page": "CreateWarranty",
+      "candidates": [
+        "OrgCreateWarranty",
+        "OrgCreateWarrantys"
+      ]
+    },
+    {
+      "page": "CreditNoteDetails",
+      "candidates": [
+        "OrgCreditNoteDetails",
+        "OrgCreditNoteDetail"
+      ]
+    },
+    {
+      "page": "CurrencyConverter",
+      "candidates": [
+        "OrgCurrencyConverter",
+        "OrgCurrencyConverters"
+      ]
+    },
+    {
+      "page": "CustomerPortal",
+      "candidates": [
+        "OrgCustomerPortal",
+        "OrgCustomerPortals"
+      ]
+    },
+    {
+      "page": "CustomerReports",
+      "candidates": [
+        "OrgCustomerReports",
+        "OrgCustomerReport"
+      ]
+    },
+    {
+      "page": "CustomFieldsManager",
+      "candidates": [
+        "OrgCustomFieldsManager",
+        "OrgCustomFieldsManagers"
+      ]
+    },
+    {
+      "page": "CustomReportBuilder",
+      "candidates": [
+        "OrgCustomReportBuilder",
+        "OrgCustomReportBuilders"
+      ]
+    },
+    {
+      "page": "DarkMode",
+      "candidates": [
+        "OrgDarkMode",
+        "OrgDarkModes"
+      ]
+    },
+    {
+      "page": "DashboardBuilderPro",
+      "candidates": [
+        "OrgDashboardBuilderPro",
+        "OrgDashboardBuilderPros"
+      ]
+    },
+    {
+      "page": "DashboardHome",
+      "candidates": [
+        "OrgDashboardHome",
+        "OrgDashboardHomes"
+      ]
+    },
+    {
+      "page": "DatabaseTuning",
+      "candidates": [
+        "OrgDatabaseTuning",
+        "OrgDatabaseTunings"
+      ]
+    },
+    {
+      "page": "DataWarehouse",
+      "candidates": [
+        "OrgDataWarehouse",
+        "OrgDataWarehouses"
+      ]
+    },
+    {
+      "page": "DealRegistry",
+      "candidates": [
+        "OrgDealRegistry",
+        "OrgDealRegistrys"
+      ]
+    },
+    {
+      "page": "DebitNoteDetails",
+      "candidates": [
+        "OrgDebitNoteDetails",
+        "OrgDebitNoteDetail"
+      ]
+    },
+    {
+      "page": "DeductionsManagement",
+      "candidates": [
+        "OrgDeductionsManagement",
+        "OrgDeductionsManagements"
+      ]
+    },
+    {
+      "page": "DeliveryNoteDetails",
+      "candidates": [
+        "OrgDeliveryNoteDetails",
+        "OrgDeliveryNoteDetail"
+      ]
+    },
+    {
+      "page": "DeliveryTracking",
+      "candidates": [
+        "OrgDeliveryTracking",
+        "OrgDeliveryTrackings"
+      ]
+    },
+    {
+      "page": "Demo",
+      "candidates": [
+        "OrgDemo",
+        "OrgDemos"
+      ]
+    },
+    {
+      "page": "DepartmentDetails",
+      "candidates": [
+        "OrgDepartmentDetails",
+        "OrgDepartmentDetail"
+      ]
+    },
+    {
+      "page": "DepartmentPayrollReports",
+      "candidates": [
+        "OrgDepartmentPayrollReports",
+        "OrgDepartmentPayrollReport"
+      ]
+    },
+    {
+      "page": "DesignSystem",
+      "candidates": [
+        "OrgDesignSystem",
+        "OrgDesignSystems"
+      ]
+    },
+    {
+      "page": "DisciplinaryRecords",
+      "candidates": [
+        "OrgDisciplinaryRecords",
+        "OrgDisciplinaryRecord"
+      ]
+    },
+    {
+      "page": "DockerOrchestration",
+      "candidates": [
+        "OrgDockerOrchestration",
+        "OrgDockerOrchestrations"
+      ]
+    },
+    {
+      "page": "Documentation",
+      "candidates": [
+        "OrgDocumentation",
+        "OrgDocumentations"
+      ]
+    },
+    {
+      "page": "DocumentLibrary",
+      "candidates": [
+        "OrgDocumentLibrary",
+        "OrgDocumentLibrarys"
+      ]
+    },
+    {
+      "page": "DocumentManagement",
+      "candidates": [
+        "OrgDocumentManagement",
+        "OrgDocumentManagements"
+      ]
+    },
+    {
+      "page": "DocumentTemplates",
+      "candidates": [
+        "OrgDocumentTemplates",
+        "OrgDocumentTemplate"
+      ]
+    },
+    {
+      "page": "EditAllowance",
+      "candidates": [
+        "OrgEditAllowance",
+        "OrgEditAllowances"
+      ]
+    },
+    {
+      "page": "EditBankReconciliation",
+      "candidates": [
+        "OrgEditBankReconciliation",
+        "OrgEditBankReconciliations"
+      ]
+    },
+    {
+      "page": "EditBenefit",
+      "candidates": [
+        "OrgEditBenefit",
+        "OrgEditBenefits"
+      ]
+    },
+    {
+      "page": "EditChartOfAccounts",
+      "candidates": [
+        "OrgEditChartOfAccounts",
+        "OrgEditChartOfAccount"
+      ]
+    },
+    {
+      "page": "EditClient",
+      "candidates": [
+        "OrgEditClient",
+        "OrgEditClients"
+      ]
+    },
+    {
+      "page": "EditCreditNote",
+      "candidates": [
+        "OrgEditCreditNote",
+        "OrgEditCreditNotes"
+      ]
+    },
+    {
+      "page": "EditDebitNote",
+      "candidates": [
+        "OrgEditDebitNote",
+        "OrgEditDebitNotes"
+      ]
+    },
+    {
+      "page": "EditDeduction",
+      "candidates": [
+        "OrgEditDeduction",
+        "OrgEditDeductions"
+      ]
+    },
+    {
+      "page": "EditDepartment",
+      "candidates": [
+        "OrgEditDepartment",
+        "OrgEditDepartments"
+      ]
+    },
+    {
+      "page": "EditEmployee",
+      "candidates": [
+        "OrgEditEmployee",
+        "OrgEditEmployees"
+      ]
+    },
+    {
+      "page": "EditLPO",
+      "candidates": [
+        "OrgEditLPO",
+        "OrgEditLPOs"
+      ]
+    },
+    {
+      "page": "EditOpportunity",
+      "candidates": [
+        "OrgEditOpportunity",
+        "OrgEditOpportunitys"
+      ]
+    },
+    {
+      "page": "EditOrder",
+      "candidates": [
+        "OrgEditOrder",
+        "OrgEditOrders"
+      ]
+    },
+    {
+      "page": "EditPayroll",
+      "candidates": [
+        "OrgEditPayroll",
+        "OrgEditPayrolls"
+      ]
+    },
+    {
+      "page": "EditProduct",
+      "candidates": [
+        "OrgEditProduct",
+        "OrgEditProducts"
+      ]
+    },
+    {
+      "page": "EditSalaryStructure",
+      "candidates": [
+        "OrgEditSalaryStructure",
+        "OrgEditSalaryStructures"
+      ]
+    },
+    {
+      "page": "EditService",
+      "candidates": [
+        "OrgEditService",
+        "OrgEditServices"
+      ]
+    },
+    {
+      "page": "EditServiceInvoice",
+      "candidates": [
+        "OrgEditServiceInvoice",
+        "OrgEditServiceInvoices"
+      ]
+    },
+    {
+      "page": "EditUser",
+      "candidates": [
+        "OrgEditUser",
+        "OrgEditUsers"
+      ]
+    },
+    {
+      "page": "EditWarranty",
+      "candidates": [
+        "OrgEditWarranty",
+        "OrgEditWarrantys"
+      ]
+    },
+    {
+      "page": "EmailCalendarIntegration",
+      "candidates": [
+        "OrgEmailCalendarIntegration",
+        "OrgEmailCalendarIntegrations"
+      ]
+    },
+    {
+      "page": "EmailQueue",
+      "candidates": [
+        "OrgEmailQueue",
+        "OrgEmailQueues"
+      ]
+    },
+    {
+      "page": "EmailQueueAdmin",
+      "candidates": [
+        "OrgEmailQueueAdmin",
+        "OrgEmailQueueAdmins"
+      ]
+    },
+    {
+      "page": "EmployeeContracts",
+      "candidates": [
+        "OrgEmployeeContracts",
+        "OrgEmployeeContract"
+      ]
+    },
+    {
+      "page": "EmployeeDetails",
+      "candidates": [
+        "OrgEmployeeDetails",
+        "OrgEmployeeDetail"
+      ]
+    },
+    {
+      "page": "Encryption",
+      "candidates": [
+        "OrgEncryption",
+        "OrgEncryptions"
+      ]
+    },
+    {
+      "page": "EnhancedChangePassword",
+      "candidates": [
+        "OrgEnhancedChangePassword",
+        "OrgEnhancedChangePasswords"
+      ]
+    },
+    {
+      "page": "EnhancedReceiptManagement",
+      "candidates": [
+        "OrgEnhancedReceiptManagement",
+        "OrgEnhancedReceiptManagements"
+      ]
+    },
+    {
+      "page": "EnhancedRolesPage.example",
+      "candidates": [
+        "OrgEnhancedRolesPage.example",
+        "OrgEnhancedRolesPage.examples"
+      ]
+    },
+    {
+      "page": "EnterpriseSettings",
+      "candidates": [
+        "OrgEnterpriseSettings",
+        "OrgEnterpriseSetting"
+      ]
+    },
+    {
+      "page": "EnterpriseTenantsManagement",
+      "candidates": [
+        "OrgEnterpriseTenantsManagement",
+        "OrgEnterpriseTenantsManagements"
+      ]
+    },
+    {
+      "page": "EtlMonitor",
+      "candidates": [
+        "OrgEtlMonitor",
+        "OrgEtlMonitors"
+      ]
+    },
+    {
+      "page": "ExecutiveDashboard",
+      "candidates": [
+        "OrgExecutiveDashboard",
+        "OrgExecutiveDashboards"
+      ]
+    },
+    {
+      "page": "ExpenseBudgetReport",
+      "candidates": [
+        "OrgExpenseBudgetReport",
+        "OrgExpenseBudgetReports"
+      ]
+    },
+    {
+      "page": "ExpensesDetails",
+      "candidates": [
+        "OrgExpensesDetails",
+        "OrgExpensesDetail"
+      ]
+    },
+    {
+      "page": "FeatureFlags",
+      "candidates": [
+        "OrgFeatureFlags",
+        "OrgFeatureFlag"
+      ]
+    },
+    {
+      "page": "FinanceDashboard",
+      "candidates": [
+        "OrgFinanceDashboard",
+        "OrgFinanceDashboards"
+      ]
+    },
+    {
+      "page": "FinanceSettings",
+      "candidates": [
+        "OrgFinanceSettings",
+        "OrgFinanceSetting"
+      ]
+    },
+    {
+      "page": "FinancialReports",
+      "candidates": [
+        "OrgFinancialReports",
+        "OrgFinancialReport"
+      ]
+    },
+    {
+      "page": "ForgotPassword",
+      "candidates": [
+        "OrgForgotPassword",
+        "OrgForgotPasswords"
+      ]
+    },
+    {
+      "page": "FunnelAnalysis",
+      "candidates": [
+        "OrgFunnelAnalysis",
+        "OrgFunnelAnalysi"
+      ]
+    },
+    {
+      "page": "GlobalSearch",
+      "candidates": [
+        "OrgGlobalSearch",
+        "OrgGlobalSearchs"
+      ]
+    },
+    {
+      "page": "GlobalSettings",
+      "candidates": [
+        "OrgGlobalSettings",
+        "OrgGlobalSetting"
+      ]
+    },
+    {
+      "page": "GRNDetails",
+      "candidates": [
+        "OrgGRNDetails",
+        "OrgGRNDetail"
+      ]
+    },
+    {
+      "page": "GRNManagement",
+      "candidates": [
+        "OrgGRNManagement",
+        "OrgGRNManagements"
+      ]
+    },
+    {
+      "page": "Holidays",
+      "candidates": [
+        "OrgHolidays",
+        "OrgHoliday"
+      ]
+    },
+    {
+      "page": "Home",
+      "candidates": [
+        "OrgHome",
+        "OrgHomes"
+      ]
+    },
+    {
+      "page": "HRAnalytics",
+      "candidates": [
+        "OrgHRAnalytics",
+        "OrgHRAnalytic"
+      ]
+    },
+    {
+      "page": "HRAnalyticsDashboard",
+      "candidates": [
+        "OrgHRAnalyticsDashboard",
+        "OrgHRAnalyticsDashboards"
+      ]
+    },
+    {
+      "page": "HRAnalyticsPage",
+      "candidates": [
+        "OrgHRAnalyticsPage",
+        "OrgHRAnalyticsPages"
+      ]
+    },
+    {
+      "page": "HRAutomation",
+      "candidates": [
+        "OrgHRAutomation",
+        "OrgHRAutomations"
+      ]
+    },
+    {
+      "page": "HRDashboard",
+      "candidates": [
+        "OrgHRDashboard",
+        "OrgHRDashboards"
+      ]
+    },
+    {
+      "page": "HRDetails",
+      "candidates": [
+        "OrgHRDetails",
+        "OrgHRDetail"
+      ]
+    },
+    {
+      "page": "HRModule",
+      "candidates": [
+        "OrgHRModule",
+        "OrgHRModules"
+      ]
+    },
+    {
+      "page": "HRPayrollManagement",
+      "candidates": [
+        "OrgHRPayrollManagement",
+        "OrgHRPayrollManagements"
+      ]
+    },
+    {
+      "page": "HRReports",
+      "candidates": [
+        "OrgHRReports",
+        "OrgHRReport"
+      ]
+    },
+    {
+      "page": "ICTAnalytics",
+      "candidates": [
+        "OrgICTAnalytics",
+        "OrgICTAnalytic"
+      ]
+    },
+    {
+      "page": "ICTDashboard",
+      "candidates": [
+        "OrgICTDashboard",
+        "OrgICTDashboards"
+      ]
+    },
+    {
+      "page": "ICTSystemSettings",
+      "candidates": [
+        "OrgICTSystemSettings",
+        "OrgICTSystemSetting"
+      ]
+    },
+    {
+      "page": "ImportExcel",
+      "candidates": [
+        "OrgImportExcel",
+        "OrgImportExcels"
+      ]
+    },
+    {
+      "page": "ImprestDetails",
+      "candidates": [
+        "OrgImprestDetails",
+        "OrgImprestDetail"
+      ]
+    },
+    {
+      "page": "Integrations",
+      "candidates": [
+        "OrgIntegrations",
+        "OrgIntegration"
+      ]
+    },
+    {
+      "page": "Internationalization",
+      "candidates": [
+        "OrgInternationalization",
+        "OrgInternationalizations"
+      ]
+    },
+    {
+      "page": "IosApp",
+      "candidates": [
+        "OrgIosApp",
+        "OrgIosApps"
+      ]
+    },
+    {
+      "page": "JobGroupDetails",
+      "candidates": [
+        "OrgJobGroupDetails",
+        "OrgJobGroupDetail"
+      ]
+    },
+    {
+      "page": "KenyanPayrollCalculator",
+      "candidates": [
+        "OrgKenyanPayrollCalculator",
+        "OrgKenyanPayrollCalculators"
+      ]
+    },
+    {
+      "page": "KnowledgeBase",
+      "candidates": [
+        "OrgKnowledgeBase",
+        "OrgKnowledgeBases"
+      ]
+    },
+    {
+      "page": "KPITracking",
+      "candidates": [
+        "OrgKPITracking",
+        "OrgKPITrackings"
+      ]
+    },
+    {
+      "page": "LandingPage",
+      "candidates": [
+        "OrgLandingPage",
+        "OrgLandingPages"
+      ]
+    },
+    {
+      "page": "LeadsDetails",
+      "candidates": [
+        "OrgLeadsDetails",
+        "OrgLeadsDetail"
+      ]
+    },
+    {
+      "page": "LeaveBalances",
+      "candidates": [
+        "OrgLeaveBalances",
+        "OrgLeaveBalance"
+      ]
+    },
+    {
+      "page": "LeaveManagement",
+      "candidates": [
+        "OrgLeaveManagement",
+        "OrgLeaveManagements"
+      ]
+    },
+    {
+      "page": "LeaveManagementDetails",
+      "candidates": [
+        "OrgLeaveManagementDetails",
+        "OrgLeaveManagementDetail"
+      ]
+    },
+    {
+      "page": "Login",
+      "candidates": [
+        "OrgLogin",
+        "OrgLogins"
+      ]
+    },
+    {
+      "page": "LPODetails",
+      "candidates": [
+        "OrgLPODetails",
+        "OrgLPODetail"
+      ]
+    },
+    {
+      "page": "LPOs",
+      "candidates": [
+        "OrgLPOs",
+        "OrgLPO"
+      ]
+    },
+    {
+      "page": "LPOsEnhanced",
+      "candidates": [
+        "OrgLPOsEnhanced",
+        "OrgLPOsEnhanceds"
+      ]
+    },
+    {
+      "page": "MaintenanceAdmin",
+      "candidates": [
+        "OrgMaintenanceAdmin",
+        "OrgMaintenanceAdmins"
+      ]
+    },
+    {
+      "page": "MaintenancePage",
+      "candidates": [
+        "OrgMaintenancePage",
+        "OrgMaintenancePages"
+      ]
+    },
+    {
+      "page": "MarginTracking",
+      "candidates": [
+        "OrgMarginTracking",
+        "OrgMarginTrackings"
+      ]
+    },
+    {
+      "page": "Messages",
+      "candidates": [
+        "OrgMessages",
+        "OrgMessage"
+      ]
+    },
+    {
+      "page": "MFA",
+      "candidates": [
+        "OrgMFA",
+        "OrgMFAs"
+      ]
+    },
+    {
+      "page": "MicroservicesConfig",
+      "candidates": [
+        "OrgMicroservicesConfig",
+        "OrgMicroservicesConfigs"
+      ]
+    },
+    {
+      "page": "MobileAppManagement",
+      "candidates": [
+        "OrgMobileAppManagement",
+        "OrgMobileAppManagements"
+      ]
+    },
+    {
+      "page": "MobileResponsiveness",
+      "candidates": [
+        "OrgMobileResponsiveness",
+        "OrgMobileResponsivenes"
+      ]
+    },
+    {
+      "page": "MonthlyTrends",
+      "candidates": [
+        "OrgMonthlyTrends",
+        "OrgMonthlyTrend"
+      ]
+    },
+    {
+      "page": "MpesaConfig",
+      "candidates": [
+        "OrgMpesaConfig",
+        "OrgMpesaConfigs"
+      ]
+    },
+    {
+      "page": "MultiTenancy",
+      "candidates": [
+        "OrgMultiTenancy",
+        "OrgMultiTenancys"
+      ]
+    },
+    {
+      "page": "NlpProcessor",
+      "candidates": [
+        "OrgNlpProcessor",
+        "OrgNlpProcessors"
+      ]
+    },
+    {
+      "page": "Notes",
+      "candidates": [
+        "OrgNotes",
+        "OrgNote"
+      ]
+    },
+    {
+      "page": "NotFound",
+      "candidates": [
+        "OrgNotFound",
+        "OrgNotFounds"
+      ]
+    },
+    {
+      "page": "NotificationCenter",
+      "candidates": [
+        "OrgNotificationCenter",
+        "OrgNotificationCenters"
+      ]
+    },
+    {
+      "page": "Notifications",
+      "candidates": [
+        "OrgNotifications",
+        "OrgNotification"
+      ]
+    },
+    {
+      "page": "OfflineSync",
+      "candidates": [
+        "OrgOfflineSync",
+        "OrgOfflineSyncs"
+      ]
+    },
+    {
+      "page": "Onboarding",
+      "candidates": [
+        "OrgOnboarding",
+        "OrgOnboardings"
+      ]
+    },
+    {
+      "page": "Opportunities",
+      "candidates": [
+        "OrgOpportunities",
+        "OrgOpportunitie"
+      ]
+    },
+    {
+      "page": "OpportunityDetails",
+      "candidates": [
+        "OrgOpportunityDetails",
+        "OrgOpportunityDetail"
+      ]
+    },
+    {
+      "page": "OrderDetails",
+      "candidates": [
+        "OrgOrderDetails",
+        "OrgOrderDetail"
+      ]
+    },
+    {
+      "page": "OrganizationUsersManagement",
+      "candidates": [
+        "OrgOrganizationUsersManagement",
+        "OrgOrganizationUsersManagements"
+      ]
+    },
+    {
+      "page": "OverduePayments",
+      "candidates": [
+        "OrgOverduePayments",
+        "OrgOverduePayment"
+      ]
+    },
+    {
+      "page": "PartnerPortal",
+      "candidates": [
+        "OrgPartnerPortal",
+        "OrgPartnerPortals"
+      ]
+    },
+    {
+      "page": "PaymentPlans",
+      "candidates": [
+        "OrgPaymentPlans",
+        "OrgPaymentPlan"
+      ]
+    },
+    {
+      "page": "PaymentReconciliation",
+      "candidates": [
+        "OrgPaymentReconciliation",
+        "OrgPaymentReconciliations"
+      ]
+    },
+    {
+      "page": "PaymentReports",
+      "candidates": [
+        "OrgPaymentReports",
+        "OrgPaymentReport"
+      ]
+    },
+    {
+      "page": "PayrollAnalytics",
+      "candidates": [
+        "OrgPayrollAnalytics",
+        "OrgPayrollAnalytic"
+      ]
+    },
+    {
+      "page": "PayrollApprovals",
+      "candidates": [
+        "OrgPayrollApprovals",
+        "OrgPayrollApproval"
+      ]
+    },
+    {
+      "page": "PayrollDetails",
+      "candidates": [
+        "OrgPayrollDetails",
+        "OrgPayrollDetail"
+      ]
+    },
+    {
+      "page": "PayrollProcessing",
+      "candidates": [
+        "OrgPayrollProcessing",
+        "OrgPayrollProcessings"
+      ]
+    },
+    {
+      "page": "PayslipManagement",
+      "candidates": [
+        "OrgPayslipManagement",
+        "OrgPayslipManagements"
+      ]
+    },
+    {
+      "page": "Payslips",
+      "candidates": [
+        "OrgPayslips",
+        "OrgPayslip"
+      ]
+    },
+    {
+      "page": "PenTesting",
+      "candidates": [
+        "OrgPenTesting",
+        "OrgPenTestings"
+      ]
+    },
+    {
+      "page": "PerformanceTuning",
+      "candidates": [
+        "OrgPerformanceTuning",
+        "OrgPerformanceTunings"
+      ]
+    },
+    {
+      "page": "Presence",
+      "candidates": [
+        "OrgPresence",
+        "OrgPresences"
+      ]
+    },
+    {
+      "page": "Pricing",
+      "candidates": [
+        "OrgPricing",
+        "OrgPricings"
+      ]
+    },
+    {
+      "page": "PrivacyPolicy",
+      "candidates": [
+        "OrgPrivacyPolicy",
+        "OrgPrivacyPolicys"
+      ]
+    },
+    {
+      "page": "ProcurementDeliveryNotesEnhanced",
+      "candidates": [
+        "OrgProcurementDeliveryNotesEnhanced",
+        "OrgProcurementDeliveryNotesEnhanceds"
+      ]
+    },
+    {
+      "page": "ProcurementGRNEnhanced",
+      "candidates": [
+        "OrgProcurementGRNEnhanced",
+        "OrgProcurementGRNEnhanceds"
+      ]
+    },
+    {
+      "page": "ProcurementLPOEnhanced",
+      "candidates": [
+        "OrgProcurementLPOEnhanced",
+        "OrgProcurementLPOEnhanceds"
+      ]
+    },
+    {
+      "page": "ProcurementManagement",
+      "candidates": [
+        "OrgProcurementManagement",
+        "OrgProcurementManagements"
+      ]
+    },
+    {
+      "page": "ProcurementMaster",
+      "candidates": [
+        "OrgProcurementMaster",
+        "OrgProcurementMasters"
+      ]
+    },
+    {
+      "page": "ProductDetails",
+      "candidates": [
+        "OrgProductDetails",
+        "OrgProductDetail"
+      ]
+    },
+    {
+      "page": "Profile",
+      "candidates": [
+        "OrgProfile",
+        "OrgProfiles"
+      ]
+    },
+    {
+      "page": "ProjectAnalytics",
+      "candidates": [
+        "OrgProjectAnalytics",
+        "OrgProjectAnalytic"
+      ]
+    },
+    {
+      "page": "ProjectMilestones",
+      "candidates": [
+        "OrgProjectMilestones",
+        "OrgProjectMilestone"
+      ]
+    },
+    {
+      "page": "ProjectReports",
+      "candidates": [
+        "OrgProjectReports",
+        "OrgProjectReport"
+      ]
+    },
+    {
+      "page": "ProjectsManagement",
+      "candidates": [
+        "OrgProjectsManagement",
+        "OrgProjectsManagements"
+      ]
+    },
+    {
+      "page": "ProposalTemplates",
+      "candidates": [
+        "OrgProposalTemplates",
+        "OrgProposalTemplate"
+      ]
+    },
+    {
+      "page": "QueryOptimization",
+      "candidates": [
+        "OrgQueryOptimization",
+        "OrgQueryOptimizations"
+      ]
+    },
+    {
+      "page": "QuoteDetails",
+      "candidates": [
+        "OrgQuoteDetails",
+        "OrgQuoteDetail"
+      ]
+    },
+    {
+      "page": "Quotes",
+      "candidates": [
+        "OrgQuotes",
+        "OrgQuote"
+      ]
+    },
+    {
+      "page": "QuoteTemplate",
+      "candidates": [
+        "OrgQuoteTemplate",
+        "OrgQuoteTemplates"
+      ]
+    },
+    {
+      "page": "RealtimeChat",
+      "candidates": [
+        "OrgRealtimeChat",
+        "OrgRealtimeChats"
+      ]
+    },
+    {
+      "page": "ReconciliationDiscrepancies",
+      "candidates": [
+        "OrgReconciliationDiscrepancies",
+        "OrgReconciliationDiscrepancie"
+      ]
+    },
+    {
+      "page": "Recruitment",
+      "candidates": [
+        "OrgRecruitment",
+        "OrgRecruitments"
+      ]
+    },
+    {
+      "page": "RecurringExpenses",
+      "candidates": [
+        "OrgRecurringExpenses",
+        "OrgRecurringExpense"
+      ]
+    },
+    {
+      "page": "RecurringInvoices",
+      "candidates": [
+        "OrgRecurringInvoices",
+        "OrgRecurringInvoice"
+      ]
+    },
+    {
+      "page": "RegionalCompliance",
+      "candidates": [
+        "OrgRegionalCompliance",
+        "OrgRegionalCompliances"
+      ]
+    },
+    {
+      "page": "ReportBuilder",
+      "candidates": [
+        "OrgReportBuilder",
+        "OrgReportBuilders"
+      ]
+    },
+    {
+      "page": "ReportBuilderPro",
+      "candidates": [
+        "OrgReportBuilderPro",
+        "OrgReportBuilderPros"
+      ]
+    },
+    {
+      "page": "ReportsDetails",
+      "candidates": [
+        "OrgReportsDetails",
+        "OrgReportsDetail"
+      ]
+    },
+    {
+      "page": "ResetPassword",
+      "candidates": [
+        "OrgResetPassword",
+        "OrgResetPasswords"
+      ]
+    },
+    {
+      "page": "RevenueForecasting",
+      "candidates": [
+        "OrgRevenueForecasting",
+        "OrgRevenueForecastings"
+      ]
+    },
+    {
+      "page": "Roles",
+      "candidates": [
+        "OrgRoles",
+        "OrgRole"
+      ]
+    },
+    {
+      "page": "RuleBuilder",
+      "candidates": [
+        "OrgRuleBuilder",
+        "OrgRuleBuilders"
+      ]
+    },
+    {
+      "page": "SalaryStructures",
+      "candidates": [
+        "OrgSalaryStructures",
+        "OrgSalaryStructure"
+      ]
+    },
+    {
+      "page": "Sales",
+      "candidates": [
+        "OrgSales",
+        "OrgSale"
+      ]
+    },
+    {
+      "page": "SalesReports",
+      "candidates": [
+        "OrgSalesReports",
+        "OrgSalesReport"
+      ]
+    },
+    {
+      "page": "SchedulerDashboard",
+      "candidates": [
+        "OrgSchedulerDashboard",
+        "OrgSchedulerDashboards"
+      ]
+    },
+    {
+      "page": "SdkGenerator",
+      "candidates": [
+        "OrgSdkGenerator",
+        "OrgSdkGenerators"
+      ]
+    },
+    {
+      "page": "Search",
+      "candidates": [
+        "OrgSearch",
+        "OrgSearchs"
+      ]
+    },
+    {
+      "page": "Security",
+      "candidates": [
+        "OrgSecurity",
+        "OrgSecuritys"
+      ]
+    },
+    {
+      "page": "SecurityCompliance",
+      "candidates": [
+        "OrgSecurityCompliance",
+        "OrgSecurityCompliances"
+      ]
+    },
+    {
+      "page": "ServerlessComputing",
+      "candidates": [
+        "OrgServerlessComputing",
+        "OrgServerlessComputings"
+      ]
+    },
+    {
+      "page": "ServiceDetails",
+      "candidates": [
+        "OrgServiceDetails",
+        "OrgServiceDetail"
+      ]
+    },
+    {
+      "page": "ServiceInvoiceDetails",
+      "candidates": [
+        "OrgServiceInvoiceDetails",
+        "OrgServiceInvoiceDetail"
+      ]
+    },
+    {
+      "page": "ServiceTemplateDetails",
+      "candidates": [
+        "OrgServiceTemplateDetails",
+        "OrgServiceTemplateDetail"
+      ]
+    },
+    {
+      "page": "SettingsIntegrationExample",
+      "candidates": [
+        "OrgSettingsIntegrationExample",
+        "OrgSettingsIntegrationExamples"
+      ]
+    },
+    {
+      "page": "Signup",
+      "candidates": [
+        "OrgSignup",
+        "OrgSignups"
+      ]
+    },
+    {
+      "page": "SmsQueue",
+      "candidates": [
+        "OrgSmsQueue",
+        "OrgSmsQueues"
+      ]
+    },
+    {
+      "page": "SmsQueueAdmin",
+      "candidates": [
+        "OrgSmsQueueAdmin",
+        "OrgSmsQueueAdmins"
+      ]
+    },
+    {
+      "page": "SSO",
+      "candidates": [
+        "OrgSSO",
+        "OrgSSOs"
+      ]
+    },
+    {
+      "page": "StaffChatPage",
+      "candidates": [
+        "OrgStaffChatPage",
+        "OrgStaffChatPages"
+      ]
+    },
+    {
+      "page": "StrategicPlanning",
+      "candidates": [
+        "OrgStrategicPlanning",
+        "OrgStrategicPlannings"
+      ]
+    },
+    {
+      "page": "StripeConfig",
+      "candidates": [
+        "OrgStripeConfig",
+        "OrgStripeConfigs"
+      ]
+    },
+    {
+      "page": "SubscriptionDetails",
+      "candidates": [
+        "OrgSubscriptionDetails",
+        "OrgSubscriptionDetail"
+      ]
+    },
+    {
+      "page": "SuperAdminDashboard",
+      "candidates": [
+        "OrgSuperAdminDashboard",
+        "OrgSuperAdminDashboards"
+      ]
+    },
+    {
+      "page": "SystemHealth",
+      "candidates": [
+        "OrgSystemHealth",
+        "OrgSystemHealths"
+      ]
+    },
+    {
+      "page": "TaskDetails",
+      "candidates": [
+        "OrgTaskDetails",
+        "OrgTaskDetail"
+      ]
+    },
+    {
+      "page": "TaskScheduler",
+      "candidates": [
+        "OrgTaskScheduler",
+        "OrgTaskSchedulers"
+      ]
+    },
+    {
+      "page": "TaxComplianceReports",
+      "candidates": [
+        "OrgTaxComplianceReports",
+        "OrgTaxComplianceReport"
+      ]
+    },
+    {
+      "page": "TaxInformation",
+      "candidates": [
+        "OrgTaxInformation",
+        "OrgTaxInformations"
+      ]
+    },
+    {
+      "page": "TermsAndConditions",
+      "candidates": [
+        "OrgTermsAndConditions",
+        "OrgTermsAndCondition"
+      ]
+    },
+    {
+      "page": "TestPDFGeneration",
+      "candidates": [
+        "OrgTestPDFGeneration",
+        "OrgTestPDFGenerations"
+      ]
+    },
+    {
+      "page": "ThirdPartyIntegrations",
+      "candidates": [
+        "OrgThirdPartyIntegrations",
+        "OrgThirdPartyIntegration"
+      ]
+    },
+    {
+      "page": "ThreatDetection",
+      "candidates": [
+        "OrgThreatDetection",
+        "OrgThreatDetections"
+      ]
+    },
+    {
+      "page": "TimesheetDetails",
+      "candidates": [
+        "OrgTimesheetDetails",
+        "OrgTimesheetDetail"
+      ]
+    },
+    {
+      "page": "TimeTracking",
+      "candidates": [
+        "OrgTimeTracking",
+        "OrgTimeTrackings"
+      ]
+    },
+    {
+      "page": "Tools",
+      "candidates": [
+        "OrgTools",
+        "OrgTool"
+      ]
+    },
+    {
+      "page": "Training",
+      "candidates": [
+        "OrgTraining",
+        "OrgTrainings"
+      ]
+    },
+    {
+      "page": "TroubleshootingGuide",
+      "candidates": [
+        "OrgTroubleshootingGuide",
+        "OrgTroubleshootingGuides"
+      ]
+    },
+    {
+      "page": "UnifiedLanding",
+      "candidates": [
+        "OrgUnifiedLanding",
+        "OrgUnifiedLandings"
+      ]
+    },
+    {
+      "page": "UsageMetering",
+      "candidates": [
+        "OrgUsageMetering",
+        "OrgUsageMeterings"
+      ]
+    },
+    {
+      "page": "UserDetails",
+      "candidates": [
+        "OrgUserDetails",
+        "OrgUserDetail"
+      ]
+    },
+    {
+      "page": "UserGuide",
+      "candidates": [
+        "OrgUserGuide",
+        "OrgUserGuides"
+      ]
+    },
+    {
+      "page": "VerifyEmail",
+      "candidates": [
+        "OrgVerifyEmail",
+        "OrgVerifyEmails"
+      ]
+    },
+    {
+      "page": "VersionControl",
+      "candidates": [
+        "OrgVersionControl",
+        "OrgVersionControls"
+      ]
+    },
+    {
+      "page": "VulnerabilityScan",
+      "candidates": [
+        "OrgVulnerabilityScan",
+        "OrgVulnerabilityScans"
+      ]
+    },
+    {
+      "page": "Warehouses",
+      "candidates": [
+        "OrgWarehouses",
+        "OrgWarehouse"
+      ]
+    },
+    {
+      "page": "WarrantyDetails",
+      "candidates": [
+        "OrgWarrantyDetails",
+        "OrgWarrantyDetail"
+      ]
+    },
+    {
+      "page": "WarrantyManagement",
+      "candidates": [
+        "OrgWarrantyManagement",
+        "OrgWarrantyManagements"
+      ]
+    },
+    {
+      "page": "Webhooks",
+      "candidates": [
+        "OrgWebhooks",
+        "OrgWebhook"
+      ]
+    },
+    {
+      "page": "WorkflowAutomation",
+      "candidates": [
+        "OrgWorkflowAutomation",
+        "OrgWorkflowAutomations"
+      ]
+    },
+    {
+      "page": "WorkflowBuilder",
+      "candidates": [
+        "OrgWorkflowBuilder",
+        "OrgWorkflowBuilders"
+      ]
+    }
+  ]
+}

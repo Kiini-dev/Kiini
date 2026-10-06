@@ -1,0 +1,136 @@
+  auth: router({
+    me: publicProcedure.query(opts => opts.ctx.user),
+
+    signup: publicProcedure
+      .input(z.object({
+        name: z.string().min(2, "Name must be at least 2 characters"),
+        email: z.string().email("Invalid email address"),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Check if user already exists
+        const existingUser = await db.getUserByEmail(input.email);
+        if (existingUser) {
+          throw new TRPCError({ 
+            code: "CONFLICT", 
+            message: "An account with this email already exists" 
+          });
+        }
+
+        // Hash password
+        const passwordHash = await hashPassword(input.password);
+
+        // Create user
+        const userId = nanoid();
+        await db.upsertUser({
+          id: userId,
+          name: input.name,
+          email: input.email,
+          loginMethod: "local",
+          role: "user",
+          passwordHash,
+          lastSignedIn: new Date(),
+        });
+
+        // Create session
+        const sessionId = nanoid(32);
+        const expires = new Date(Date.now() + ONE_YEAR_MS);
+
+        setCookie(ctx.res, COOKIE_NAME, sessionId, {
+          expires,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        });
+
+        // Return user info
+        return { 
+          success: true, 
+          user: { id: userId, role: "user", name: input.name, email: input.email } 
+        };
+      }),
+
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email("Invalid email address"),
+        password: z.string().min(1, "Password is required"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Look up user by email
+        const user = await db.getUserByEmail(input.email);
+
+        if (!user || !user.passwordHash) {
+          throw new TRPCError({ 
+            code: "UNAUTHORIZED", 
+            message: "Invalid email or password" 
+          });
+        }
+
+        // Verify password
+        const isPasswordValid = await comparePassword(input.password, user.passwordHash);
+
+        if (!isPasswordValid) {
+          throw new TRPCError({ 
+            code: "UNAUTHORIZED", 
+            message: "Invalid email or password" 
+          });
+        }
+
+        // Create session
+        const sessionId = nanoid(32);
+        const expires = new Date(Date.now() + ONE_YEAR_MS);
+
+        setCookie(ctx.res, COOKIE_NAME, sessionId, {
+          expires,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+        });
+
+        // Update user's lastSignedIn
+        await db.updateUser(user.id, { 
+          lastSignedIn: new Date(), 
+          loginMethod: "local" 
+        });
+
+        // Return user info
+        return { 
+          success: true, 
+          user: { id: user.id, role: user.role, name: user.name, email: user.email } 
+        };
+      }),
+
+    logout: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return {
+        success: true,
+      } as const;
+    }),
+
+    updateProfile: protectedProcedure
+      .input(z.object({
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const userId = ctx.user.id;
+        const updateData: any = {};
+        
+        if (input.name) updateData.name = input.name;
+        if (input.email) updateData.email = input.email;
+        
+        if (Object.keys(updateData).length === 0) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'No fields to update' });
+        }
+        
+        try {
+          await db.updateUser(userId, updateData);
+          return { success: true, message: 'Profile updated successfully' };
+        } catch (error) {
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update profile' });
+        }
+      }),
+  }),

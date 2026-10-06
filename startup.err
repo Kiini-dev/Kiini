@@ -1,0 +1,49 @@
+[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable.
+[SMS] Africa's Talking credentials not configured - SMS will be queued but not sent
+[Database] DATABASE_URL not set
+(node:29016) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[Initialization] ⚠️  Error initializing default user: Failed query: select `id`, `name`, `email`, `emailVerified`, `loginMethod`, `passwordHash`, `failedLoginAttempts`, `lockedUntil`, `lockoutCount`, `role`, `createdAt`, `lastSignedIn`, `department`, `isActive`, `clientId`, `permissions`, `passwordResetToken`, `passwordResetExpiresAt`, `requiresPasswordChange`, `emailVerificationRequired`, `twoFactorEnabled`, `twoFactorSecret`, `phone`, `company`, `position`, `address`, `city`, `country`, `photoUrl`, `organizationId`, `customRoleId` from `users` limit ?
+params: 1
+[EMAIL] Default template seed skipped: Command failed: node scripts/seed-email-templates.mjs
+[EmailTemplates] Seed failed: Error: Access denied for user 'melitec1_Kiini: One Hub. Total Control'@'172.18.0.1' (using password: YES)
+    at PromisePool.query (D:\Websites & Stuff\Kiini: One Hub. Total Control\node_modules\.pnpm\mysql2@3.19.1_@types+node@24.12.0\node_modules\mysql2\lib\promise\pool.js:36:22)
+    at seedEmailTemplates (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/scripts/seed-email-templates.mjs:60:18) {
+  code: 'ER_ACCESS_DENIED_ERROR',
+  errno: 1045,
+  sql: undefined,
+  sqlState: '28000',
+  sqlMessage: "Access denied for user 'melitec1_Kiini: One Hub. Total Control'@'172.18.0.1' (using password: YES)"
+}
+
+[JobScheduler] Initialization error: DrizzleQueryError: Failed query: select `id`, `organizationId`, `jobName`, `jobType`, `schedule`, `description`, `cronExpression`, `handler`, `status`, `isActive`, `isManualOnly`, `lastRun`, `nextRun`, `lastExecutedAt`, `nextExecutionAt`, `lastRunAt`, `lastRunStatus`, `lastRunDuration`, `nextScheduledRun`, `lastFailureReason`, `failureCount`, `timezone`, `createdBy`, `createdAt`, `updatedAt` from `scheduledJobs` where `scheduledJobs`.`isActive` = ?
+params: 1
+    at MySql2PreparedQuery.queryWithCache (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/node_modules/.pnpm/drizzle-orm@0.44.7_better-s_c9ee62bb574a4389bba8423055d143e3/node_modules/drizzle-orm/mysql-core/session.js:25:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async MySql2PreparedQuery.execute (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/node_modules/.pnpm/drizzle-orm@0.44.7_better-s_c9ee62bb574a4389bba8423055d143e3/node_modules/drizzle-orm/mysql2/session.js:78:20)
+    at async JobSchedulerService.initialize (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/dist/index.js:14379:25)
+    at async startServer (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/dist/index.js:88257:3) {
+  query: 'select `id`, `organizationId`, `jobName`, `jobType`, `schedule`, `description`, `cronExpression`, `handler`, `status`, `isActive`, `isManualOnly`, `lastRun`, `nextRun`, `lastExecutedAt`, `nextExecutionAt`, `lastRunAt`, `lastRunStatus`, `lastRunDuration`, `nextScheduledRun`, `lastFailureReason`, `failureCount`, `timezone`, `createdBy`, `createdAt`, `updatedAt` from `scheduledJobs` where `scheduledJobs`.`isActive` = ?',
+  params: [ 1 ],
+  cause: Error: Access denied for user 'melitec1_Kiini: One Hub. Total Control'@'172.18.0.1' (using password: YES)
+      at PromisePool.query (D:\Websites & Stuff\Kiini: One Hub. Total Control\node_modules\.pnpm\mysql2@3.19.1_@types+node@24.12.0\node_modules\mysql2\lib\promise\pool.js:36:22)
+      at file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/node_modules/.pnpm/drizzle-orm@0.44.7_better-s_c9ee62bb574a4389bba8423055d143e3/node_modules/drizzle-orm/mysql2/session.js:79:27
+      at MySql2PreparedQuery.queryWithCache (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/node_modules/.pnpm/drizzle-orm@0.44.7_better-s_c9ee62bb574a4389bba8423055d143e3/node_modules/drizzle-orm/mysql-core/session.js:23:22)
+      at MySql2PreparedQuery.execute (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/node_modules/.pnpm/drizzle-orm@0.44.7_better-s_c9ee62bb574a4389bba8423055d143e3/node_modules/drizzle-orm/mysql2/session.js:78:31)
+      at MySqlSelectBase.execute (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/node_modules/.pnpm/drizzle-orm@0.44.7_better-s_c9ee62bb574a4389bba8423055d143e3/node_modules/drizzle-orm/mysql-core/query-builders/select.js:805:27)
+      at MySqlSelectBase.then (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/node_modules/.pnpm/drizzle-orm@0.44.7_better-s_c9ee62bb574a4389bba8423055d143e3/node_modules/drizzle-orm/query-promise.js:21:17)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async JobSchedulerService.initialize (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/dist/index.js:14379:25)
+      at async startServer (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/dist/index.js:88257:3) {
+    code: 'ER_ACCESS_DENIED_ERROR',
+    errno: 1045,
+    sql: undefined,
+    sqlState: '28000',
+    sqlMessage: "Access denied for user 'melitec1_Kiini: One Hub. Total Control'@'172.18.0.1' (using password: YES)"
+  }
+}
+Error: Configured port 3006 is already in use. Stop the other process or change PORT in the environment.
+    at startServer (file:///D:/Websites%20&%20Stuff/Kiini: One Hub. Total Control/dist/index.js:88416:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[STARTUP] Default user initialization timed out after 10000ms; continuing server startup
+[STARTUP] Job scheduler initialization timed out after 10000ms; continuing server startup

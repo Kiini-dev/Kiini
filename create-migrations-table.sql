@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS drizzle_migrations (
+  id SERIAL PRIMARY KEY,
+  hash VARCHAR(255) NOT NULL UNIQUE,
+  created_at BIGINT NOT NULL
+);

@@ -1,0 +1,540 @@
+/**
+ * Business Rules Engine Page
+ * Visual rule builder and business logic automation
+ */
+
+import React, { useState } from 'react';
+import { trpc } from "@/lib/trpc";
+import { Plus, Trash2, Edit, Play, CheckCircle, AlertCircle, Download, Code } from 'lucide-react';
+
+interface BusinessRule {
+  id: number;
+  name: string;
+  description?: string;
+  entityType: string;
+  status: 'active' | 'inactive' | 'archived';
+  priority: number;
+  triggers: string[];
+  conditions: number;
+  actions: number;
+  isEnabled: boolean;
+  executionCount: number;
+  successRate: number;
+  averageExecutionTime: number;
+  createdBy: string;
+  createdAt: Date;
+  lastModified: Date;
+}
+
+const BusinessRulesEngine: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('rules');
+  const [rules, setRules] = useState<BusinessRule[]>([
+    {
+      id: 1,
+      name: 'Auto-approve invoices under $5,000',
+      description: 'Automatically approve invoices with amount less than $5,000 and no flagged items',
+      entityType: 'invoice',
+      status: 'active',
+      priority: 1,
+      triggers: ['invoice_created', 'invoice_modified'],
+      conditions: 2,
+      actions: 2,
+      isEnabled: true,
+      executionCount: 1247,
+      successRate: 98.5,
+      averageExecutionTime: 234,
+      createdBy: 'Admin User',
+      createdAt: new Date(Date.now() - 7776000000),
+      lastModified: new Date(Date.now() - 1209600000),
+    },
+    {
+      id: 2,
+      name: 'High-value transaction approval routing',
+      description: 'Route invoices over $50,000 to CFO for approval',
+      entityType: 'invoice',
+      status: 'active',
+      priority: 2,
+      triggers: ['invoice_created', 'invoice_modified'],
+      conditions: 2,
+      actions: 3,
+      isEnabled: true,
+      executionCount: 89,
+      successRate: 100,
+      averageExecutionTime: 156,
+      createdBy: 'Finance Manager',
+      createdAt: new Date(Date.now() - 5443200000),
+      lastModified: new Date(Date.now() - 604800000),
+    },
+    {
+      id: 3,
+      name: 'Payment due date reminder',
+      description: 'Send reminder email 3 days before payment due date',
+      entityType: 'payment',
+      status: 'active',
+      priority: 3,
+      triggers: ['daily_schedule_3pm'],
+      conditions: 2,
+      actions: 2,
+      isEnabled: true,
+      executionCount: 456,
+      successRate: 99.1,
+      averageExecutionTime: 678,
+      createdBy: 'Admin User',
+      createdAt: new Date(Date.now() - 4752000000),
+      lastModified: new Date(Date.now() - 864000000),
+    },
+  ]);
+
+  const [selectedRule, setSelectedRule] = useState<BusinessRule | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newRule, setNewRule] = useState({
+    name: '',
+    description: '',
+    entityType: '',
+  });
+
+  const handleCreateRule = async () => {
+    if (!newRule.name || !newRule.entityType) {
+      message.error('Name and Entity Type are required');
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const rule: BusinessRule = {
+        id: Math.max(...rules.map(r => r.id), 0) + 1,
+        name: newRule.name,
+        description: newRule.description,
+        entityType: newRule.entityType,
+        status: 'active',
+        priority: rules.length + 1,
+        triggers: [],
+        conditions: 0,
+        actions: 0,
+        isEnabled: true,
+        executionCount: 0,
+        successRate: 0,
+        averageExecutionTime: 0,
+        createdBy: 'Current User',
+        createdAt: new Date(),
+        lastModified: new Date(),
+      };
+
+      setRules([...rules, rule]);
+      setNewRule({ name: '', description: '', entityType: '' });
+      setShowModal(false);
+      message.success('Rule created successfully');
+    } catch (error) {
+      message.error('Failed to create rule');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDeleteRule = (id: number) => {
+    setRules(rules.filter(r => r.id !== id));
+    message.success('Rule deleted');
+  };
+
+  const handleToggleRule = (id: number) => {
+    setRules(rules.map(r =>
+      r.id === id ? { ...r, isEnabled: !r.isEnabled } : r
+    ));
+  };
+
+  const getStatusColor = (status: BusinessRule['status']) => {
+    const colors = {
+      active: 'green',
+      inactive: 'orange',
+      archived: 'red',
+    };
+    return colors[status];
+  };
+
+  const RulesList = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Business Rules</h2>
+        <div className="space-x-2">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setShowModal(true)}
+          >
+            New Rule
+          </Button>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={() => message.info('Export functionality')}
+          >
+            Export
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {rules.map(rule => (
+          <Card
+            key={rule.id}
+            className="hover:shadow-md transition-shadow"
+            hoverable
+            onClick={() => {
+              setSelectedRule(rule);
+              setShowDetailModal(true);
+            }}
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-lg font-semibold">{rule.name}</h3>
+                  <Tag color={getStatusColor(rule.status)}>{rule.status}</Tag>
+                  <Badge count={`P${rule.priority}`} color="#faad14" />
+                </div>
+
+                {rule.description && (
+                  <p className="text-sm text-gray-600 mb-3">{rule.description}</p>
+                )}
+
+                <div className="grid grid-cols-6 gap-4 mb-3 text-sm text-gray-600 py-2 border-t border-b">
+                  <div>
+                    <span className="text-xs text-gray-500">Entity</span>
+                    <div className="font-medium">{rule.entityType}</div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Triggers</span>
+                    <div className="font-medium">{rule.triggers.length}</div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Conditions</span>
+                    <div className="font-medium">{rule.conditions}</div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Actions</span>
+                    <div className="font-medium">{rule.actions}</div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Executions</span>
+                    <div className="font-medium">{rule.executionCount}</div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Success Rate</span>
+                    <div className="font-medium">{rule.successRate}%</div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>By {rule.createdBy}</span>
+                  <span>Modified {new Date(rule.lastModified).toLocaleDateString()}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 ml-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">Active</span>
+                  <Switch
+                    checked={rule.isEnabled}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleRule(rule.id);
+                    }}
+                  />
+                </div>
+                <Button
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedRule(rule);
+                    setShowDetailModal(true);
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteRule(rule.id);
+                  }}
+                />
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {rules.length === 0 && <Empty description="No rules" style={{ marginTop: 50 }} />}
+    </div>
+  );
+
+  const Analytics = () => (
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-6">Rules Analytics</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-600">{rules.length}</div>
+            <div className="text-sm text-gray-600 mt-2">Total Rules</div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-green-600">{rules.filter(r => r.isEnabled).length}</div>
+            <div className="text-sm text-gray-600 mt-2">Active Rules</div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-purple-600">
+              {rules.reduce((sum, r) => sum + r.executionCount, 0).toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-600 mt-2">Total Executions</div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-orange-600">
+              {(
+                rules.reduce((sum, r) => sum + r.successRate * r.executionCount, 0) /
+                rules.reduce((sum, r) => sum + r.executionCount, 0) ||
+                0
+              ).toFixed(1)}
+              %
+            </div>
+            <div className="text-sm text-gray-600 mt-2">Avg Success Rate</div>
+          </div>
+        </Card>
+      </div>
+
+      <Card title="Top Performing Rules">
+        <div className="space-y-4">
+          {rules
+            .sort((a, b) => b.executionCount - a.executionCount)
+            .slice(0, 3)
+            .map(rule => (
+              <div key={rule.id}>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">{rule.name}</span>
+                  <span className="text-sm text-gray-600">{rule.executionCount} executions</span>
+                </div>
+                <Progress
+                  percent={rule.successRate}
+                  strokeColor={rule.successRate > 95 ? '#52c41a' : rule.successRate > 90 ? '#faad14' : '#ff4d4f'}
+                />
+              </div>
+            ))}
+        </div>
+      </Card>
+
+      <Card title="Execution Trend (Last 7 Days)">
+        <div className="h-64 rounded p-4">
+          <div className="flex items-end justify-between h-full gap-2">
+            {Array.from({ length: 7 }, (_, i) => {
+              const day = new Date();
+              day.setDate(day.getDate() - (6 - i));
+              const label = day.toLocaleDateString("en-US", { weekday: "short" });
+              const totalExec = rules.reduce((s, r) => s + r.executionCount, 0);
+              const dailyExec = Math.round((totalExec / 7) * (0.7 + Math.random() * 0.6));
+              const maxHeight = 180;
+              const barH = Math.max(8, (dailyExec / (totalExec / 4 || 1)) * maxHeight);
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
+                  <div className="text-xs text-gray-500 mb-1">{dailyExec}</div>
+                  <div className="w-full bg-blue-500 rounded-t" style={{ height: `${Math.min(barH, maxHeight)}px` }} />
+                  <div className="text-xs text-gray-500 mt-1">{label}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+
+  const Templates = () => (
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-6">Rule Templates</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[
+          {
+            id: 't1',
+            name: 'Simple Approval',
+            description: 'Auto-approve if amount is below threshold',
+            entityType: 'invoice',
+          },
+          {
+            id: 't2',
+            name: 'Conditional Routing',
+            description: 'Route based on amount or department',
+            entityType: 'invoice',
+          },
+          {
+            id: 't3',
+            name: 'Reminder Notifications',
+            description: 'Send reminders before due date',
+            entityType: 'payment',
+          },
+          {
+            id: 't4',
+            name: 'Status Cascading',
+            description: 'Update related records when status changes',
+            entityType: 'invoice',
+          },
+        ].map(template => (
+          <Card key={template.id} hoverable>
+            <h3 className="font-semibold mb-2">{template.name}</h3>
+            <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+            <Tag>{template.entityType}</Tag>
+            <Button
+              type="primary"
+              size="small"
+              className="ml-2"
+              onClick={() => {
+                setNewRule({
+                  name: template.name,
+                  description: template.description,
+                  entityType: template.entityType,
+                });
+                setShowModal(true);
+                message.info('Template loaded - customize and create');
+              }}
+            >
+              Use Template
+            </Button>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8 text-gray-900 flex items-center gap-2">
+          <BgColorsOutlined />
+          Business Rules Engine
+        </h1>
+
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            {
+              key: 'rules',
+              label: <span>My Rules ({rules.length})</span>,
+              children: <RulesList />,
+            },
+            {
+              key: 'analytics',
+              label: 'Analytics',
+              children: <Analytics />,
+            },
+            {
+              key: 'templates',
+              label: 'Templates',
+              children: <Templates />,
+            },
+          ]}
+        />
+
+        <Modal
+          title="Create New Business Rule"
+          open={showModal}
+          onOk={handleCreateRule}
+          onCancel={() => setShowModal(false)}
+          confirmLoading={isCreating}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Rule Name *</label>
+              <Input
+                placeholder="e.g., Auto-approve invoices under $5,000"
+                value={newRule.name}
+                onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Description</label>
+              <Input.TextArea
+                placeholder="What does this rule do?"
+                rows={3}
+                value={newRule.description}
+                onChange={(e) => setNewRule({ ...newRule, description: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Entity Type *</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={newRule.entityType}
+                onChange={(e) => setNewRule({ ...newRule, entityType: e.target.value })}
+              >
+                <option value="">Select entity type</option>
+                <option value="invoice">Invoice</option>
+                <option value="payment">Payment</option>
+                <option value="client">Client</option>
+                <option value="employee">Employee</option>
+              </select>
+            </div>
+          </div>
+        </Modal>
+
+        {selectedRule && (
+          <Modal
+            title={`Rule: ${selectedRule.name}`}
+            open={showDetailModal}
+            onCancel={() => {
+              setShowDetailModal(false);
+              setSelectedRule(null);
+            }}
+            footer={null}
+            width={800}
+          >
+            <div className="space-y-6">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-3 bg-blue-50 rounded">
+                  <div className="text-xs text-gray-600">Success Rate</div>
+                  <div className="text-2xl font-bold text-blue-600">{selectedRule.successRate}%</div>
+                </div>
+                <div className="p-3 bg-green-50 rounded">
+                  <div className="text-xs text-gray-600">Executions</div>
+                  <div className="text-2xl font-bold text-green-600">{selectedRule.executionCount.toLocaleString()}</div>
+                </div>
+                <div className="p-3 bg-purple-50 rounded">
+                  <div className="text-xs text-gray-600">Avg Time (ms)</div>
+                  <div className="text-2xl font-bold text-purple-600">{selectedRule.averageExecutionTime}</div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-semibold mb-2">Rule Configuration</h4>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="text-gray-600">Triggers:</span> {selectedRule.triggers.length} configured
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Conditions:</span> {selectedRule.conditions} rules
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Actions:</span> {selectedRule.actions} actions
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Modal>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default BusinessRulesEngine;

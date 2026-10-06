@@ -1,0 +1,1 @@
+const e={CARD:"card",BANK_TRANSFER:"bank_transfer",CASH:"cash",MPESA:"mpesa",CHEQUE:"cheque",OTHER:"other"},t={[e.CARD]:"Card",[e.BANK_TRANSFER]:"Bank Transfer",[e.CASH]:"Cash",[e.MPESA]:"M-Pesa",[e.CHEQUE]:"Cheque",[e.OTHER]:"Other"},A=()=>Object.entries(t).map(([E,a])=>({value:E,label:a}));export{A as g};

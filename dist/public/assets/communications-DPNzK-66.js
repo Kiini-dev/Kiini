@@ -1,0 +1,1 @@
+function c(m,t,n){const i=m.match(/^\/org\/([^/]+)/),r=i?`/org/${i[1]}/communications/new`:"/communications/new",o=new URLSearchParams;t&&t.trim()&&o.set("to",t.trim()),n&&n.trim()&&o.set("subject",n.trim());const a=o.toString();return a?`${r}?${a}`:r}export{c as b};

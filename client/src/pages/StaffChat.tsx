@@ -1,0 +1,983 @@
+import { useState, useEffect, useRef, useMemo } from "react";
+import { ModuleLayout } from "@/components/ModuleLayout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { appendCannedResponse, CannedResponsePicker } from "@/components/CannedResponsePicker";
+import {
+  MessageCircle, Send, Users, Smile, Trash2, Reply, X, Pencil, Search,
+  Plus, Hash, Lock, Paperclip, FileText, Image as ImageIcon, Download, UserPlus, Menu,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { decryptChatMessage, encryptChatMessage, ensureChatKeyPair, getStoredChatPublicKey } from "@/lib/staffChatCrypto";
+import { findExistingPrivateChannel, normalizeMembers } from "@/lib/privateChatUtils";
+
+const EMOJI_OPTIONS = [
+  "👍", "❤️", "😂", "😮", "😢", "😡", "🎉", "🔥",
+  "✨", "👏", "💯", "🚀", "💡", "📝", "⏰", "✅",
+  "❌", "👀", "🤔", "😴", "🤷", "😎", "🙌", "💪",
+  "🌟", "🍕", "☕", "📅", "📌", "🔒", "🔑", "🎁",
+  "📎", "💼", "📊", "📈", "📉", "💬", "👤", "👥",
+  "🗂️", "📂", "🖼️", "🎨", "🎬", "🎤", "🎧", "🎮",
+  "⚽", "🏀", "🏆", "🚗", "✈️", "🏠", "🏢", "🏥",
+  "😅", "😇", "🤩", "🥳", "😜", "🤪", "🤨", "🧐",
+  "😬", "😰", "😱", "😭", "😤", "😠", "🤬", "👻",
+];
+
+function getInitials(name: string) {
+  return String(name || "User")
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function getAvatarColor(userId: string) {
+  userId = String(userId || "user");
+  const colors = [
+    "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500",
+    "bg-pink-500", "bg-teal-500", "bg-indigo-500", "bg-rose-500",
+  ];
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function getChannelIcon(type: string) {
+  if (type === "private") return <Lock className="w-3.5 h-3.5" />;
+  if (type === "team") return <Hash className="w-3.5 h-3.5" />;
+  return <MessageCircle className="w-3.5 h-3.5" />;
+}
+
+export default function StaffChat() {
+  const [input, setInput] = useState("");
+  const [replyTo, setReplyTo] = useState<any>(null);
+  const [editingMsg, setEditingMsg] = useState<any>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [conversationSearch, setConversationSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [activeChannelId, setActiveChannelId] = useState("general");
+  const [selectedChannel, setSelectedChannel] = useState<any>(null);
+  const [showNewChannelDialog, setShowNewChannelDialog] = useState(false);
+  const [showNewPrivateDialog, setShowNewPrivateDialog] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+  const [newChannelDesc, setNewChannelDesc] = useState("");
+  const [newChannelMembers, setNewChannelMembers] = useState<string[]>([]);
+  const [privateRecipient, setPrivateRecipient] = useState("");
+  const [pendingFile, setPendingFile] = useState<{ name: string; url: string; type: string } | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get current user info
+  const { data: profileData } = trpc.auth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5,
+  });
+  const currentUserId = profileData?.id || "";
+  const currentUserName = profileData?.name || profileData?.email || "Me";
+
+  // Channels
+  const { data: channelsData, refetch: refetchChannels } = trpc.staffChat.listChannels.useQuery(
+    undefined,
+    { enabled: Boolean(currentUserId), refetchInterval: 10000, refetchOnWindowFocus: false }
+  );
+  const channels = channelsData || [];
+  const activeChannel = channels.find((c: any) => c.id === activeChannelId) || selectedChannel;
+
+  // Messages for active channel
+  const { data: messagesData, refetch: refetchMessages } = trpc.staffChat.getMessages.useQuery(
+    { channelId: activeChannelId, limit: 100, offset: 0 },
+    { enabled: Boolean(currentUserId), refetchInterval: 3000, refetchOnWindowFocus: false }
+  );
+
+  const { data: membersData } = trpc.staffChat.getMembers.useQuery(
+    undefined,
+    { enabled: Boolean(currentUserId), refetchInterval: 5000, refetchOnWindowFocus: false }
+  );
+  const { data: directoryData = [] } = trpc.staffChat.getDirectory.useQuery(undefined, {
+    enabled: Boolean(currentUserId),
+    refetchInterval: 15000,
+    refetchOnWindowFocus: false,
+  });
+  const heartbeatMut = trpc.staffChat.heartbeat.useMutation();
+  const registerPublicKeyMut = trpc.staffChat.registerPublicKey.useMutation();
+
+  useEffect(() => {
+    void ensureChatKeyPair().then((publicKey) => registerPublicKeyMut.mutate({ publicKey }));
+    heartbeatMut.mutate(undefined);
+    const timer = window.setInterval(() => heartbeatMut.mutate(undefined), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  // Mutations
+  const sendMut = trpc.staffChat.sendMessage.useMutation({
+    onSuccess: () => {
+      setInput("");
+      setReplyTo(null);
+      setShowEmojiPicker(false);
+      setPendingFile(null);
+      refetchMessages();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const editMut = trpc.staffChat.editMessage.useMutation({
+    onSuccess: () => {
+      setInput("");
+      setEditingMsg(null);
+      refetchMessages();
+      toast.success("Message updated");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteMut = trpc.staffChat.deleteMessage.useMutation({
+    onSuccess: () => {
+      refetchMessages();
+      toast.success("Message deleted");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const createChannelMut = trpc.staffChat.createChannel.useMutation({
+    onSuccess: (data: any) => {
+      setShowNewChannelDialog(false);
+      setShowNewPrivateDialog(false);
+      setNewChannelName("");
+      setNewChannelDesc("");
+      setNewChannelMembers([]);
+      setPrivateRecipient("");
+      refetchChannels();
+      if (data?.id) setActiveChannelId(data.id);
+      toast.success("Channel created");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const selectChannel = (channel: any) => {
+    const channelId = typeof channel?.id === "string" ? channel.id : "";
+    if (!channelId) return;
+    setSelectedChannel(channel);
+    setActiveChannelId(channelId);
+    setMobileSidebarOpen(false);
+  };
+
+  const messages = useMemo(() => messagesData?.messages || [], [messagesData?.messages]);
+  const members = useMemo(
+    () => (directoryData.length ? directoryData : (membersData || [])),
+    [directoryData, membersData]
+  );
+  const [decryptedMessages, setDecryptedMessages] = useState<any[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const channelIdAtStart = activeChannelId;
+    setDecryptedMessages([]);
+
+    void (async () => {
+      const result: any[] = [];
+      for (let index = 0; index < messages.length; index += 1) {
+        if (cancelled) return;
+        const message = messages[index];
+        result.push({
+          ...message,
+          content: await decryptChatMessage(
+            message,
+            currentUserId,
+            message.userId === currentUserId
+              ? getStoredChatPublicKey() || message.senderPublicKey
+              : message.senderPublicKey || members.find((member: any) => member.userId === message.userId)?.publicKey
+          ),
+        });
+
+        if ((index + 1) % 8 === 0) {
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+        }
+      }
+
+      if (!cancelled && channelIdAtStart === activeChannelId) {
+        setDecryptedMessages(result);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [messages, members, currentUserId, activeChannelId]);
+
+  // Search
+  const { data: searchResults } = trpc.staffChat.searchMessages.useQuery(
+    { query: searchQuery, channelId: activeChannelId },
+    { enabled: showSearch && searchQuery.length > 0 }
+  );
+
+  const displayMessages = showSearch && searchQuery.length > 0 && searchResults
+    ? JSON.parse(JSON.stringify(searchResults))
+    : decryptedMessages;
+
+  // @mention filtering
+  const mentionSuggestions = useMemo(() => {
+    if (mentionQuery === null) return [];
+    return members.filter((m: any) =>
+      m.userName.toLowerCase().includes(mentionQuery.toLowerCase())
+    ).slice(0, 6);
+  }, [mentionQuery, members]);
+
+  // Auto-scroll
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  const handleSend = async () => {
+    if (!input.trim() && !pendingFile) return;
+    if (!currentUserId) {
+      toast.error("Your chat identity is still loading. Please try again.");
+      return;
+    }
+    const ownPublicKey = await ensureChatKeyPair();
+    const recipients = [
+      { userId: currentUserId, publicKey: ownPublicKey },
+      ...members.map((member: any) => ({ userId: member.userId, publicKey: member.publicKey })),
+    ].filter((recipient, index, all) => recipient.userId && all.findIndex((item) => item.userId === recipient.userId) === index);
+
+    if (editingMsg) {
+      const encrypted = await encryptChatMessage(input, recipients);
+      editMut.mutate({ id: editingMsg.id, ...encrypted, senderPublicKey: ownPublicKey });
+      return;
+    }
+
+    const content = input.trim() || (pendingFile ? `📎 ${pendingFile.name}` : "");
+    const encrypted = await encryptChatMessage(content, recipients);
+    sendMut.mutate({
+      ...encrypted,
+      senderPublicKey: ownPublicKey,
+      content: encrypted.content,
+      channelId: activeChannelId,
+      replyToId: replyTo?.id,
+      fileUrl: pendingFile?.url,
+      fileName: pendingFile?.name,
+      fileType: pendingFile?.type,
+    });
+  };
+
+  const handleEmojiInsert = (emoji: string) => {
+    setInput((prev) => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const startEdit = (msg: any) => {
+    setEditingMsg(msg);
+    setInput(msg.content);
+    setReplyTo(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingMsg(null);
+    setInput("");
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPendingFile({
+        name: file.name,
+        url: reader.result as string,
+        type: file.type.startsWith("image/") ? "image" : "file",
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCreateTeamChannel = () => {
+    if (!newChannelName.trim()) { toast.error("Channel name required"); return; }
+    createChannelMut.mutate({
+      name: newChannelName.trim(),
+      type: "team",
+      description: newChannelDesc.trim() || undefined,
+      members: newChannelMembers,
+    });
+  };
+
+  const handleCreatePrivateChat = () => {
+    if (!privateRecipient) { toast.error("Select a user"); return; }
+    const recipient = members.find((m: any) => m.userId === privateRecipient);
+    const name = `${currentUserName} & ${recipient?.userName || "User"}`;
+    createChannelMut.mutate({
+      name,
+      type: "private",
+      members: [privateRecipient],
+    });
+  };
+
+  const openPrivateChat = (recipient: any) => {
+    const existing = findExistingPrivateChannel(privateChannels, currentUserId, recipient.userId);
+    const existingId = typeof existing?.id === "string" ? existing.id : "";
+    if (existingId) {
+      selectChannel({ ...existing, id: existingId });
+      return;
+    }
+    setPrivateRecipient(recipient.userId);
+    setShowNewPrivateDialog(true);
+  };
+
+  const getPrivateChatName = (channel: any) => {
+    if (channel.type !== "private") return channel.name;
+    const memberIds = normalizeMembers(channel.members);
+    const otherId = memberIds.find((id: string) => id !== currentUserId);
+    if (otherId) {
+      const other = members.find((m: any) => m.userId === otherId);
+      return other?.userName || "Private Chat";
+    }
+    return channel.name;
+  };
+
+  // Group channels by type
+  const generalChannels = channels.filter((c: any) => c.type === "general");
+  const teamChannels = channels.filter((c: any) => c.type === "team");
+  const privateChannels = channels.filter((c: any) => c.type === "private");
+  const filteredChannels = channels.filter((channel: any) => {
+    const label = channel.type === "private" ? getPrivateChatName(channel) : channel.name;
+    return label.toLowerCase().includes(conversationSearch.toLowerCase());
+  });
+  const filteredGeneralChannels = generalChannels.filter((channel: any) => filteredChannels.includes(channel));
+  const filteredTeamChannels = teamChannels.filter((channel: any) => filteredChannels.includes(channel));
+  const filteredPrivateChannels = privateChannels.filter((channel: any) => filteredChannels.includes(channel));
+
+  // Helper to render sidebar content
+  const renderSidebatContent = () => (
+    <>
+      <CardHeader className="space-y-2 border-b border-slate-200 px-3 py-3 dark:border-slate-700">
+        <CardTitle className="flex items-center justify-between text-base font-semibold">
+          <span className="flex items-center gap-2 text-slate-900 dark:text-white">
+            Messages
+          </span>
+          {mobileSidebarOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 p-0"
+              onClick={() => setMobileSidebarOpen(false)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </CardTitle>
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Input value={conversationSearch} onChange={(event) => setConversationSearch(event.target.value)} placeholder="Search conversations..." className="h-9 border-slate-200 bg-slate-50 pl-9 text-sm dark:border-slate-700 dark:bg-slate-800" />
+        </div>
+        <div className="flex items-center gap-1 text-xs font-medium">
+          <span className="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">All</span>
+          <button onClick={() => setShowNewPrivateDialog(true)} className="ml-auto inline-flex items-center gap-1 rounded-full border border-slate-200 px-2.5 py-1 text-slate-500 transition hover:border-teal-200 hover:text-teal-600 dark:border-slate-700 dark:hover:border-teal-500 dark:hover:text-teal-300">
+            <Plus className="h-3.5 w-3.5" /> New message
+          </button>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 space-y-1 overflow-y-auto p-2">
+        {/* General */}
+        {filteredGeneralChannels.map((ch: any) => (
+          <button
+            key={ch.id}
+            onClick={() => {
+              selectChannel(ch);
+            }}
+            className={`w-full flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm transition ${
+              activeChannelId === ch.id ? "bg-teal-50 text-slate-900 shadow-sm ring-1 ring-teal-100 dark:bg-teal-950/40 dark:text-white dark:ring-teal-900/50" : "hover:bg-slate-50 dark:hover:bg-slate-800"
+            }`}
+          >
+            <Avatar className="h-8 w-8"><AvatarFallback className="bg-teal-500 text-[10px] text-white">{getInitials(ch.name)}</AvatarFallback></Avatar>
+            <span className="min-w-0 flex-1 truncate text-left">
+              <span className="block truncate font-medium">{ch.name}</span>
+              <span className="mt-0.5 block truncate text-[11px] text-slate-500">Team conversation</span>
+            </span>
+            <span className="text-[10px] text-slate-400">{messages.length ? "now" : ""}</span>
+          </button>
+        ))}
+
+        {/* Team Channels */}
+        {teamChannels.length > 0 && (
+          <>
+            <div className="px-2 pt-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Team Channels</p>
+            </div>
+            {filteredTeamChannels.map((ch: any) => (
+              <button
+                key={ch.id}
+                onClick={() => {
+                  selectChannel(ch);
+                }}
+                className={`w-full flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm transition ${
+                  activeChannelId === ch.id ? "bg-teal-50 text-slate-900 shadow-sm ring-1 ring-teal-100 dark:bg-teal-950/40 dark:text-white dark:ring-teal-900/50" : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Avatar className="h-8 w-8"><AvatarFallback className={`${getAvatarColor(ch.id)} text-[10px] text-white`}>{getInitials(ch.name)}</AvatarFallback></Avatar>
+                <span className="min-w-0 flex-1 truncate text-left">
+                  <span className="block truncate font-medium">{ch.name}</span>
+                  <span className="mt-0.5 block truncate text-[11px] text-slate-500">Team channel</span>
+                </span>
+              </button>
+            ))}
+          </>
+        )}
+
+        {/* Private Messages */}
+        {privateChannels.length > 0 && (
+          <>
+            <div className="px-2 pt-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Direct Messages</p>
+            </div>
+            {filteredPrivateChannels.map((ch: any) => (
+              <button
+                key={ch.id}
+                onClick={() => {
+                  selectChannel(ch);
+                }}
+                className={`w-full flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm transition ${
+                  activeChannelId === ch.id ? "bg-teal-50 text-slate-900 shadow-sm ring-1 ring-teal-100 dark:bg-teal-950/40 dark:text-white dark:ring-teal-900/50" : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Avatar className="h-8 w-8"><AvatarFallback className={`${getAvatarColor(ch.id)} text-[10px] text-white`}>{getInitials(getPrivateChatName(ch))}</AvatarFallback></Avatar>
+                <span className="min-w-0 flex-1 truncate text-left">
+                  <span className="block truncate font-medium">{getPrivateChatName(ch)}</span>
+                  <span className="mt-0.5 block truncate text-[11px] text-slate-500">Direct message</span>
+                </span>
+              </button>
+            ))}
+          </>
+        )}
+
+        {/* Online Members */}
+        <Separator className="my-2" />
+        <div className="px-2 pt-1">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+            <Users className="w-3 h-3" /> Online ({members.filter((m: any) => m.online).length})
+          </p>
+        </div>
+        {members.filter((m: any) => m.online).map((m: any) => (
+          <button key={m.userId} onClick={() => openPrivateChat(m)} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted rounded-md text-left">
+            <div className="relative">
+              <Avatar className="w-6 h-6">
+                <AvatarFallback className={`${getAvatarColor(m.userId)} text-white text-[9px]`}>
+                  {getInitials(m.userName)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 border border-white rounded-full" />
+            </div>
+            <span className="text-xs truncate">{m.userName}</span>
+          </button>
+        ))}
+      </CardContent>
+    </>
+  );
+
+  return (
+    <ModuleLayout
+      title="Team Chat"
+      description="Real-time team communication"
+      icon={<MessageCircle className="h-5 w-5" />}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/crm-home" },
+        { label: "Communications" },
+        { label: "Team Chat" },
+      ]}
+    >
+      <div className="flex h-[calc(100vh-220px)] min-h-[560px] gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100/80 p-2.5 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+        {/* Desktop Sidebar */}
+        <Card className="hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm md:flex md:w-[290px] md:flex-shrink-0 md:flex-col dark:border-slate-700 dark:bg-slate-900/80">
+          {renderSidebatContent()}
+        </Card>
+
+        {/* Mobile Sidebar Overlay */}
+        {mobileSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            onClick={() => setMobileSidebarOpen(false)}
+          >
+            <Card
+              className="fixed left-0 top-0 h-full w-72 flex-shrink-0 flex flex-col rounded-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {renderSidebatContent()}
+            </Card>
+          </div>
+        )}
+
+        {/* Chat Area */}
+        <Card className="flex min-w-0 flex-1 flex-col rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          <CardHeader className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {/* Mobile menu button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 p-0 md:hidden flex-shrink-0"
+                  onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="flex items-center gap-2 text-lg text-slate-900 dark:text-white">
+                    {activeChannel && getChannelIcon(activeChannel.type)}
+                    {activeChannel ? (activeChannel.type === "private" ? getPrivateChatName(activeChannel) : activeChannel.name) : "General Chat"}
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2 text-xs">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span>{members.filter((member: any) => member.online).length} online</span>
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
+                    <span className="truncate">{activeChannel?.description || `${messages.length} messages`}</span>
+                  </CardDescription>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="hidden rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 sm:inline-flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                  {activeChannel?.type || "general"}
+                </span>
+                {showSearch ? (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      placeholder="Search messages..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-8 w-40 text-sm"
+                      autoFocus
+                    />
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setShowSearch(false); setSearchQuery(""); }}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowSearch(true)} title="Search messages">
+                    <Search className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+
+          {/* Messages */}
+          <CardContent className="flex-1 space-y-1 overflow-y-auto bg-slate-50/90 p-3 dark:bg-slate-950/40">
+            {displayMessages.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="text-center">
+                  <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                  <p>No messages yet. Start the conversation!</p>
+                </div>
+              </div>
+            ) : (
+              displayMessages.map((msg: any) => {
+                const isOwn = msg.userId === currentUserId;
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-1`}
+                  >
+                    <div className={`flex gap-2 max-w-[75%] ${isOwn ? "flex-row-reverse" : ""}`}>
+                      <Avatar className="w-8 h-8 flex-shrink-0 mt-1">
+                        <AvatarFallback className={`${getAvatarColor(msg.userId)} text-white text-[10px]`}>
+                          {getInitials(msg.userName)}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="group">
+                        {msg.replyToId && msg.replyToUser && (
+                          <div className={`text-[10px] text-muted-foreground mb-0.5 flex items-center gap-1 ${isOwn ? "justify-end" : ""}`}>
+                            <Reply className="w-3 h-3" />
+                            Replying to {msg.replyToUser}
+                          </div>
+                        )}
+
+                        <div
+                          className={`px-3 py-2 rounded-2xl ${
+                            isOwn
+                              ? "bg-teal-500 text-white rounded-br-md shadow-sm"
+                              : "bg-white rounded-bl-md shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700"
+                          }`}
+                        >
+                          {!isOwn && (
+                            <p className="text-xs font-semibold mb-0.5 opacity-80">
+                              {msg.userName}
+                            </p>
+                          )}
+
+                          {/* File attachment */}
+                          {msg.fileUrl && (
+                            <div className="mb-1">
+                              {msg.fileType === "image" ? (
+                                <img src={msg.fileUrl} alt={msg.fileName || "Image"} className="max-w-[250px] max-h-[200px] rounded-lg object-cover" />
+                              ) : (
+                                <div className={`flex items-center gap-2 p-2 rounded-lg ${isOwn ? "bg-primary-foreground/10" : "bg-background/50"}`}>
+                                  <FileText className="w-4 h-4 flex-shrink-0" />
+                                  <span className="text-xs truncate">{msg.fileName || "File"}</span>
+                                  <a href={msg.fileUrl} download={msg.fileName} className="ml-auto">
+                                    <Download className="w-3.5 h-3.5" />
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <p className="text-sm break-words whitespace-pre-wrap">
+                            {String(msg.content ?? "").split(/(@\w+(?:\s\w+)?)/g).map((part: string, i: number) =>
+                              part.startsWith("@") ? (
+                                <span key={i} className={`font-semibold ${isOwn ? "text-primary-foreground underline" : "text-primary underline"}`}>
+                                  {part}
+                                </span>
+                              ) : part
+                            )}
+                          </p>
+                          {msg.emoji && <span className="text-lg">{msg.emoji}</span>}
+                          <div className={`flex items-center gap-1 mt-1 ${isOwn ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                            <p className="text-[10px]">
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                            {msg.isEdited === 1 && <span className="text-[9px] italic">(edited)</span>}
+                          </div>
+                        </div>
+
+                        {/* Hover actions */}
+                        <div className={`flex gap-1 mt-0.5 opacity-0 group-hover:opacity-100 transition ${isOwn ? "justify-end" : ""}`}>
+                          <button
+                            className="p-1 rounded hover:bg-muted text-muted-foreground"
+                            onClick={() => { setReplyTo(msg); setEditingMsg(null); }}
+                            title="Reply"
+                          >
+                            <Reply className="w-3 h-3" />
+                          </button>
+                          {isOwn && (
+                            <>
+                              <button
+                                className="p-1 rounded hover:bg-muted text-muted-foreground"
+                                onClick={() => startEdit(msg)}
+                                title="Edit"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button
+                                className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                onClick={() => deleteMut.mutate({ id: msg.id })}
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </CardContent>
+
+          {/* File preview bar */}
+          {pendingFile && (
+            <div className="px-4 py-2 bg-blue-50 dark:bg-blue-950/30 border-t flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm">
+                {pendingFile.type === "image" ? <ImageIcon className="w-4 h-4 text-blue-500" /> : <FileText className="w-4 h-4 text-blue-500" />}
+                <span className="font-medium truncate max-w-[300px]">{pendingFile.name}</span>
+              </div>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setPendingFile(null)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Reply / Edit banner */}
+          {(replyTo || editingMsg) && (
+            <div className="px-4 py-2 bg-muted/50 border-t flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm">
+                {editingMsg ? (
+                  <>
+                    <Pencil className="w-3 h-3 text-primary" />
+                    <span className="text-primary font-medium">Editing message</span>
+                  </>
+                ) : (
+                  <>
+                    <Reply className="w-3 h-3 text-blue-500" />
+                    <span className="text-blue-600 font-medium">Replying to {replyTo.userName}</span>
+                    <span className="text-muted-foreground truncate max-w-[200px]">{replyTo.content}</span>
+                  </>
+                )}
+              </div>
+              <Button
+                variant="ghost" size="sm" className="h-6 w-6 p-0"
+                onClick={() => { setReplyTo(null); cancelEdit(); }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Input Area */}
+          <div className="border-t border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-900/80">
+            <CannedResponsePicker
+              format="text"
+              onSelect={response => setInput(current => appendCannedResponse(current, response.content))}
+            />
+            {/* @Mention Dropdown */}
+            {mentionQuery !== null && mentionSuggestions.length > 0 && (
+              <div className="bg-popover border rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                {mentionSuggestions.map((m: any, idx: number) => (
+                  <button
+                    key={m.userId}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition ${idx === mentionIndex ? "bg-accent" : ""}`}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      const cursorPos = inputRef.current?.selectionStart || input.length;
+                      const textBefore = input.slice(0, cursorPos);
+                      const textAfter = input.slice(cursorPos);
+                      const newBefore = textBefore.replace(/@(\w*)$/, `@${m.userName} `);
+                      setInput(newBefore + textAfter);
+                      setMentionQuery(null);
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    <Avatar className="w-6 h-6">
+                      <AvatarFallback className={`${getAvatarColor(m.userId)} text-white text-[9px]`}>
+                        {getInitials(m.userName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{m.userName}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Emoji Picker */}
+            {showEmojiPicker && (
+              <div className="p-2 bg-muted rounded-lg grid grid-cols-8 gap-1 max-h-32 overflow-y-auto">
+                {EMOJI_OPTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => handleEmojiInsert(emoji)}
+                    className="text-xl p-1 rounded hover:bg-background transition flex-shrink-0"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+              <Button
+                variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              >
+                <Smile className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0"
+                onClick={() => fileInputRef.current?.click()}
+                title="Attach file"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
+                onChange={handleFileSelect}
+              />
+              <Textarea
+                ref={inputRef}
+                placeholder="Type a message..."
+                value={input}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setInput(val);
+                  const cursorPos = e.target.selectionStart || val.length;
+                  const textBefore = val.slice(0, cursorPos);
+                  const atMatch = textBefore.match(/@(\w*)$/);
+                  if (atMatch) {
+                    setMentionQuery(atMatch[1]);
+                    setMentionIndex(0);
+                  } else {
+                    setMentionQuery(null);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (mentionQuery !== null && mentionSuggestions.length > 0) {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setMentionIndex((i) => Math.min(i + 1, mentionSuggestions.length - 1));
+                      return;
+                    }
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setMentionIndex((i) => Math.max(i - 1, 0));
+                      return;
+                    }
+                    if (e.key === "Enter" || e.key === "Tab") {
+                      e.preventDefault();
+                      const selected = mentionSuggestions[mentionIndex];
+                      if (selected) {
+                        const cursorPos = inputRef.current?.selectionStart || input.length;
+                        const textBefore = input.slice(0, cursorPos);
+                        const textAfter = input.slice(cursorPos);
+                        const newBefore = textBefore.replace(/@(\w*)$/, `@${selected.userName} `);
+                        setInput(newBefore + textAfter);
+                        setMentionQuery(null);
+                      }
+                      return;
+                    }
+                    if (e.key === "Escape") {
+                      setMentionQuery(null);
+                      return;
+                    }
+                  }
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                disabled={sendMut.isPending || editMut.isPending}
+                className="flex-1 min-h-9 max-h-32 resize-none rounded-2xl border-slate-200 bg-slate-50 text-sm dark:border-slate-700 dark:bg-slate-800"
+              />
+              <Button
+                onClick={handleSend}
+                disabled={(!input.trim() && !pendingFile) || sendMut.isPending || editMut.isPending}
+                size="sm" className="h-9 flex-shrink-0 rounded-xl bg-teal-500 hover:bg-teal-600"
+                title="Send message (Ctrl+Enter)"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Create Team Channel Dialog */}
+      <Dialog open={showNewChannelDialog} onOpenChange={setShowNewChannelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Hash className="w-4 h-4" /> Create Team Channel</DialogTitle>
+            <DialogDescription>Create a channel for a department or team (e.g., ICT, Admin, Finance)</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Channel Name</Label>
+              <Input
+                placeholder="e.g. ICT Team, Finance, Admin"
+                value={newChannelName}
+                onChange={(e) => setNewChannelName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description (optional)</Label>
+              <Input
+                placeholder="What is this channel about?"
+                value={newChannelDesc}
+                onChange={(e) => setNewChannelDesc(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Add Members</Label>
+              <div className="border rounded-lg p-2 max-h-[200px] overflow-y-auto space-y-1">
+                {members.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-2">No members found. Start chatting to populate the member list.</p>
+                ) : (
+                  members.map((m: any) => (
+                    <label key={m.userId} className="flex items-center gap-2 p-1.5 rounded hover:bg-muted cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newChannelMembers.includes(m.userId)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNewChannelMembers([...newChannelMembers, m.userId]);
+                          } else {
+                            setNewChannelMembers(newChannelMembers.filter(id => id !== m.userId));
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <Avatar className="w-5 h-5">
+                        <AvatarFallback className={`${getAvatarColor(m.userId)} text-white text-[8px]`}>
+                          {getInitials(m.userName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{m.userName}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+              {newChannelMembers.length > 0 && (
+                <p className="text-xs text-muted-foreground">{newChannelMembers.length} member(s) selected</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewChannelDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreateTeamChannel} disabled={createChannelMut.isPending}>
+              {createChannelMut.isPending ? "Creating..." : "Create Channel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Private Message Dialog */}
+      <Dialog open={showNewPrivateDialog} onOpenChange={setShowNewPrivateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Lock className="w-4 h-4" /> New Private Message</DialogTitle>
+            <DialogDescription>Start a private conversation with a team member</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Select User</Label>
+              <div className="border rounded-lg p-2 max-h-[300px] overflow-y-auto space-y-1">
+                {members.filter((m: any) => m.userId !== currentUserId).map((m: any) => (
+                  <button
+                    key={m.userId}
+                    onClick={() => setPrivateRecipient(m.userId)}
+                    className={`w-full flex items-center gap-2 p-2 rounded-md text-sm transition ${
+                      privateRecipient === m.userId ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                    }`}
+                  >
+                    <Avatar className="w-6 h-6">
+                      <AvatarFallback className={`${getAvatarColor(m.userId)} text-white text-[9px]`}>
+                        {getInitials(m.userName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{m.userName}</span>
+                  </button>
+                ))}
+                {members.filter((m: any) => m.userId !== currentUserId).length === 0 && (
+                  <p className="text-xs text-muted-foreground p-2">No other members found. Users who have sent messages will appear here.</p>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewPrivateDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreatePrivateChat} disabled={createChannelMut.isPending || !privateRecipient}>
+              {createChannelMut.isPending ? "Creating..." : "Start Chat"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </ModuleLayout>
+  );
+}

@@ -1,0 +1,598 @@
+/**
+ * Phase 10: Custom Fields Styles
+ */
+
+/* ============================================================
+   CustomFieldRenderer Styles
+   ============================================================ */
+
+.custom-field {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-field.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.custom-field.has-error .field-label {
+  color: #dc2626;
+}
+
+.field-label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+}
+
+.field-label.required::after {
+  content: ' *';
+  color: #dc2626;
+}
+
+.field-hint {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 0.375rem;
+  display: block;
+}
+
+.warning-message {
+  color: #f59e0b;
+  padding: 0.75rem;
+  background-color: #fef3c7;
+  border-radius: 0.375rem;
+  font-size: 0.9rem;
+}
+
+/* Form inputs */
+.form-input,
+.form-select,
+.form-textarea,
+.form-input-file {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-color: #fff;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus,
+.form-input-file:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.custom-field.has-error .form-input,
+.custom-field.has-error .form-select,
+.custom-field.has-error .form-textarea,
+.custom-field.has-error .form-input-file {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.custom-field.has-error .form-input:focus,
+.custom-field.has-error .form-select:focus,
+.custom-field.has-error .form-textarea:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Checkbox and Radio */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  font-weight: 400;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: #374151;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+/* Multi-select */
+.multi-select-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: #f9fafb;
+}
+
+.custom-field.has-error .multi-select-container {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+/* Currency input */
+.currency-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.currency-symbol {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0.75rem;
+  background-color: #f3f4f6;
+  border-right: 1px solid #d1d5db;
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 0.9rem;
+  min-width: 50px;
+  justify-content: center;
+}
+
+.currency-input {
+  border: none !important;
+  text-align: right;
+  padding-right: 0.75rem;
+}
+
+.currency-input:focus {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Custom field types specific styling */
+.custom-field-text,
+.custom-field-number,
+.custom-field-email,
+.custom-field-phone {
+  /* Standard text-like inputs */
+}
+
+.custom-field-date {
+  /* Date picker styling */
+}
+
+.custom-field-select,
+.custom-field-multiSelect {
+  /* Select-like styling */
+}
+
+.custom-field-checkbox {
+  /* Checkbox styling */
+  margin-top: 0.25rem;
+}
+
+.custom-field-richText {
+  /* Text area styling */
+}
+
+.custom-field-file {
+  /* File input styling */
+}
+
+.custom-field-currency {
+  /* Currency field styling */
+}
+
+/* ============================================================
+   CustomFieldGroup Styles
+   ============================================================ */
+
+.custom-field-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .custom-field-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   CustomFieldsManager Styles
+   ============================================================ */
+
+.custom-fields-manager {
+  padding: 2rem;
+  background-color: #f9fafb;
+  min-height: 100vh;
+}
+
+.manager-header {
+  margin-bottom: 2rem;
+}
+
+.manager-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #6b7280;
+  font-size: 0.975rem;
+  margin: 0;
+}
+
+.error-banner {
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  color: #991b1b;
+  margin-bottom: 1.5rem;
+}
+
+/* Entity Tabs */
+.entity-tabs {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #6b7280;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.tab:hover {
+  color: #1f2937;
+}
+
+.tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+@media (max-width: 768px) {
+  .entity-tabs {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .tab {
+    white-space: nowrap;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Action Buttons */
+.btn {
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+.btn-secondary:hover {
+  background-color: #d1d5db;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background-color: #f9fafb;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+}
+
+.btn-icon:hover {
+  background-color: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.btn-icon.btn-danger {
+  color: #dc2626;
+}
+
+.btn-icon.btn-danger:hover {
+  background-color: #fee2e2;
+  border-color: #fecaca;
+}
+
+/* Fields Container */
+.fields-container {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.loading-message,
+.empty-state {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.empty-state .hint {
+  margin-top: 0.5rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+/* Fields Table */
+.fields-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fields-table thead {
+  background-color: #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.fields-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fields-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+.fields-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.fields-table tbody tr.inactive {
+  opacity: 0.6;
+  background-color: #fef3c7;
+}
+
+.fields-table .font-mono {
+  font-family: 'Courier New', monospace;
+  color: #6366f1;
+  font-size: 0.875rem;
+}
+
+.fields-table .actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Dialog */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.dialog {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dialog-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 1.25rem;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  color: #1f2937;
+}
+
+.dialog-body {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.dialog-footer {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+  font-size: 0.9rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.form-group input[type="checkbox"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.form-group.with-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-group.with-checkbox label {
+  margin-bottom: 0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .custom-fields-manager {
+    padding: 1rem;
+  }
+
+  .manager-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .dialog {
+    max-width: 100%;
+  }
+
+  .fields-table th,
+  .fields-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .btn-icon {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.85rem;
+  }
+}

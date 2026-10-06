@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.github
+mobile/node_modules
+mobile/dist
+uploads
+mysql-data
+.env
+.env.*
+!.env.docker
+npm-debug.log*
+pnpm-debug.log*

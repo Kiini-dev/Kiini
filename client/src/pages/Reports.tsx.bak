@@ -1,0 +1,414 @@
+import { ModuleLayout } from "@/components/ModuleLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { useRequireFeature } from "@/lib/permissions";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  TrendingUp,
+  DollarSign,
+  Users,
+  FileText,
+  Download,
+  FileSpreadsheet,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useState, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { StatsCard } from "@/components/ui/stats-card";
+
+export default function Reports() {
+  // CALL ALL HOOKS UNCONDITIONALLY AT TOP LEVEL
+  const { allowed, isLoading } = useRequireFeature("reports:view");
+  
+  const [exportLoading, setExportLoading] = useState(false);
+
+  // Fetch real data from backend
+  const { data: invoices = [] } = trpc.invoices.list.useQuery();
+  const { data: clients = [] } = trpc.clients.list.useQuery();
+  const { data: payments = [] } = trpc.payments.list.useQuery();
+  const { data: expenses = [] } = trpc.expenses.list.useQuery();
+  const { data: topClientsData = [] } = trpc.clients.getTopClients.useQuery({ limit: 5 });
+
+  // Calculate real sales data from invoices
+  const salesData = useMemo(() => {
+    const monthlyData: { [key: string]: { revenue: number; invoices: number; clients: Set<string> } } = {};
+    
+    (invoices as any[]).forEach((invoice) => {
+      const date = new Date(invoice.issueDate);
+      const monthKey = date.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+      
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { revenue: 0, invoices: 0, clients: new Set() };
+      }
+      monthlyData[monthKey].revenue += (invoice.total || 0);
+      monthlyData[monthKey].invoices += 1;
+      monthlyData[monthKey].clients.add(invoice.clientId);
+    });
+
+    return Object.entries(monthlyData).map(([month, data]) => ({
+      month,
+      revenue: data.revenue,
+      invoices: data.invoices,
+      clients: data.clients.size,
+    }));
+  }, [invoices]);
+
+  // Calculate financial metrics
+  const totalRevenue = (invoices as any[]).reduce((sum, inv) => sum + (inv.total || 0), 0);
+  const totalExpenses = (expenses as any[]).reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  const totalInvoices = invoices.length;
+  const totalPaid = (payments as any[]).reduce((sum, p) => sum + (p.amount || 0), 0);
+  const outstandingRevenue = totalRevenue - totalPaid;
+  const avgMonthlyRevenue = salesData.length > 0 ? salesData.reduce((sum, d) => sum + d.revenue, 0) / salesData.length : 0;
+
+  // Get top clients from backend
+  const topClients = useMemo(() => {
+    if (topClientsData && topClientsData.length > 0) {
+      return (topClientsData as any[]).map(client => ({
+        name: client.companyName || 'Unknown',
+        revenue: client.totalRevenue || 0,
+        invoices: (invoices as any[]).filter((inv: any) => inv.clientId === client.id).length,
+      }));
+    }
+
+    // Fallback to client-side calculation
+    const clientRevenue: { [key: string]: { name: string; revenue: number; invoices: number } } = {};
+    
+    (invoices as any[]).forEach((invoice) => {
+      if (!clientRevenue[invoice.clientId]) {
+        clientRevenue[invoice.clientId] = { name: invoice.clientName || 'Unknown', revenue: 0, invoices: 0 };
+      }
+      clientRevenue[invoice.clientId].revenue += (invoice.total || 0);
+      clientRevenue[invoice.clientId].invoices += 1;
+    });
+
+    return Object.values(clientRevenue)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+  }, [invoices, topClientsData]);
+
+  const financialData = useMemo(() => [
+    { category: "Total Revenue", amount: totalRevenue, percentage: 100 },
+    { category: "Total Paid", amount: totalPaid, percentage: totalRevenue > 0 ? (totalPaid / totalRevenue) * 100 : 0 },
+    { category: "Outstanding", amount: outstandingRevenue, percentage: totalRevenue > 0 ? (outstandingRevenue / totalRevenue) * 100 : 0 },
+    { category: "Expenses", amount: totalExpenses, percentage: totalRevenue > 0 ? (totalExpenses / totalRevenue) * 100 : 0 },
+    { category: "Net Profit", amount: totalRevenue - totalExpenses, percentage: totalRevenue > 0 ? ((totalRevenue - totalExpenses) / totalRevenue) * 100 : 0 },
+  ], [totalRevenue, totalPaid, outstandingRevenue, totalExpenses]);
+
+  // Export to CSV
+  const exportToCSV = () => {
+    setExportLoading(true);
+    try {
+      const headers = ['Metric', 'Value', 'Percentage'];
+      const data = [
+        ['Total Revenue', `KES ${(totalRevenue / 100).toLocaleString('en-KE')}`, '100%'],
+        ['Total Paid', `KES ${(totalPaid / 100).toLocaleString('en-KE')}`, `${((totalPaid / totalRevenue) * 100).toFixed(1)}%`],
+        ['Outstanding', `KES ${(outstandingRevenue / 100).toLocaleString('en-KE')}`, `${((outstandingRevenue / totalRevenue) * 100).toFixed(1)}%`],
+        ['Total Expenses', `KES ${(totalExpenses / 100).toLocaleString('en-KE')}`, `${((totalExpenses / totalRevenue) * 100).toFixed(1)}%`],
+        ['Net Profit', `KES ${((totalRevenue - totalExpenses) / 100).toLocaleString('en-KE')}`, `${(((totalRevenue - totalExpenses) / totalRevenue) * 100).toFixed(1)}%`],
+        [''],
+        ['Top Clients'],
+        ['Client Name', 'Total Revenue', 'Number of Invoices'],
+        ...topClients.map(c => [c.name, `KES ${(c.revenue / 100).toLocaleString('en-KE')}`, c.invoices.toString()]),
+      ];
+
+      const csv = [
+        headers.join(','),
+        ...data.map(row => row.map(cell => `"${cell}"`).join(',')),
+      ].join('\n');
+
+      const element = document.createElement('a');
+      element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
+      element.setAttribute('download', `report-${new Date().toISOString().split('T')[0]}.csv`);
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      toast.success('Report exported as CSV');
+    } catch (error) {
+      toast.error('Failed to export report');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // Export to PDF (as text file)
+  const exportToPDF = () => {
+    setExportLoading(true);
+    try {
+      const content = `FINANCIAL REPORT
+Generated: ${new Date().toLocaleDateString()}
+
+KEY METRICS:
+Total Revenue: KES ${(totalRevenue / 100).toLocaleString('en-KE')}
+Total Paid: KES ${(totalPaid / 100).toLocaleString('en-KE')}
+Outstanding: KES ${(outstandingRevenue / 100).toLocaleString('en-KE')}
+Total Expenses: KES ${(totalExpenses / 100).toLocaleString('en-KE')}
+Net Profit: KES ${((totalRevenue - totalExpenses) / 100).toLocaleString('en-KE')}
+
+INVOICES:
+Total Invoices: ${totalInvoices}
+Average Invoice Value: KES ${totalInvoices > 0 ? ((totalRevenue / totalInvoices) / 100).toLocaleString('en-KE') : '0'}
+
+CLIENTS:
+Total Clients: ${clients.length}
+
+TOP CLIENTS BY REVENUE:
+${topClients.map((c, i) => `${i + 1}. ${c.name}: KES ${(c.revenue / 100).toLocaleString('en-KE')} (${c.invoices} invoices)`).join('\n')}
+
+MONTHLY SALES:
+${salesData.map(d => `${d.month}: KES ${(d.revenue / 100).toLocaleString('en-KE')} (${d.invoices} invoices)`).join('\n')}
+      `;
+      
+      const element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+      element.setAttribute('download', `report-${new Date().toISOString().split('T')[0]}.txt`);
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      toast.success('Report exported as text file');
+    } catch (error) {
+      toast.error('Failed to export report');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // NOW SAFE TO CHECK CONDITIONAL RETURNS (ALL HOOKS ALREADY CALLED)
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Spinner className="size-8" />
+      </div>
+    );
+  }
+
+  if (!allowed) {
+    return null;
+  }
+
+  return (
+    <ModuleLayout
+      title="Reports & Analytics"
+      description="Comprehensive business insights and performance metrics"
+      icon={<TrendingUp className="h-5 w-5" />}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/crm-home" },
+        { label: "Reports" },
+      ]}
+      actions={
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="gap-2" disabled={exportLoading}>
+              <Download className="h-4 w-4" />
+              Export Report
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportToPDF} disabled={exportLoading}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export as Text
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToCSV} disabled={exportLoading}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Export as CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
+      >
+        <div className="space-y-6">
+
+        {/* Key Metrics */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <StatsCard
+            label="Total Revenue"
+            value={<>KES {(totalRevenue / 100).toLocaleString('en-KE', { maximumFractionDigits: 0 })}</>}
+            description={<>From {totalInvoices} invoices</>}
+            icon={<DollarSign className="h-5 w-5" />}
+            color="border-l-purple-500"
+          />
+
+          <StatsCard
+            label="Total Expenses"
+            value={<>KES {(totalExpenses / 100).toLocaleString('en-KE', { maximumFractionDigits: 0 })}</>}
+            description={<>{expenses.length} expense records</>}
+            icon={<FileText className="h-5 w-5" />}
+            color="border-l-green-500"
+          />
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${(totalRevenue - totalExpenses) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                KES {((totalRevenue - totalExpenses) / 100).toLocaleString('en-KE', { maximumFractionDigits: 0 })}
+              </div>
+              <p className="text-xs text-muted-foreground">Revenue minus expenses</p>
+            </CardContent>
+          </Card>
+
+          <StatsCard
+            label="Active Clients"
+            value={clients.length}
+            description="Total registered clients"
+            icon={<Users className="h-5 w-5" />}
+            color="border-l-blue-500"
+          />
+        </div>
+
+        {/* Reports Tabs */}
+        <Tabs defaultValue="sales" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="sales">Sales Report</TabsTrigger>
+            <TabsTrigger value="clients">Top Clients</TabsTrigger>
+            <TabsTrigger value="financial">Financial Summary</TabsTrigger>
+          </TabsList>
+
+          {/* Sales Report Tab */}
+          <TabsContent value="sales" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Monthly Sales Overview</CardTitle>
+                <CardDescription>Revenue and invoice trends over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Month</TableHead>
+                        <TableHead className="text-right">Revenue</TableHead>
+                        <TableHead className="text-right">Invoices</TableHead>
+                        <TableHead className="text-right">Avg Invoice Value</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {salesData.length > 0 ? (
+                        salesData.map((item) => (
+                          <TableRow key={item.month}>
+                            <TableCell>{item.month}</TableCell>
+                            <TableCell className="text-right font-semibold">
+                              KES {(item.revenue / 100).toLocaleString('en-KE', { maximumFractionDigits: 0 })}
+                            </TableCell>
+                            <TableCell className="text-right">{item.invoices}</TableCell>
+                            <TableCell className="text-right">
+                              KES {item.invoices > 0 ? ((item.revenue / item.invoices) / 100).toLocaleString('en-KE', { maximumFractionDigits: 0 }) : '0'}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            No sales data available
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Top Clients Tab */}
+          <TabsContent value="clients" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Clients by Revenue</CardTitle>
+                <CardDescription>Your most valuable clients</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client Name</TableHead>
+                        <TableHead className="text-right">Total Revenue</TableHead>
+                        <TableHead className="text-right">Number of Invoices</TableHead>
+                        <TableHead className="text-right">Avg Invoice Value</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {topClients.length > 0 ? (
+                        topClients.map((client) => (
+                          <TableRow key={client.name}>
+                            <TableCell className="font-medium">{client.name}</TableCell>
+                            <TableCell className="text-right">
+                              KES {(client.revenue / 100).toLocaleString('en-KE', { maximumFractionDigits: 0 })}
+                            </TableCell>
+                            <TableCell className="text-right">{client.invoices}</TableCell>
+                            <TableCell className="text-right">
+                              KES {client.invoices > 0 ? ((client.revenue / client.invoices) / 100).toLocaleString('en-KE', { maximumFractionDigits: 0 }) : '0'}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            No client data available
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Financial Summary Tab */}
+          <TabsContent value="financial" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Financial Summary</CardTitle>
+                <CardDescription>Overall financial position and breakdown</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {financialData.map((item) => (
+                    <div key={item.category} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{item.category}</span>
+                        <span className="text-sm font-semibold">
+                          KES {(item.amount / 100).toLocaleString('en-KE', { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground text-right">
+                        {item.percentage.toFixed(1)}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </ModuleLayout>
+  );
+}

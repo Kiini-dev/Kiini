@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LPO Template</title>
+    <style>
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color-adjust: exact;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            .document-container {
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+                box-shadow: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+            table {
+                page-break-inside: avoid;
+            }
+            p, li, h1, h2, h3, h4, h5, h6 {
+                orphans: 3;
+                widows: 3;
+            }
+        }
+        @page {
+            margin: 40px;
+            size: A4;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background: #fff;">
+    <div class="document-container" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2d3436; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 32px; background: white;">
+
+        <!-- ===== HEADER WITH BRANDING ===== -->
+        <div data-section="header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 2px solid #dfe6e9;">
+            <div style="flex: 1;">
+                <h1 style="font-size: 24px; font-weight: 700; color: #2d3436; margin: 0 0 8px 0; letter-spacing: -0.5px;">{{COMPANY_NAME}}</h1>
+                <p style="font-size: 14px; color: #ff9f43; font-style: italic; margin: 0; font-weight: 500;">{{COMPANY_TAGLINE}}</p>
+                <div style="font-size: 12px; color: #636e72; margin-top: 8px; line-height: 1.5;">
+                    <div style="margin: 4px 0;">{{COMPANY_PHONE}}</div>
+                    <div style="margin: 4px 0;">{{COMPANY_EMAIL}}</div>
+                    <div style="margin: 4px 0;">{{COMPANY_WEBSITE}}</div>
+                    <div style="margin: 4px 0;">{{COMPANY_ADDRESS}}</div>
+                </div>
+            </div>
+
+            <div style="width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px;">
+                <img src="{{COMPANY_LOGO}}" alt="Company Logo" style="max-width: 100%; max-height: 80px; filter: brightness(0.95);" />
+            </div>
+        </div>
+
+        <!-- ===== DOCUMENT TITLE ===== -->
+        <h1 data-section="title" style="font-size: 32px; font-weight: 700; color: #2d3436; margin: 16px 0; letter-spacing: -1px;">LOCAL PURCHASE ORDER</h1>
+
+        <!-- ===== DOCUMENT DETAILS & SUPPLIER INFO (2-Column Layout) ===== -->
+        <div data-section="document-info" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0;">
+            <!-- Left: LPO Details -->
+            <div style="background: #f8f9fa; border-left: 4px solid #ff9f43; padding: 16px; border-radius: 4px;">
+                <div style="font-weight: 700; font-size: 15px; color: #2d3436; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #dfe6e9;">Purchase Order Details</div>
+                <div style="font-size: 14px; color: #636e72;">
+                    <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">LPO #:</strong> {{DOCUMENT_NUMBER}}</div>
+                    <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Date Issued:</strong> {{ISSUE_DATE}}</div>
+                    <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Required Delivery:</strong> {{DELIVERY_DATE}}</div>
+                    <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Tax Rate:</strong> {{TAX_RATE}}</div>
+                </div>
+            </div>
+            <!-- Right: Supplier Details -->
+            <div style="background: #f8f9fa; border-left: 4px solid #ff9f43; padding: 16px; border-radius: 4px;">
+                <div style="font-weight: 700; font-size: 15px; color: #2d3436; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #dfe6e9;">Supplier Details</div>
+                <div style="font-size: 14px; color: #636e72;">
+                    <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Supplier Name:</strong> {{SUPPLIER_NAME}}</div>
+                    <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Registration #:</strong> {{SUPPLIER_REGISTRATION}}</div>
+                    <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Email:</strong> {{SUPPLIER_EMAIL}}</div>
+                    <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Phone:</strong> {{SUPPLIER_PHONE}}</div>
+                    <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Address:</strong> {{SUPPLIER_ADDRESS}}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== DELIVERY ADDRESS ===== -->
+        <div data-section="delivery-address" style="background: #f8f9fa; border-left: 4px solid #ff9f43; padding: 16px; border-radius: 4px; margin: 24px 0;">
+            <div style="font-weight: 700; font-size: 15px; color: #2d3436; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #dfe6e9;">Delivery To</div>
+            <div style="font-size: 14px; color: #636e72;">
+                <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Location:</strong> {{DELIVERY_LOCATION}}</div>
+                <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Contact Person:</strong> {{CONTACT_NAME}}</div>
+                <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Phone:</strong> {{CONTACT_PHONE}}</div>
+                <div style="margin: 6px 0;"><strong style="font-weight: 600; color: #2d3436;">Address:</strong> {{DELIVERY_ADDRESS}}</div>
+            </div>
+        </div>
+
+        <!-- ===== TABLE SECTION ===== -->
+        <div data-section="line-items" style="margin: 24px 0;">
+            <h2 style="font-size: 16px; font-weight: 700; color: #2d3436; margin: 0 0 16px 0; padding-bottom: 8px; border-bottom: 2px solid #ff9f43; text-transform: uppercase; letter-spacing: 0.5px;">Items Ordered</h2>
+            {{items_table}}
+        </div>
+
+        <!-- ===== TOTALS SECTION ===== -->
+        <div data-section="totals" style="margin: 24px 0;">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                <div style="width: 300px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <tr style="border-bottom: 1px solid #ddd;">
+                            <td style="padding: 8px; text-align: left;"><strong style="font-weight: 600; color: #2d3436;">Subtotal:</strong></td>
+                            <td style="padding: 8px; text-align: right;">{{SUBTOTAL}}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #ddd;">
+                            <td style="padding: 8px; text-align: left;"><strong style="font-weight: 600; color: #2d3436;">VAT (16%):</strong></td>
+                            <td style="padding: 8px; text-align: right;">{{TAX_AMOUNT}}</td>
+                        </tr>
+                        <tr style="border-bottom: 2px solid #ff9f43; background-color: #f5f5f5;">
+                            <td style="padding: 8px; text-align: left;"><strong style="font-weight: 600; color: #2d3436;">Total Amount:</strong></td>
+                            <td style="padding: 8px; text-align: right; font-weight: bold;">{{TOTAL}}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== LPO TERMS & CONDITIONS SECTION ===== -->
+        <div data-section="terms" style="margin: 24px 0;">
+            <h2 style="font-size: 16px; font-weight: 700; color: #2d3436; margin: 0 0 16px 0; padding-bottom: 8px; border-bottom: 2px solid #ff9f43; text-transform: uppercase; letter-spacing: 0.5px;">Purchase Order Terms &amp; Conditions</h2>
+            <div style="font-size: 13px; line-height: 1.6; color: #636e72; margin: 16px 0;">
+                <ol style="margin-left: 20px; padding-left: 32px;">
+                    <li style="margin: 4px 0;"><strong style="font-weight: 600; color: #2d3436;">Order Binding:</strong> Supplier commits to deliver goods/services per specifications and dates stated herein.</li>
+                    <li style="margin: 4px 0;"><strong style="font-weight: 600; color: #2d3436;">Delivery Terms:</strong> Delivery at specified location by required date. Late delivery may result in cancellation.</li>
+                    <li style="margin: 4px 0;"><strong style="font-weight: 600; color: #2d3436;">Quality Assurance:</strong> All goods must meet specified quality standards. Defective deliveries will be rejected and returned at supplier's cost.</li>
+                    <li style="margin: 4px 0;"><strong style="font-weight: 600; color: #2d3436;">Pricing:</strong> Prices quoted remain fixed for duration of order unless variation agreed in writing.</li>
+                    <li style="margin: 4px 0;"><strong style="font-weight: 600; color: #2d3436;">Inspection:</strong> Buyer reserves right to inspect goods upon delivery. Defective items replaced at no additional cost.</li>
+                    <li style="margin: 4px 0;"><strong style="font-weight: 600; color: #2d3436;">Payment Terms:</strong> Payment within 30 days of delivery upon receipt of invoice and inspection approval.</li>
+                    <li style="margin: 4px 0;"><strong style="font-weight: 600; color: #2d3436;">Supplier Compliance:</strong> Supplier warrants compliance with all applicable laws and regulations.</li>
+                    <li style="margin: 4px 0;"><strong style="font-weight: 600; color: #2d3436;">Cancellation:</strong> Order may be cancelled if delivery delayed beyond 14 days without written notice.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- ===== FOOTER ===== -->
+        <div data-section="footer" style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #dfe6e9; font-size: 12px; color: #636e72;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 16px;">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-weight: 600; color: #2d3436; margin-bottom: 4px;">{{COMPANY_NAME}}</span>
+                    <span style="font-size: 12px; color: #636e72; margin: 2px 0;">{{COMPANY_ADDRESS}}</span>
+                    <span style="font-size: 12px; color: #636e72; margin: 2px 0;">{{COMPANY_PHONE}}</span>
+                </div>
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-weight: 600; color: #2d3436; margin-bottom: 4px;">Contact Us</span>
+                    <span style="font-size: 12px; color: #636e72; margin: 2px 0;">{{COMPANY_EMAIL}}</span>
+                    <span style="font-size: 12px; color: #636e72; margin: 2px 0;">{{COMPANY_WEBSITE}}</span>
+                </div>
+            </div>
+            <div style="text-align: center; padding-top: 16px; border-top: 1px solid #dfe6e9; font-size: 11px; color: #636e72; font-style: italic;">
+                For more information or queries, feel free to talk to us or send us an email on {{COMPANY_EMAIL}}
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
+
+

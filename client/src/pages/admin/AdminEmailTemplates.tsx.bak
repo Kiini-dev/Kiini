@@ -1,0 +1,356 @@
+import React, { useState } from "react";
+import { ModuleLayout } from "@/components/ModuleLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { RichTextEditor } from "@/components/RichTextEditor";
+import { Mail, Plus, Edit2, Trash2, Copy } from "lucide-react";
+import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
+import { Spinner } from "@/components/ui/spinner";
+
+interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  htmlBody?: string;
+  category?: string; // e.g., "invoice", "proposal", "contract"
+  variables?: string[]; // e.g., ["{{clientName}}", "{{amount}}"]
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+const TEMPLATE_CATEGORIES = [
+  "invoice",
+  "proposal",
+  "contract",
+  "receipt",
+  "payment",
+  "estimate",
+  "notification",
+  "general",
+];
+
+const DEFAULT_TEMPLATES: EmailTemplate[] = [
+  {
+    id: "invoice-default",
+    name: "Invoice - Default",
+    subject: "Invoice {{invoiceNumber}} from {{companyName}}",
+    body: "Dear {{clientName}},\n\nPlease find attached your invoice {{invoiceNumber}}.\n\nAmount Due: {{amount}}\nDue Date: {{dueDate}}\n\nThank you for your business!",
+    category: "invoice",
+    variables: ["{{clientName}}", "{{invoiceNumber}}", "{{amount}}", "{{dueDate}}", "{{companyName}}"],
+  },
+  {
+    id: "proposal-default",
+    name: "Proposal - Default",
+    subject: "Proposal {{proposalNumber}} - {{projectName}}",
+    body: "Dear {{clientName}},\n\nWe are pleased to submit our proposal for {{projectName}}.\n\nProposal Value: {{amount}}\nValid Until: {{validUntil}}\n\nPlease review and let us know if you have any questions.",
+    category: "proposal",
+    variables: ["{{clientName}}", "{{proposalNumber}}", "{{projectName}}", "{{amount}}", "{{validUntil}}"],
+  },
+  {
+    id: "payment-confirmation",
+    name: "Payment - Confirmation",
+    subject: "Payment Received - {{referenceNumber}}",
+    body: "Dear {{clientName}},\n\nWe have received your payment of {{amount}} on {{paymentDate}}.\n\nReference: {{referenceNumber}}\nPayment Method: {{paymentMethod}}\n\nThank you!",
+    category: "payment",
+    variables: ["{{clientName}}", "{{amount}}", "{{paymentDate}}", "{{referenceNumber}}", "{{paymentMethod}}"],
+  },
+];
+
+export default function AdminEmailTemplates() {
+  const [templates, setTemplates] = useState<EmailTemplate[]>(DEFAULT_TEMPLATES);
+  const [isOpen, setIsOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [form, setForm] = useState<EmailTemplate>({
+    id: "",
+    name: "",
+    subject: "",
+    body: "",
+    htmlBody: "",
+    category: "general",
+    variables: [],
+  });
+
+  const filteredTemplates = templates.filter(
+    (t) =>
+      t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.category && t.category.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const handleOpenCreate = () => {
+    setEditingTemplate(null);
+    setForm({
+      id: `template-${Date.now()}`,
+      name: "",
+      subject: "",
+      body: "",
+      htmlBody: "",
+      category: "general",
+      variables: [],
+    });
+    setIsOpen(true);
+  };
+
+  const handleOpenEdit = (template: EmailTemplate) => {
+    setEditingTemplate(template);
+    setForm(template);
+    setIsOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!form.name.trim() || !form.subject.trim() || !form.body.trim()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (editingTemplate) {
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === editingTemplate.id ? { ...form } : t))
+      );
+      toast.success("Template updated");
+    } else {
+      setTemplates((prev) => [...prev, { ...form }]);
+      toast.success("Template created");
+    }
+    setIsOpen(false);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this template?")) {
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+      toast.success("Template deleted");
+    }
+  };
+
+  const handleDuplicate = (template: EmailTemplate) => {
+    const newTemplate: EmailTemplate = {
+      ...template,
+      id: `template-${Date.now()}`,
+      name: `${template.name} (Copy)`,
+    };
+    setTemplates((prev) => [...prev, newTemplate]);
+    toast.success("Template duplicated");
+  };
+
+  return (
+    <ModuleLayout
+      title="Email Templates"
+      description="Manage HTML email templates for system-wide use"
+      icon={<Mail className="h-5 w-5" />}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/crm/super-admin" },
+        { label: "Administration", href: "/admin/management" },
+        { label: "Email Templates" },
+      ]}
+    >
+      <div className="space-y-6">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <Input
+              placeholder="Search templates by name, subject, or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <Button onClick={handleOpenCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Template
+          </Button>
+        </div>
+
+        {/* Templates Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Available Templates</CardTitle>
+            <CardDescription>
+              {filteredTemplates.length} template{filteredTemplates.length !== 1 ? "s" : ""} found
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Subject Preview</TableHead>
+                    <TableHead>Variables</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTemplates.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No templates found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTemplates.map((template) => (
+                      <TableRow key={template.id}>
+                        <TableCell className="font-medium">{template.name}</TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                            {template.category || "general"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                          {template.subject}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {template.variables?.length ? (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1">
+                              {template.variables.length} vars
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">No vars</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenEdit(template)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDuplicate(template)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(template.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Edit/Create Dialog */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTemplate ? "Edit Template" : "Create New Template"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingTemplate
+                ? "Update the email template details below"
+                : "Create a new email template with variables for reuse"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Template Name *</Label>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Invoice - Standard"
+              />
+            </div>
+
+            {/* Category */}
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <select
+                id="category"
+                value={form.category || "general"}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, category: e.target.value }))
+                }
+                className="w-full px-3 py-2 border rounded-md text-sm"
+              >
+                {TEMPLATE_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Subject */}
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject *</Label>
+              <Input
+                id="subject"
+                value={form.subject}
+                onChange={(e) => setForm((prev) => ({ ...prev, subject: e.target.value }))}
+                placeholder="e.g., Invoice {{invoiceNumber}} from {{companyName}}"
+              />
+              <p className="text-xs text-muted-foreground">
+                Use double curly braces for variables: {"{}{invNumber}"} or {"{}{amount}"}
+              </p>
+            </div>
+
+            {/* Body */}
+            <div className="space-y-2">
+              <Label htmlFor="body">Email Body *</Label>
+              <RichTextEditor
+                value={form.htmlBody || form.body}
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, body: value, htmlBody: value }))
+                }
+                placeholder="Enter email template body (HTML supported)"
+                minHeight="300px"
+              />
+              <p className="text-xs text-muted-foreground">
+                Refer to common variables like {"{}{clientName}"}, {"{}{amount}"}, {"{}{date}"}, etc.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave}>
+              {editingTemplate ? "Update" : "Create"} Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </ModuleLayout>
+  );
+}

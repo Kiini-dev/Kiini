@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>{{app_name}} Notification</title>
+<!--[if mso]>
+<noscript>
+<xml>
+<o:OfficeDocumentSettings>
+<o:PixelsPerInch>96</o:PixelsPerInch>
+</o:OfficeDocumentSettings>
+</xml>
+</noscript>
+<![endif]-->
+<style>
+@media only screen and (max-width:600px) {
+  .container {
+    width: 100% !important;
+  }
+  .stack {
+    display: block !important;
+    width: 100% !important;
+  }
+  .px {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+}
+</style>
+</head>
+<body style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; margin: 0; padding: 0; background-color: #F2F3F7; width: 100%; height: 100%;">
+<!-- preheader (hidden) -->
+<div style="display:none;font-size:1px;color:#F2F3F7;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+  Payment of {{amount_paid}} received — thank you
+</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #F2F3F7;" bgcolor="#F2F3F7">
+  <tr>
+    <td align="center" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 32px 16px;">
+
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 600px; max-width: 600px; background-color: #FFFFFF; border-radius: 8px; overflow: hidden;" bgcolor="#FFFFFF">
+
+        <!-- header -->
+        <tr>
+          <td bgcolor="#001D3D" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 24px 32px; border-bottom: 3px solid #E78200;" class="px">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+              <tr>
+                <td align="left" valign="middle" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+                  <!--[if mso]>
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td>
+                  <![endif]-->
+                  <img src="{{company_logo_url}}" alt="{{company_name}}" height="28" style="-ms-interpolation-mode: bicubic; line-height: 100%; outline: none; text-decoration: none; display: block; height: 28px; width: auto; border: 0;" width="auto">
+                  <!--[if mso]>
+                  </td></tr></table>
+                  <![endif]-->
+                </td>
+                <td align="right" valign="middle" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+                  <span style="font-family:Arial, Helvetica, sans-serif;font-size:12px;color:#9A9CB0;letter-spacing:0.5px;text-transform:uppercase;">Billing</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- body -->
+        <tr>
+          <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 32px;" class="px">
+
+<span style="display:inline-block;padding:4px 12px;border-radius:999px;
+      font-family:Arial, Helvetica, sans-serif;font-size:12px;font-weight:bold;color:#0E6B66;background-color:#ECFDF5;
+      text-transform:uppercase;letter-spacing:0.5px;">Payment Received</span>
+<h1 style="margin:0 0 4px;font-family:Arial, Helvetica, sans-serif;font-size:22px;font-weight:bold;color:#33344F;">Payment Confirmed</h1>
+<p style="margin:4px 0 20px;font-family:Arial, Helvetica, sans-serif;font-size:15px;color:#62647A;line-height:1.6;">Thank you — we've received your payment.</p>
+<p style="margin:0 0 16px;font-family:Arial, Helvetica, sans-serif;font-size:15px;color:#33344F;">Hi {{recipient_name}},</p>
+<p style="margin:0 0 16px;font-family:Arial, Helvetica, sans-serif;font-size:15px;color:#33344F;line-height:1.6;">This confirms your payment has been successfully processed. A summary is below for your records.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; margin: 16px 0;">
+    <tr>
+      <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #62647A; width: 160px;" width="160">Amount Paid</td>
+      <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #33344F; font-weight: bold;">{{amount_paid}}</td>
+    </tr>
+    <tr>
+      <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #62647A; width: 160px;" width="160">Payment Date</td>
+      <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #33344F; font-weight: bold;">{{payment_date}}</td>
+    </tr>
+    <tr>
+      <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #62647A; width: 160px;" width="160">Payment Method</td>
+      <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #33344F; font-weight: bold;">{{payment_method}}</td>
+    </tr>
+    <tr>
+      <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #62647A; width: 160px;" width="160">Reference</td>
+      <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #33344F; font-weight: bold;">{{transaction_reference}}</td>
+    </tr>
+    <tr>
+      <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #62647A; width: 160px;" width="160">Applied To</td>
+      <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #33344F; font-weight: bold;">{{invoice_number}}</td>
+    </tr></table>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; margin: 24px 0;">
+  <tr>
+    <td align="center" bgcolor="#E78200" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-radius: 6px;">
+      <a href="{{receipt_url}}" target="_blank" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; display: inline-block; padding: 12px 28px; font-family: Arial, Helvetica, sans-serif; font-size: 15px; font-weight: bold; color: #FFFFFF; text-decoration: none; border-radius: 6px;">
+        View Receipt
+      </a>
+    </td>
+  </tr>
+</table>
+<hr style="border:none;border-top:1px solid #E3E4EC;margin:24px 0;">
+<p style="margin:0 0 16px;font-family:Arial, Helvetica, sans-serif;font-size:15px;color:#62647A;line-height:1.6;">Keep this email as confirmation of your transaction. If you notice any discrepancy, contact us right away.</p>
+<p style="margin:0 0 16px;font-family:Arial, Helvetica, sans-serif;font-size:15px;color:#62647A;line-height:1.6;">— The {{company_name}} Team</p>
+
+          </td>
+        </tr>
+
+        <!-- footer -->
+        <tr>
+          <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 24px 32px; border-top: 1px solid #E3E4EC;" class="px">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+              <tr>
+                <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #62647A; line-height: 1.6;">
+                  {{company_name}} &middot; {{company_address}}<br>
+                  <a href="mailto:{{company_email}}" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; color: #62647A;">{{company_email}}</a>
+                  &nbsp;&middot;&nbsp;
+                  <a href="{{company_website}}" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; color: #62647A;">{{company_website}}</a>
+                </td>
+              </tr>
+              <tr>
+                <td style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding-top: 12px; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #9A9CB0;">
+                  You're receiving this email because of your relationship with {{company_name}}.
+                  <a href="{{unsubscribe_url}}" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; color: #9A9CB0; text-decoration: underline;">Unsubscribe</a>
+                  from non-essential notifications.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /container -->
+
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 600px; max-width: 600px;">
+        <tr>
+          <td align="center" style="-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; mso-table-lspace: 0pt; mso-table-rspace: 0pt; padding: 16px 0 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #9A9CB0;">
+            Powered by {{app_name}}
+          </td>
+        </tr>
+      </table>
+
+    </td>
+  </tr>
+</table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:16px;">
+  <tr>
+    <td align="center" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#62647A;">
+      <a href="{{company_facebook_url}}" style="display:inline-block;margin:0 6px;color:#0E6B66;text-decoration:none;font-weight:bold;">f</a>
+      <a href="{{company_twitter_url}}" style="display:inline-block;margin:0 6px;color:#0E6B66;text-decoration:none;font-weight:bold;">X</a>
+      <a href="{{company_linkedin_url}}" style="display:inline-block;margin:0 6px;color:#0E6B66;text-decoration:none;font-weight:bold;">in</a>
+      <a href="{{company_instagram_url}}" style="display:inline-block;margin:0 6px;color:#0E6B66;text-decoration:none;font-weight:bold;">ig</a>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

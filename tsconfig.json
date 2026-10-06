@@ -1,0 +1,39 @@
+{
+  "include": ["client/src/**/*.ts", "client/src/**/*.tsx", "shared/**/*.ts", "drizzle/**/*.ts", "server/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "**/dist/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/*.example.*",
+    "**/__tests__/**",
+    "**/__mocks__/**"
+  ],
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "ignoreDeprecations": "5.0",
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "vite/client", "react"],
+    "paths": {
+      "@/*": ["./client/src/*"],
+      "@shared/*": ["./shared/*"],
+      "~/*": ["./*"]
+    }
+  }
+}

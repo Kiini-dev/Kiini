@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS `performanceContracts` (
+  `id` varchar(64) NOT NULL,
+  `employeeId` varchar(64) NOT NULL,
+  `departmentId` varchar(64) NULL,
+  `jobGroupId` varchar(64) NULL,
+  `contractNumber` varchar(100) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `startDate` datetime NOT NULL,
+  `endDate` datetime NULL,
+  `status` enum('draft','active','expired','terminated') NOT NULL DEFAULT 'draft',
+  `salary` int NULL,
+  `terms` text NULL,
+  `objectives` text NULL,
+  `signedAt` datetime NULL,
+  `createdBy` varchar(64) NULL,
+  `createdAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `performance_contract_employee_idx` (`employeeId`),
+  KEY `performance_contract_department_idx` (`departmentId`),
+  KEY `performance_contract_job_group_idx` (`jobGroupId`),
+  KEY `performance_contract_status_idx` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

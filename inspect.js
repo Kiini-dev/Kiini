@@ -1,0 +1,1 @@
+const { settings } = require('./drizzle/schema');\nconsole.log(settings);\nconsole.log('value property', settings.value);\nconsole.log('value.name', settings.value.name);\nconsole.log('value.config', settings.value.config);

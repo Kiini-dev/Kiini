@@ -1,0 +1,1 @@
+{"error":{"json":{"message":"Incorrect arguments to mysqld_stmt_execute","code":-32603,"data":{"code":"INTERNAL_SERVER_ERROR","httpStatus":500,"path":"notifications.list"}}}}

@@ -1,0 +1,1 @@
+import{g as i}from"./index-Bmob1iPg.js";function n(){return{toast:(t,r)=>typeof t=="string"?i(t,r):i(t.title,{description:t.description,...t.variant?{className:t.variant==="destructive"?"border-red-500":void 0}:{},...r})}}export{n as u};

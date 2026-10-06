@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estimate Template</title>
+    <style>
+        @page { margin: 14mm 12mm; size: A4; }
+        @media print {
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+            body { margin: 0; padding: 0; }
+            .document-container { max-width: 100%; padding: 0; margin: 0; box-shadow: none; }
+            .no-print { display: none !important; }
+            table { page-break-inside: avoid; }
+            p, li, h1, h2, h3, h4, h5, h6 { orphans: 3; widows: 3; }
+        }
+    </style>
+</head>
+<body style="margin:0;padding:0;background:#fff;font-family:Segoe UI, Arial, sans-serif;color:#2d3436;">
+    <div class="document-container" style="max-width:900px;margin:0 auto;padding:18px 22px;background:#fff;line-height:1.35;">
+        <div data-section="header" style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;border-bottom:2px solid #dfe6e9;margin-bottom:10px;">
+            <div style="flex:1;min-width:0;">
+                <h1 style="margin:0 0 4px;font-size:24px;font-weight:700;letter-spacing:-.4px;color:#2d3436;">{{COMPANY_NAME}}</h1>
+                <div style="font-size:12px;color:#ff9f43;font-style:italic;">{{COMPANY_TAGLINE}}</div>
+                <div style="margin-top:6px;font-size:11px;color:#636e72;line-height:1.5;">
+                    <div>{{COMPANY_PHONE}}</div>
+                    <div>{{COMPANY_EMAIL}}</div>
+                    <div>{{COMPANY_WEBSITE}}</div>
+                    <div>{{COMPANY_ADDRESS}}</div>
+                </div>
+            </div>
+            <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#f8f9fa;border-radius:8px;overflow:hidden;">
+                <img src="{{COMPANY_LOGO}}" alt="Company Logo" style="max-width:100%;max-height:72px;object-fit:contain;display:block;" />
+            </div>
+        </div>
+
+        <h1 data-section="title" style="margin:10px 0 8px;font-size:28px;font-weight:700;letter-spacing:-.7px;color:#2d3436;">QUOTATION / ESTIMATE</h1>
+
+        <div data-section="document-info" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0 12px;">
+            <div style="background:#f8f9fa;border-left:4px solid #ff9f43;padding:12px;border-radius:4px;">
+                <div style="font-size:14px;font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #dfe6e9;">Estimate Details</div>
+                <div style="font-size:12px;color:#636e72;line-height:1.6;">
+                    <div><strong style="color:#2d3436;">Estimate #:</strong> {{DOCUMENT_NUMBER}}</div>
+                    <div><strong style="color:#2d3436;">Date Issued:</strong> {{ISSUE_DATE}}</div>
+                    <div><strong style="color:#2d3436;">Valid Until:</strong> {{EXPIRY_DATE}}</div>
+                    <div><strong style="color:#2d3436;">Tax Rate:</strong> {{TAX_RATE}}</div>
+                </div>
+            </div>
+            <div style="background:#f8f9fa;border-left:4px solid #ff9f43;padding:12px;border-radius:4px;">
+                <div style="font-size:14px;font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #dfe6e9;">Quote To / Customer</div>
+                <div style="font-size:12px;color:#636e72;line-height:1.6;">
+                    <div><strong style="color:#2d3436;">Customer Name:</strong> {{CLIENT_NAME}}</div>
+                    <div><strong style="color:#2d3436;">Company:</strong> {{CLIENT_COMPANY}}</div>
+                    <div><strong style="color:#2d3436;">Email:</strong> {{CLIENT_EMAIL}}</div>
+                    <div><strong style="color:#2d3436;">Phone:</strong> {{CLIENT_PHONE}}</div>
+                    <div><strong style="color:#2d3436;">Address:</strong> {{CLIENT_ADDRESS}}</div>
+                    <div><strong style="color:#2d3436;">KRA PIN:</strong> {{CLIENT_KRA_PIN}}</div>
+                </div>
+            </div>
+        </div>
+
+        <div data-section="line-items" style="margin:8px 0 10px;">
+            <h2 style="margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid #ff9f43;font-size:14px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;">Line Items</h2>
+            {{items_table}}
+        </div>
+
+        <div data-section="totals" style="margin:10px 0;display:flex;justify-content:flex-end;">
+            <div style="width:280px;">
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                    <tr style="border-bottom:1px solid #ddd;">
+                        <td style="padding:6px 0;text-align:left;"><strong style="color:#2d3436;">Subtotal:</strong></td>
+                        <td style="padding:6px 0;text-align:right;">{{SUBTOTAL}}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #ddd;">
+                        <td style="padding:6px 0;text-align:left;"><strong style="color:#2d3436;">VAT:</strong></td>
+                        <td style="padding:6px 0;text-align:right;">{{TAX_AMOUNT}}</td>
+                    </tr>
+                    <tr style="border-bottom:2px solid #ff9f43;background:#f5f5f5;">
+                        <td style="padding:6px 0;text-align:left;"><strong style="color:#2d3436;">Total Estimate:</strong></td>
+                        <td style="padding:6px 0;text-align:right;font-weight:700;">{{TOTAL}}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div data-section="terms" style="margin:12px 0 0;">
+            <h2 style="margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid #ff9f43;font-size:14px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;">Terms &amp; Conditions</h2>
+            <div style="font-size:11px;line-height:1.5;color:#636e72;background:#f8f9fa;padding:10px;border-radius:4px;">
+                <ol style="margin:0;padding-left:16px;">
+                    <li>Quotation is valid for 30 days from issue date.</li>
+                    <li>50% upfront payment is required before work begins.</li>
+                    <li>All work is subject to the final agreed scope and pricing.</li>
+                    <li>All amounts are in Kenyan Shillings (KES).</li>
+                </ol>
+            </div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:10px;border-top:1px solid #dfe6e9;text-align:center;font-size:10px;color:#636e72;font-style:italic;">
+            For more information or queries, email {{COMPANY_EMAIL}}
+        </div>
+    </div>
+</body>
+</html>
+

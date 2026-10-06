@@ -1,0 +1,73 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { ModuleLayout } from "@/components/ModuleLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import { Briefcase, ArrowLeft, Plus } from "lucide-react";
+import { useRequireFeature } from "@/lib/permissions";
+import { Spinner } from "@/components/ui/spinner";
+import { RichTextEditor } from "@/components/RichTextEditor";
+
+export default function CreateService() {
+  const { allowed, isLoading } = useRequireFeature("services:create");
+  const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
+  const [formData, setFormData] = useState({ serviceName: "", description: "", serviceType: "", rate: "", unit: "hour", status: "active", hourlyRate: "", fixedPrice: "", taxRate: "", deliverables: [] as string[] });
+  const [deliverableInput, setDeliverableInput] = useState("");
+  const { data: categories = [] } = trpc.services.getCategories.useQuery({});
+  const { data: units = [] } = trpc.services.getUnits.useQuery({});
+  const createServiceMutation = trpc.services.create.useMutation({ onSuccess: () => { toast.success("Service created successfully!"); utils.services.list.invalidate(); setFormData({ serviceName: "", description: "", serviceType: "", rate: "", unit: "hour", status: "active", hourlyRate: "", fixedPrice: "", taxRate: "", deliverables: [] }); setDeliverableInput(""); navigate("/services"); }, onError: (error: any) => { toast.error(`Failed to create service: ${error.message}`); } });
+  if (isLoading) return (<div className="flex items-center justify-center h-screen"><Spinner className="size-8" /></div>);
+  if (!allowed) return null;
+  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); if (!formData.serviceName) { toast.error("Service name is required"); return; } createServiceMutation.mutate({ serviceName: formData.serviceName, description: formData.description || undefined, serviceType: formData.serviceType || undefined, rate: formData.rate ? parseFloat(formData.rate) : undefined, unit: formData.unit || undefined, status: formData.status as "active" | "inactive", hourlyRate: formData.hourlyRate ? Math.round(parseFloat(formData.hourlyRate) * 100) : undefined, fixedPrice: formData.fixedPrice ? Math.round(parseFloat(formData.fixedPrice) * 100) : undefined, taxRate: formData.taxRate ? parseFloat(formData.taxRate) : undefined, deliverables: formData.deliverables.length > 0 ? formData.deliverables : undefined }); };
+
+  const handleAddDeliverable = () => {
+    const deliverable = deliverableInput.trim();
+    if (!deliverable) return;
+    setFormData((prev) => ({ ...prev, deliverables: [...prev.deliverables, deliverable] }));
+    setDeliverableInput("");
+  };
+
+  const handleRemoveDeliverable = (index: number) => {
+    setFormData((prev) => ({ ...prev, deliverables: prev.deliverables.filter((_, i) => i !== index) }));
+  };
+  const defaultCategories = ["Consulting", "Development", "Design", "Support", "Training", "Maintenance", "Installation", "Repair", "Audit", "Assessment", "Integration", "Migration", "Other"];
+  const displayCategories = categories.length > 0 ? categories : defaultCategories;
+  const defaultUnits = [{ value: "hour", label: "Hour" }, { value: "day", label: "Day" }, { value: "week", label: "Week" }, { value: "month", label: "Month" }, { value: "quarter", label: "Quarter" }, { value: "year", label: "Year" }, { value: "project", label: "Project (Fixed)" }, { value: "unit", label: "Unit" }, { value: "item", label: "Item" }, { value: "session", label: "Session" }];
+  const displayUnits = units.length > 0 ? units.map((u: string) => ({ value: u, label: u.charAt(0).toUpperCase() + u.slice(1) })) : defaultUnits;
+  const f = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => setFormData((p) => ({ ...p, [field]: e.target.value }));
+  return (<ModuleLayout title="Create Service" description="Add a new service to your catalog" icon={<Briefcase className="w-6 h-6" />} breadcrumbs={[{ label: "Dashboard", href: "/crm-home" }, { label: "Services", href: "/services" }, { label: "Create Service" }]}><form onSubmit={handleSubmit} className="space-y-6 max-w-5xl"><Card><CardHeader><CardTitle>Basic Information</CardTitle></CardHeader><CardContent className="space-y-4"><div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="serviceName">Service Name *</Label><Input id="serviceName" placeholder="Enter service name" value={formData.serviceName} onChange={f("serviceName")} /></div><div className="space-y-2"><Label>Category</Label><Select value={formData.serviceType} onValueChange={(v) => setFormData((p) => ({ ...p, serviceType: v }))}><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger><SelectContent>{displayCategories.map((cat: string) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}</SelectContent></Select></div></div><div className="space-y-2"><Label>Description</Label><RichTextEditor value={formData.description} onChange={(val) => setFormData((p) => ({ ...p, description: val }))} placeholder="Describe the service — scope, deliverables, process..." /></div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Deliverables</Label>
+                  <Button type="button" variant="outline" onClick={handleAddDeliverable} disabled={!deliverableInput.trim()}>
+                    <Plus className="mr-2 h-4 w-4" /> Add
+                  </Button>
+                </div>
+                <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                  <Input
+                    placeholder="Enter a deliverable"
+                    value={deliverableInput}
+                    onChange={(e) => setDeliverableInput(e.target.value)}
+                  />
+                </div>
+                {formData.deliverables.length > 0 && (
+                  <div className="space-y-2">
+                    {formData.deliverables.map((deliverable, index) => (
+                      <div key={index} className="flex items-center justify-between rounded-md border p-3">
+                        <span className="text-sm text-muted-foreground">{deliverable}</span>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveDeliverable(index)}>
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent></Card><Card><CardHeader><CardTitle>Pricing</CardTitle></CardHeader><CardContent><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><div className="space-y-2"><Label>Unit</Label><Select value={formData.unit} onValueChange={(v) => setFormData((p) => ({ ...p, unit: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{displayUnits.map((u: { value: string; label: string }) => (<SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>))}</SelectContent></Select></div><div className="space-y-2"><Label htmlFor="rate">Rate per {formData.unit || "Unit"} (Ksh)</Label><Input id="rate" type="number" placeholder="0.00" value={formData.rate} onChange={f("rate")} step="0.01" min="0" /></div><div className="space-y-2"><Label htmlFor="hourlyRate">Hourly Rate (Ksh)</Label><Input id="hourlyRate" type="number" placeholder="0.00" value={formData.hourlyRate} onChange={f("hourlyRate")} step="0.01" min="0" /></div><div className="space-y-2"><Label htmlFor="fixedPrice">Fixed Price (Ksh)</Label><Input id="fixedPrice" type="number" placeholder="0.00" value={formData.fixedPrice} onChange={f("fixedPrice")} step="0.01" min="0" /></div></div><div className="grid gap-4 md:grid-cols-2 mt-4"><div className="space-y-2"><Label htmlFor="taxRate">Tax Rate (%)</Label><Input id="taxRate" type="number" placeholder="e.g. 16" value={formData.taxRate} onChange={f("taxRate")} step="0.01" min="0" max="100" /></div><div className="space-y-2"><Label>Status</Label><Select value={formData.status} onValueChange={(v) => setFormData((p) => ({ ...p, status: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select></div></div></CardContent></Card><div className="flex gap-4"><Button type="button" variant="outline" onClick={() => navigate("/services")}><ArrowLeft className="mr-2 h-4 w-4" /> Cancel</Button><Button type="submit" disabled={createServiceMutation.isPending}>{createServiceMutation.isPending ? "Creating..." : "Create Service"}</Button></div></form></ModuleLayout>);
+}

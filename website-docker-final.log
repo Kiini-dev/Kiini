@@ -1,0 +1,671 @@
+ Image Kiini: One Hub. Total Control-app Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 733B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.23kB 0.0s done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:22-bookworm-slim
+#3 DONE 3.1s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 193B 0.0s done
+#4 DONE 0.0s
+
+#5 [1/9] FROM docker.io/library/node:22-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5
+#5 resolve docker.io/library/node:22-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 0.0s done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 5.24MB 0.4s done
+#6 DONE 0.4s
+
+#7 [2/9] WORKDIR /app
+#7 CACHED
+
+#8 [3/9] RUN corepack enable
+#8 CACHED
+
+#9 [4/9] RUN apt-get update  && apt-get install -y --no-install-recommends chromium  && rm -rf /var/lib/apt/lists/*
+#9 CACHED
+
+#10 [5/9] COPY package.json pnpm-lock.yaml ./
+#10 CACHED
+
+#11 [6/9] RUN PNPM_VERSION=$(node -p "require('./package.json').packageManager.replace('pnpm@', '')")  && corepack prepare pnpm@$PNPM_VERSION --activate  && pnpm config set --location=project --json allowBuilds '{"better-sqlite3":true,"core-js":true,"esbuild":true,"sqlite3":true}'  && pnpm config set fetch-timeout 600000  && pnpm install --frozen-lockfile
+#11 CACHED
+
+#12 [7/9] COPY . .
+#12 DONE 2.2s
+
+#13 [8/9] RUN pnpm build
+#13 1.283 Ô£ô Lockfile passes supply-chain policies (verified 16h ago)
+#13 1.301 Lockfile is up to date, resolution step is skipped
+#13 1.449 Already up to date
+#13 2.496 
+#13 2.678 Done in 1.9s using pnpm v11.22.0
+#13 2.695 $ vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+#13 3.045 vite v7.3.1 building client environment for production...
+#13 3.084 (!) %VITE_ANALYTICS_ENDPOINT% is not defined in env variables found in /index.html. Is the variable mistyped?
+#13 3.084 (!) %VITE_ANALYTICS_WEBSITE_ID% is not defined in env variables found in /index.html. Is the variable mistyped?
+#13 3.116 transforming...
+#13 18.66 Ô£ô 3786 modules transformed.
+#13 20.47 rendering chunks...
+#13 21.27 computing gzip size...
+#13 21.41 ../dist/public/index.html                                        3.99 kB Ôöé gzip:   1.67 kB
+#13 21.41 ../dist/public/assets/OrgSettings-Bx3OTr2t.css                  29.89 kB Ôöé gzip:   5.84 kB
+#13 21.41 ../dist/public/assets/index-CY8zV1SM.css                       401.34 kB Ôöé gzip:  49.40 kB
+#13 21.41 ../dist/public/assets/trpc-DGOfIRhv.js                           0.07 kB Ôöé gzip:   0.09 kB
+#13 21.41 ../dist/public/assets/tableSort-B6IToDRb.js                      0.14 kB Ôöé gzip:   0.12 kB
+#13 21.41 ../dist/public/assets/AreaChart-dFArzeZU.js                      0.23 kB Ôöé gzip:   0.19 kB
+#13 21.41 ../dist/public/assets/LineChart-C4wE86sT.js                      0.23 kB Ôöé gzip:   0.19 kB
+#13 21.41 ../dist/public/assets/use-toast-CblWRlnv.js                      0.24 kB Ôöé gzip:   0.20 kB
+#13 21.41 ../dist/public/assets/skeleton-64LbNDxq.js                       0.24 kB Ôöé gzip:   0.20 kB
+#13 21.41 ../dist/public/assets/communications-DPNzK-66.js                 0.27 kB Ôöé gzip:   0.21 kB
+#13 21.41 ../dist/public/assets/spinner-BUaIYur6.js                        0.28 kB Ôöé gzip:   0.22 kB
+#13 21.41 ../dist/public/assets/BarChart-Bn7Mq6iz.js                       0.30 kB Ôöé gzip:   0.22 kB
+#13 21.41 ../dist/public/assets/paymentMethods-r32LliAe.js                 0.31 kB Ôöé gzip:   0.24 kB
+#13 21.41 ../dist/public/assets/collapsible-DaZGlMFo.js                    0.32 kB Ôöé gzip:   0.19 kB
+#13 21.41 ../dist/public/assets/label-CPu7rGDd.js                          0.33 kB Ôöé gzip:   0.25 kB
+#13 21.41 ../dist/public/assets/useUserLookup-Bw6W5zIZ.js                  0.40 kB Ôöé gzip:   0.31 kB
+#13 21.41 ../dist/public/assets/exportCsv-CNzVNdz4.js                      0.44 kB Ôöé gzip:   0.33 kB
+#13 21.41 ../dist/public/assets/useRequireFeature-y3zo-oG8.js              0.44 kB Ôöé gzip:   0.31 kB
+#13 21.41 ../dist/public/assets/csvGenerator-BbTLt5yV.js                   0.45 kB Ôöé gzip:   0.29 kB
+#13 21.41 ../dist/public/assets/textarea-UjpBVLcI.js                       0.50 kB Ôöé gzip:   0.34 kB
+#13 21.41 ../dist/public/assets/useCompanyInfo-COq5820A.js                 0.51 kB Ôöé gzip:   0.35 kB
+#13 21.41 ../dist/public/assets/export-utils-i0JdaBov.js                   0.57 kB Ôöé gzip:   0.40 kB
+#13 21.41 ../dist/public/assets/useOrgPermission-WKLNZVZF.js               0.59 kB Ôöé gzip:   0.40 kB
+#13 21.41 ../dist/public/assets/useFavorite-Hn4EtQmh.js                    0.59 kB Ôöé gzip:   0.35 kB
+#13 21.41 ../dist/public/assets/documentTemplateHelpers-CduNLrpb.js        0.59 kB Ôöé gzip:   0.33 kB
+#13 21.41 ../dist/public/assets/payslipPdf-Btmo-aum.js                     0.63 kB Ôöé gzip:   0.44 kB
+#13 21.41 ../dist/public/assets/activityLog-B-yh0W2G.js                    0.75 kB Ôöé gzip:   0.36 kB
+#13 21.41 ../dist/public/assets/popover-IQxyBdte.js                        0.83 kB Ôöé gzip:   0.45 kB
+#13 21.41 ../dist/public/assets/DeleteConfirmationModal-kCZFem9w.js        0.85 kB Ôöé gzip:   0.49 kB
+#13 21.41 ../dist/public/assets/healthScore-hLzRzKdj.js                    0.89 kB Ôöé gzip:   0.52 kB
+#13 21.41 ../dist/public/assets/switch-C-0DhbOR.js                         0.90 kB Ôöé gzip:   0.47 kB
+#13 21.41 ../dist/public/assets/checkbox-Cm3xVVP7.js                       0.92 kB Ôöé gzip:   0.47 kB
+#13 21.41 ../dist/public/assets/UserSelector-CjM_TT8q.js                   0.96 kB Ôöé gzip:   0.55 kB
+#13 21.41 ../dist/public/assets/CustomPage-CVNgj7jl.js                     1.04 kB Ôöé gzip:   0.60 kB
+#13 21.41 ../dist/public/assets/PermissionGuard-hNJoqt-v.js                1.05 kB Ôöé gzip:   0.59 kB
+#13 21.41 ../dist/public/assets/EmployeeSelector-B3E0Tc4f.js               1.10 kB Ôöé gzip:   0.61 kB
+#13 21.41 ../dist/public/assets/format-XyXgtmZc.js                         1.15 kB Ôöé gzip:   0.55 kB
+#13 21.41 ../dist/public/assets/Messages-AGlLmpuE.js                       1.18 kB Ôöé gzip:   0.63 kB
+#13 21.41 ../dist/public/assets/ModuleLayout-BkbccAEs.js                   1.25 kB Ôöé gzip:   0.62 kB
+#13 21.41 ../dist/public/assets/accordion-kZRKwPdz.js                      1.27 kB Ôöé gzip:   0.62 kB
+#13 21.41 ../dist/public/assets/OrgAssets-DP11ngFz.js                      1.28 kB Ôöé gzip:   0.62 kB
+#13 21.41 ../dist/public/assets/OrgDocuments-BWSPDXkU.js                   1.29 kB Ôöé gzip:   0.62 kB
+#13 21.41 ../dist/public/assets/OrgPurchaseOrders-50UE9_MI.js              1.31 kB Ôöé gzip:   0.63 kB
+#13 21.41 ../dist/public/assets/PhoneInput-DbDcuWVD.js                     1.40 kB Ôöé gzip:   0.73 kB
+#13 21.41 ../dist/public/assets/TenantAdminDetails-htdrh3d0.js             1.56 kB Ôöé gzip:   0.68 kB
+#13 21.41 ../dist/public/assets/TenantUserDetails-FgYfqZUm.js              1.69 kB Ôöé gzip:   0.71 kB
+#13 21.41 ../dist/public/assets/RoleBasedDashboard-DfGh6fHY.js             1.71 kB Ôöé gzip:   0.74 kB
+#13 21.41 ../dist/public/assets/JobGroupPayrollItems-CYVixvRc.js           1.72 kB Ôöé gzip:   0.81 kB
+#13 21.41 ../dist/public/assets/RowActionsMenu-BoiGdN2i.js                 1.73 kB Ôöé gzip:   0.74 kB
+#13 21.41 ../dist/public/assets/designSystem-BjMWY9N5.js                   1.76 kB Ôöé gzip:   0.66 kB
+#13 21.41 ../dist/public/assets/OrgBreadcrumb-CeixXykN.js                  1.76 kB Ôöé gzip:   0.74 kB
+#13 21.41 ../dist/public/assets/SmsQueue-BvXVaPaO.js                       1.78 kB Ôöé gzip:   0.91 kB
+#13 21.41 ../dist/public/assets/ServiceSearchFilter-CZikEfAK.js            1.90 kB Ôöé gzip:   0.77 kB
+#13 21.41 ../dist/public/assets/NotFound-BqZupT9n.js                       1.92 kB Ôöé gzip:   0.91 kB
+#13 21.41 ../dist/public/assets/SummaryStatCards-DMlF2ABX.js               1.92 kB Ôöé gzip:   0.84 kB
+#13 21.41 ../dist/public/assets/ModuleAnalyticsStrip-CMMzrr49.js           1.98 kB Ôöé gzip:   0.90 kB
+#13 21.41 ../dist/public/assets/CustomFields-BwBW7s24.js                   2.00 kB Ôöé gzip:   0.93 kB
+#13 21.41 ../dist/public/assets/VerifyEmail-CjWZOFbS.js                    2.00 kB Ôöé gzip:   1.09 kB
+#13 21.41 ../dist/public/assets/alert-dialog-gV53FAML.js                   2.04 kB Ôöé gzip:   0.74 kB
+#13 21.41 ../dist/public/assets/table-BIN1Bx7r.js                          2.06 kB Ôöé gzip:   0.77 kB
+#13 21.41 ../dist/public/assets/LocationSelects-CPo-uHY3.js                2.07 kB Ôöé gzip:   0.58 kB
+#13 21.41 ../dist/public/assets/CreateImprest-CxYk4o3h.js                  2.13 kB Ôöé gzip:   1.03 kB
+#13 21.41 ../dist/public/assets/useOrgAccess-CPw2Ssab.js                   2.18 kB Ôöé gzip:   1.09 kB
+#13 21.41 ../dist/public/assets/PageHeader-CAR3Jef-.js                     2.21 kB Ôöé gzip:   0.94 kB
+#13 21.41 ../dist/public/assets/data-table-controls-XqXFq04Z.js            2.30 kB Ôöé gzip:   0.97 kB
+#13 21.41 ../dist/public/assets/OrgModulePage-BTrzYw7T.js                  2.36 kB Ôöé gzip:   1.02 kB
+#13 21.41 ../dist/public/assets/UnifiedModuleLayout-cWIsIrBw.js            2.42 kB Ôöé gzip:   1.05 kB
+#13 21.41 ../dist/public/assets/EmployeeAccountSection-DwGSrTgV.js         2.55 kB Ôöé gzip:   0.95 kB
+#13 21.41 ../dist/public/assets/BiTools-C0nMTtvJ.js                        2.68 kB Ôöé gzip:   1.18 kB
+#13 21.41 ../dist/public/assets/CreateClient-CNhyhoIO.js                   2.70 kB Ôöé gzip:   1.36 kB
+#13 21.41 ../dist/public/assets/OrgCreateClient-DZOLyvbF.js                2.70 kB Ôöé gzip:   1.36 kB
+#13 21.41 ../dist/public/assets/OrgSuperAdminDashboard-BSS4gnKS.js         2.76 kB Ôöé gzip:   1.21 kB
+#13 21.41 ../dist/public/assets/CreateBudget-CXmwnSCp.js                   2.80 kB Ôöé gzip:   1.32 kB
+#13 21.41 ../dist/public/assets/ICTSystemSettings-DNp-U-5S.js              2.81 kB Ôöé gzip:   1.18 kB
+#13 21.41 ../dist/public/assets/CreateReceipt-DEV036nN.js                  2.83 kB Ôöé gzip:   1.18 kB
+#13 21.41 ../dist/public/assets/CreateProduct-CCpUbYgM.js                  2.84 kB Ôöé gzip:   1.27 kB
+#13 21.41 ../dist/public/assets/OrgCreateProduct-CeEMxFmT.js               2.84 kB Ôöé gzip:   1.27 kB
+#13 21.41 ../dist/public/assets/DashboardBuilderPro-ez5XZSG6.js            2.86 kB Ôöé gzip:   1.18 kB
+#13 21.41 ../dist/public/assets/EnhancedBulkActions-C-OwtkA_.js            2.89 kB Ôöé gzip:   1.21 kB
+#13 21.41 ../dist/public/assets/MyPayslips-CGJ7ozva.js                     2.95 kB Ôöé gzip:   1.24 kB
+#13 21.41 ../dist/public/assets/actions-QmWegxfK.js                        3.01 kB Ôöé gzip:   1.34 kB
+#13 21.41 ../dist/public/assets/FinancialReports-BEnt4nzV.js               3.03 kB Ôöé gzip:   1.23 kB
+#13 21.41 ../dist/public/assets/Search-Dk75xEJO.js                         3.20 kB Ôöé gzip:   1.46 kB
+#13 21.41 ../dist/public/assets/CreditNotes-CnvBILAu.js                    3.20 kB Ôöé gzip:   1.32 kB
+#13 21.41 ../dist/public/assets/OrgCreditNotes-C7cE41ve.js                 3.20 kB Ôöé gzip:   1.32 kB
+#13 21.41 ../dist/public/assets/privateChatUtils-Bv4qHQl7.js               3.20 kB Ôöé gzip:   1.23 kB
+#13 21.41 ../dist/public/assets/SalesManagerDashboard-BDBF2k8T.js          3.24 kB Ôöé gzip:   1.16 kB
+#13 21.41 ../dist/public/assets/ICTAnalytics-KSVnwq3D.js                   3.26 kB Ôöé gzip:   1.21 kB
+#13 21.41 ../dist/public/assets/ReportsDetails-5c4F2Byh.js                 3.27 kB Ôöé gzip:   1.22 kB
+#13 21.41 ../dist/public/assets/ProcurementManagerDashboard-Cf_g1zuQ.js    3.27 kB Ôöé gzip:   1.15 kB
+#13 21.41 ../dist/public/assets/FunnelAnalysis-nl9kDvVF.js                 3.33 kB Ôöé gzip:   1.26 kB
+#13 21.41 ../dist/public/assets/TableColumnSettings-Dku42-bh.js            3.35 kB Ôöé gzip:   1.44 kB
+#13 21.41 ../dist/public/assets/OrgCreateLPO-BdB2GGBl.js                   3.36 kB Ôöé gzip:   1.44 kB
+#13 21.41 ../dist/public/assets/CreateDepartment-BQbpB-UJ.js               3.38 kB Ôöé gzip:   1.40 kB
+#13 21.41 ../dist/public/assets/OrgCreateDepartment-BESROq4p.js            3.38 kB Ôöé gzip:   1.40 kB
+#13 21.41 ../dist/public/assets/CohortAnalysis-CXRMrf1-.js                 3.43 kB Ôöé gzip:   1.23 kB
+#13 21.41 ../dist/public/assets/EditBudget-B7mcLrzY.js                     3.43 kB Ôöé gzip:   1.52 kB
+#13 21.41 ../dist/public/assets/OrgEditBudget-De7IXvOH.js                  3.43 kB Ôöé gzip:   1.52 kB
+#13 21.41 ../dist/public/assets/OrgCreateReceipt-qyde6-lX.js               3.47 kB Ôöé gzip:   1.41 kB
+#13 21.41 ../dist/public/assets/OrgPurchaseOrderDetail-B8q3D110.js         3.49 kB Ôöé gzip:   1.25 kB
+#13 21.41 ../dist/public/assets/CreatePurchaseOrder-CC8MJ7Fu.js            3.49 kB Ôöé gzip:   1.26 kB
+#13 21.41 ../dist/public/assets/OrgCreatePurchaseOrder-Ci4D-D8n.js         3.49 kB Ôöé gzip:   1.26 kB
+#13 21.41 ../dist/public/assets/CreateSupplier-lnefOyhk.js                 3.56 kB Ôöé gzip:   1.61 kB
+#13 21.41 ../dist/public/assets/OrgCreateSupplier-ETCgKBXa.js              3.56 kB Ôöé gzip:   1.61 kB
+#13 21.41 ../dist/public/assets/ListPageToolbar-DjdwRqd6.js                3.56 kB Ôöé gzip:   1.00 kB
+#13 21.41 ../dist/public/assets/CreateWarranty-Phi-Z1Q1.js                 3.57 kB Ôöé gzip:   1.36 kB
+#13 21.41 ../dist/public/assets/EditDepartment-CHCvL-1U.js                 3.60 kB Ôöé gzip:   1.40 kB
+#13 21.41 ../dist/public/assets/OrgEditDepartment-qnmbt3l6.js              3.60 kB Ôöé gzip:   1.40 kB
+#13 21.41 ../dist/public/assets/WarrantyDetails-bLH2I7wa.js                3.60 kB Ôöé gzip:   1.21 kB
+#13 21.41 ../dist/public/assets/EmailQueue-ruutaX6F.js                     3.63 kB Ôöé gzip:   1.59 kB
+#13 21.41 ../dist/public/assets/CreateEstimate-B4upX-bv.js                 3.67 kB Ôöé gzip:   1.58 kB
+#13 21.41 ../dist/public/assets/DepartmentForm-k3tmdlw_.js                 3.67 kB Ôöé gzip:   1.40 kB
+#13 21.41 ../dist/public/assets/OrgContactDetail-D3i-7Jlw.js               3.68 kB Ôöé gzip:   1.24 kB
+#13 21.41 ../dist/public/assets/CreateTicket-4HUIbFKf.js                   3.70 kB Ôöé gzip:   1.47 kB
+#13 21.41 ../dist/public/assets/OrgCreateTicket-nmU9I77I.js                3.70 kB Ôöé gzip:   1.47 kB
+#13 21.41 ../dist/public/assets/ChartOfAccountsDetails-BVbvAKQZ.js         3.72 kB Ôöé gzip:   1.29 kB
+#13 21.41 ../dist/public/assets/ProductDetails-D10pGaAJ.js                 3.76 kB Ôöé gzip:   1.39 kB
+#13 21.41 ../dist/public/assets/ProposalDetails-i5uWZKtn.js                3.78 kB Ôöé gzip:   1.30 kB
+#13 21.41 ../dist/public/assets/OrgServiceDetail-BmO20K2T.js               3.80 kB Ôöé gzip:   1.25 kB
+#13 21.41 ../dist/public/assets/ConversionAnalytics-CsD_UDfm.js            3.82 kB Ôöé gzip:   1.56 kB
+#13 21.41 ../dist/public/assets/OrgEditApproval-BvoGVuyH.js                3.83 kB Ôöé gzip:   1.41 kB
+#13 21.41 ../dist/public/assets/CreateLeaveRequest-C0flrhGb.js             3.87 kB Ôöé gzip:   1.45 kB
+#13 21.41 ../dist/public/assets/TenantAdmins-M0W9K0HC.js                   3.87 kB Ôöé gzip:   1.37 kB
+#13 21.41 ../dist/public/assets/Home-D7fo2nvW.js                           3.88 kB Ôöé gzip:   1.47 kB
+#13 21.41 ../dist/public/assets/OrgReceiptDetail-zUFlRzvj.js               3.91 kB Ôöé gzip:   1.40 kB
+#13 21.41 ../dist/public/assets/InvoiceSearchFilter-CjQ8Dugv.js            3.93 kB Ôöé gzip:   1.29 kB
+#13 21.41 ../dist/public/assets/OrgPaymentDetail-B-bB3rG_.js               3.95 kB Ôöé gzip:   1.41 kB
+#13 21.41 ../dist/public/assets/OrgQuotationDetail-DRlck_s_.js             3.95 kB Ôöé gzip:   1.40 kB
+#13 21.41 ../dist/public/assets/CreateAttendance-BAS3S1xK.js               3.96 kB Ôöé gzip:   1.46 kB
+#13 21.41 ../dist/public/assets/OrgCreateAttendance-C0PU3EEo.js            3.96 kB Ôöé gzip:   1.46 kB
+#13 21.41 ../dist/public/assets/OrgProductDetail-BDKCCOqv.js               3.97 kB Ôöé gzip:   1.29 kB
+#13 21.41 ../dist/public/assets/HRDetails-Bi1SCazv.js                      3.97 kB Ôöé gzip:   1.44 kB
+#13 21.41 ../dist/public/assets/TenantUsers-C5ex43IE.js                    3.99 kB Ôöé gzip:   1.47 kB
+#13 21.41 ../dist/public/assets/OrgLPODetail-D7vHyk1r.js                   4.00 kB Ôöé gzip:   1.55 kB
+#13 21.41 ../dist/public/assets/ProjectAnalytics-C313-L3z.js               4.00 kB Ôöé gzip:   1.48 kB
+#13 21.41 ../dist/public/assets/OrgLeadDetail-B9ZJWzaG.js                  4.01 kB Ôöé gzip:   1.43 kB
+#13 21.41 ../dist/public/assets/OrgEstimateDetail-DccGaL1r.js              4.02 kB Ôöé gzip:   1.44 kB
+#13 21.41 ../dist/public/assets/Sales-gSmy4kCG.js                          4.03 kB Ôöé gzip:   1.49 kB
+#13 21.41 ../dist/public/assets/OrgApprovalDetail-zJH4L_BS.js              4.04 kB Ôöé gzip:   1.40 kB
+#13 21.41 ../dist/public/assets/AIAssistantModal-BlsOgCWs.js               4.14 kB Ôöé gzip:   1.72 kB
+#13 21.41 ../dist/public/assets/OrgAttendanceDetail-FNJ8M9XD.js            4.14 kB Ôöé gzip:   1.43 kB
+#13 21.41 ../dist/public/assets/EditAllowance-vMa6vqGw.js                  4.17 kB Ôöé gzip:   1.68 kB
+#13 21.41 ../dist/public/assets/SalesReports-CQwzaeLb.js                   4.21 kB Ôöé gzip:   1.40 kB
+#13 21.41 ../dist/public/assets/OrgEditLead-DRIBOi7J.js                    4.21 kB Ôöé gzip:   1.48 kB
+#13 21.41 ../dist/public/assets/OrgProcurementDetail-B41lGLAP.js           4.22 kB Ôöé gzip:   1.45 kB
+#13 21.41 ../dist/public/assets/BudgetDetails-BEqN44fy.js                  4.22 kB Ôöé gzip:   1.39 kB
+#13 21.41 ../dist/public/assets/EditSalaryStructure-FfunA2Vc.js            4.23 kB Ôöé gzip:   1.60 kB
+#13 21.41 ../dist/public/assets/OrgEditSalaryStructure-Dj7BGgC3.js         4.23 kB Ôöé gzip:   1.60 kB
+#13 21.41 ../dist/public/assets/OrgEditPurchaseOrder-1u0U4cK1.js           4.23 kB Ôöé gzip:   1.57 kB
+#13 21.41 ../dist/public/assets/RevenueForecasting-DUl0hSk6.js             4.24 kB Ôöé gzip:   1.70 kB
+#13 21.41 ../dist/public/assets/CreateAllowance-Dx4cwDOC.js                4.24 kB Ôöé gzip:   1.64 kB
+#13 21.41 ../dist/public/assets/EditTicket-DsAnk-J8.js                     4.33 kB Ôöé gzip:   1.62 kB
+#13 21.41 ../dist/public/assets/OrgEditTicket-DJzRwD2_.js                  4.33 kB Ôöé gzip:   1.62 kB
+#13 21.41 ../dist/public/assets/AssetDetails-BBwEKTyK.js                   4.34 kB Ôöé gzip:   1.28 kB
+#13 21.41 ../dist/public/assets/OrgProposalDetail-SB-FOrzE.js              4.34 kB Ôöé gzip:   1.46 kB
+#13 21.41 ../dist/public/assets/EditDeduction-D3wt55Yz.js                  4.42 kB Ôöé gzip:   1.76 kB
+#13 21.41 ../dist/public/assets/Services-3Eber0Yr.js                       4.47 kB Ôöé gzip:   1.76 kB
+#13 21.41 ../dist/public/assets/OrgEditProcurement-CB1hAfrW.js             4.47 kB Ôöé gzip:   1.57 kB
+#13 21.41 ../dist/public/assets/OrgDebitNoteDetail-QDcZPOav.js             4.48 kB Ôöé gzip:   1.53 kB
+#13 21.41 ../dist/public/assets/AdvancedAnalytics-0tEwKlgA.js              4.51 kB Ôöé gzip:   1.38 kB
+#13 21.41 ../dist/public/assets/EditReceipt-CimrUUce.js                    4.59 kB Ôöé gzip:   1.68 kB
+#13 21.41 ../dist/public/assets/OrgEditReceipt-2RAjmQJK.js                 4.59 kB Ôöé gzip:   1.68 kB
+#13 21.41 ../dist/public/assets/EditBenefit-c_6ftc7y.js                    4.59 kB Ôöé gzip:   1.79 kB
+#13 21.41 ../dist/public/assets/Blog-CwaoXmjE.js                           4.60 kB Ôöé gzip:   1.63 kB
+#13 21.41 ../dist/public/assets/ContractDetails-DV1a-ZNt.js                4.60 kB Ôöé gzip:   1.37 kB
+#13 21.41 ../dist/public/assets/WarrantyManagement-BBgwNgCL.js             4.74 kB Ôöé gzip:   1.84 kB
+#13 21.41 ../dist/public/assets/ESignatures-DyYF1LoG.js                    4.74 kB Ôöé gzip:   1.82 kB
+#13 21.41 ../dist/public/assets/SalaryStructureDetails-BClbBAvw.js         4.76 kB Ôöé gzip:   1.62 kB
+#13 21.41 ../dist/public/assets/OrgSalaryStructureDetails-CUzXz2TS.js      4.76 kB Ôöé gzip:   1.62 kB
+#13 21.41 ../dist/public/assets/OrgAI-C4lm5lfr.js                          4.77 kB Ôöé gzip:   1.89 kB
+#13 21.41 ../dist/public/assets/CreateLPO-CvJpq-dc.js                      4.80 kB Ôöé gzip:   1.93 kB
+#13 21.41 ../dist/public/assets/EditWarranty-BTTYl_MC.js                   4.83 kB Ôöé gzip:   1.71 kB
+#13 21.41 ../dist/public/assets/TimesheetDetails-BwaSQJVk.js               4.83 kB Ôöé gzip:   1.42 kB
+#13 21.41 ../dist/public/assets/OrgOrderDetail-DgIIblMq.js                 4.86 kB Ôöé gzip:   1.62 kB
+#13 21.41 ../dist/public/assets/CreateDebitNote-Cq8uI1OJ.js                4.86 kB Ôöé gzip:   1.90 kB
+#13 21.41 ../dist/public/assets/OrgCreateDebitNote-BhQweaZc.js             4.86 kB Ôöé gzip:   1.90 kB
+#13 21.41 ../dist/public/assets/EditAttendance-DafTiiVb.js                 4.87 kB Ôöé gzip:   1.66 kB
+#13 21.41 ../dist/public/assets/OrgEditAttendance-Cg29QgXr.js              4.87 kB Ôöé gzip:   1.66 kB
+#13 21.41 ../dist/public/assets/BankReconciliationDetails-D90Si4n4.js      4.91 kB Ôöé gzip:   1.51 kB
+#13 21.41 ../dist/public/assets/OrgSubscriptions-CFjje778.js               4.94 kB Ôöé gzip:   1.81 kB
+#13 21.41 ../dist/public/assets/CustomerReports-CWDc6a8P.js                4.96 kB Ôöé gzip:   2.01 kB
+#13 21.41 ../dist/public/assets/OrgSupplierDetail-CZf6X2TJ.js              4.96 kB Ôöé gzip:   1.57 kB
+#13 21.41 ../dist/public/assets/EditClient-oK8iTCD1.js                     4.99 kB Ôöé gzip:   1.95 kB
+#13 21.41 ../dist/public/assets/ImprestDetails-B-9-2rXj.js                 5.00 kB Ôöé gzip:   1.56 kB
+#13 21.41 ../dist/public/assets/CreateWorkOrder-CTSbNeX1.js                5.01 kB Ôöé gzip:   1.71 kB
+#13 21.41 ../dist/public/assets/OrgCreateWorkOrder-lCRYURC6.js             5.01 kB Ôöé gzip:   1.71 kB
+#13 21.41 ../dist/public/assets/ChangePassword-DYNWy-sc.js                 5.02 kB Ôöé gzip:   1.79 kB
+#13 21.41 ../dist/public/assets/OrgEditQuotation-DeMJmjz-.js               5.04 kB Ôöé gzip:   1.83 kB
+#13 21.41 ../dist/public/assets/EditEstimate-D-0bClv2.js                   5.06 kB Ôöé gzip:   1.75 kB
+#13 21.41 ../dist/public/assets/OrgEditEstimate-w-5ZhF3Y.js                5.06 kB Ôöé gzip:   1.75 kB
+#13 21.41 ../dist/public/assets/ChurnPrediction-B0ZyrNZG.js                5.07 kB Ôöé gzip:   1.58 kB
+#13 21.41 ../dist/public/assets/BankReconciliation-BFL0II88.js             5.09 kB Ôöé gzip:   2.00 kB
+#13 21.41 ../dist/public/assets/SystemHealthDashboard-Cn_ZC0ZQ.js          5.09 kB Ôöé gzip:   1.72 kB
+#13 21.41 ../dist/public/assets/OrgBankReconciliation-EVxQZes_.js          5.09 kB Ôöé gzip:   2.00 kB
+#13 21.41 ../dist/public/assets/Activity-BEA81Bgm.js                       5.09 kB Ôöé gzip:   2.14 kB
+#13 21.41 ../dist/public/assets/OrgActivity-BFJqvwRz.js                    5.09 kB Ôöé gzip:   2.14 kB
+#13 21.41 ../dist/public/assets/OrgProcurement-wB-AjhFa.js                 5.09 kB Ôöé gzip:   1.83 kB
+#13 21.41 ../dist/public/assets/EditProduct-Dsr_1KYT.js                    5.12 kB Ôöé gzip:   1.89 kB
+#13 21.41 ../dist/public/assets/OrgEditProduct-D_u03wIL.js                 5.12 kB Ôöé gzip:   1.89 kB
+#13 21.41 ../dist/public/assets/OrgCreditNoteDetail-C6z_UdIh.js            5.14 kB Ôöé gzip:   1.61 kB
+#13 21.41 ../dist/public/assets/EditLPO-BY7cTkdx.js                        5.15 kB Ôöé gzip:   1.91 kB
+#13 21.41 ../dist/public/assets/OrgEditLPO-CrlgS8Fo.js                     5.15 kB Ôöé gzip:   1.91 kB
+#13 21.41 ../dist/public/assets/EditInvoice-DfGkjAaV.js                    5.20 kB Ôöé gzip:   1.80 kB
+#13 21.41 ../dist/public/assets/OrgEditInvoice-BPJxFtsI.js                 5.20 kB Ôöé gzip:   1.80 kB
+#13 21.41 ../dist/public/assets/ContactDetails-Hgn6MtJr.js                 5.20 kB Ôöé gzip:   1.40 kB
+#13 21.41 ../dist/public/assets/OrgCreateQuotation-DXIDquHc.js             5.20 kB Ôöé gzip:   1.79 kB
+#13 21.41 ../dist/public/assets/QuotationDetails-P9yuJXcX.js               5.23 kB Ôöé gzip:   1.81 kB
+#13 21.41 ../dist/public/assets/SessionManager-BGDZuq2E.js                 5.26 kB Ôöé gzip:   1.96 kB
+#13 21.41 ../dist/public/assets/ProductForm-dk8qtPFW.js                    5.30 kB Ôöé gzip:   1.59 kB
+#13 21.41 ../dist/public/assets/ServiceTemplates-CnPW_lSK.js               5.31 kB Ôöé gzip:   2.16 kB
+#13 21.41 ../dist/public/assets/OrgServiceTemplates-BDgooUMl.js            5.31 kB Ôöé gzip:   2.16 kB
+#13 21.41 ../dist/public/assets/FinanceSettings-ipUugFJg.js                5.32 kB Ôöé gzip:   1.78 kB
+#13 21.41 ../dist/public/assets/Departments-ChHCbBUB.js                    5.34 kB Ôöé gzip:   2.03 kB
+#13 21.41 ../dist/public/assets/TestPDFGeneration-D_e_IwL5.js              5.37 kB Ôöé gzip:   1.89 kB
+#13 21.41 ../dist/public/assets/Dashboard-MCLJLmOH.js                      5.39 kB Ôöé gzip:   1.48 kB
+#13 21.41 ../dist/public/assets/OrgServices-CbOhVAnO.js                    5.40 kB Ôöé gzip:   1.88 kB
+#13 21.41 ../dist/public/assets/PaymentDetails-BRVljzkB.js                 5.40 kB Ôöé gzip:   1.92 kB
+#13 21.41 ../dist/public/assets/GRNDetails-C8pmF81L.js                     5.43 kB Ôöé gzip:   1.80 kB
+#13 21.41 ../dist/public/assets/TaxComplianceReports-DDZifBKE.js           5.45 kB Ôöé gzip:   1.50 kB
+#13 21.41 ../dist/public/assets/CreateDeduction-eGI3mo8q.js                5.45 kB Ôöé gzip:   2.02 kB
+#13 21.41 ../dist/public/assets/PayslipDetails-Ct1bO9Z1.js                 5.49 kB Ôöé gzip:   2.07 kB
+#13 21.41 ../dist/public/assets/OrderDetails-22y1X-is.js                   5.53 kB Ôöé gzip:   1.63 kB
+#13 21.41 ../dist/public/assets/OrgWarranty-BF0qq1QF.js                    5.54 kB Ôöé gzip:   2.10 kB
+#13 21.41 ../dist/public/assets/OrgDebitNotes-IfZXvchs.js                  5.57 kB Ôöé gzip:   2.34 kB
+#13 21.41 ../dist/public/assets/OrgCreateProposal-BNmd8HT_.js              5.57 kB Ôöé gzip:   1.93 kB
+#13 21.41 ../dist/public/assets/DeliveryNoteDetails-h00LAhAD.js            5.58 kB Ôöé gzip:   1.77 kB
+#13 21.41 ../dist/public/assets/EditSupplier-CRHW7_8Z.js                   5.60 kB Ôöé gzip:   2.17 kB
+#13 21.41 ../dist/public/assets/OrgEditSupplier-BWljRE4f.js                5.60 kB Ôöé gzip:   2.17 kB
+#13 21.41 ../dist/public/assets/ProcurementMaster-9O3is3jh.js              5.61 kB Ôöé gzip:   1.73 kB
+#13 21.41 ../dist/public/assets/Attendance-BF1GorEt.js                     5.63 kB Ôöé gzip:   2.00 kB
+#13 21.41 ../dist/public/assets/OrgAttendance-Dyb-0m9J.js                  5.63 kB Ôöé gzip:   2.00 kB
+#13 21.41 ../dist/public/assets/ForgotPassword-DEuRdDFp.js                 5.67 kB Ôöé gzip:   1.77 kB
+#13 21.41 ../dist/public/assets/EditWorkOrder-BRmwPbhN.js                  5.70 kB Ôöé gzip:   1.86 kB
+#13 21.41 ../dist/public/assets/OrgEditWorkOrder-livWZiv7.js               5.70 kB Ôöé gzip:   1.86 kB
+#13 21.41 ../dist/public/assets/OrgTaxCompliance-BdmwJVSs.js               5.71 kB Ôöé gzip:   1.61 kB
+#13 21.41 ../dist/public/assets/MFA-DguEHUpO.js                            5.71 kB Ôöé gzip:   1.72 kB
+#13 21.41 ../dist/public/assets/ServiceTemplateDetails-YR2PegT7.js         5.72 kB Ôöé gzip:   1.80 kB
+#13 21.41 ../dist/public/assets/CreateContact-D9c3Ckp_.js                  5.73 kB Ôöé gzip:   1.88 kB
+#13 21.41 ../dist/public/assets/ClientPerformance-CaV0LJGN.js              5.73 kB Ôöé gzip:   2.06 kB
+#13 21.41 ../dist/public/assets/ProjectsManagement-C3_4As8r.js             5.76 kB Ôöé gzip:   2.11 kB
+#13 21.41 ../dist/public/assets/DebitNoteDetails-D_D0OfhL.js               5.77 kB Ôöé gzip:   1.99 kB
+#13 21.41 ../dist/public/assets/DatabaseManagement-C7WU1WP-.js             5.80 kB Ôöé gzip:   1.74 kB
+#13 21.41 ../dist/public/assets/OrgCreateSalaryStructure-BDX-e8i1.js       5.83 kB Ôöé gzip:   1.89 kB
+#13 21.41 ../dist/public/assets/Holidays-Jl4JXmX_.js                       5.83 kB Ôöé gzip:   2.16 kB
+#13 21.41 ../dist/public/assets/LeaveManagementDetails-CbrklcQ2.js         5.84 kB Ôöé gzip:   1.80 kB
+#13 21.41 ../dist/public/assets/DebitNotes-BILXjACe.js                     5.85 kB Ôöé gzip:   2.42 kB
+#13 21.41 ../dist/public/assets/CreateSalaryStructure-CfBjgtsh.js          5.89 kB Ôöé gzip:   1.92 kB
+#13 21.41 ../dist/public/assets/ProjectReports-BlRX_cGf.js                 5.92 kB Ôöé gzip:   2.26 kB
+#13 21.41 ../dist/public/assets/EnterpriseSettings-CpAGIZNA.js             5.99 kB Ôöé gzip:   2.08 kB
+#13 21.41 ../dist/public/assets/EditDebitNote-CcUox4Af.js                  6.00 kB Ôöé gzip:   2.20 kB
+#13 21.41 ../dist/public/assets/OrgEditDebitNote-CDpa5A96.js               6.00 kB Ôöé gzip:   2.20 kB
+#13 21.41 ../dist/public/assets/OrgCreateInvoice-B2T_naFX.js               6.04 kB Ôöé gzip:   2.39 kB
+#13 21.41 ../dist/public/assets/EditLeave-C2oJE-on.js                      6.04 kB Ôöé gzip:   1.89 kB
+#13 21.41 ../dist/public/assets/OrgEditLeave-B2z1czw1.js                   6.04 kB Ôöé gzip:   1.89 kB
+#13 21.41 ../dist/public/assets/CreateInvoice-DTALlY7y.js                  6.05 kB Ôöé gzip:   2.40 kB
+#13 21.41 ../dist/public/assets/EditChartOfAccounts-gLnZOplh.js            6.06 kB Ôöé gzip:   2.09 kB
+#13 21.41 ../dist/public/assets/OrgStaff-Cb5d-VaA.js                       6.07 kB Ôöé gzip:   2.32 kB
+#13 21.41 ../dist/public/assets/EditBankReconciliation-CMvysBpN.js         6.09 kB Ôöé gzip:   1.78 kB
+#13 21.41 ../dist/public/assets/LeaveBalances-ByQvST6D.js                  6.09 kB Ôöé gzip:   2.06 kB
+#13 21.41 ../dist/public/assets/OrgCreateLeave-C8HxwSX3.js                 6.09 kB Ôöé gzip:   1.97 kB
+#13 21.41 ../dist/public/assets/OrgAccounting-CFOUGmjf.js                  6.11 kB Ôöé gzip:   2.13 kB
+#13 21.41 ../dist/public/assets/Security-d48vE0Uo.js                       6.18 kB Ôöé gzip:   1.71 kB
+#13 21.41 ../dist/public/assets/OrgDepartments-Dq2ji11O.js                 6.19 kB Ôöé gzip:   2.25 kB
+#13 21.41 ../dist/public/assets/OpportunityDetails-CV-1Wp83.js             6.20 kB Ôöé gzip:   1.89 kB
+#13 21.41 ../dist/public/assets/OrgCreateProcurement-Ce50oqfz.js           6.26 kB Ôöé gzip:   1.93 kB
+#13 21.41 ../dist/public/assets/Budgets-CdGhEwUx.js                        6.28 kB Ôöé gzip:   2.26 kB
+#13 21.41 ../dist/public/assets/OrgBudgets-BAVQESqr.js                     6.28 kB Ôöé gzip:   2.26 kB
+#13 21.41 ../dist/public/assets/OrgLeaveDetail-DMOCvvtX.js                 6.32 kB Ôöé gzip:   1.83 kB
+#13 21.41 ../dist/public/assets/HTMLEditor-CSgrMSph.js                     6.37 kB Ôöé gzip:   2.47 kB
+#13 21.41 ../dist/public/assets/Profile-Q7XplczW.js                        6.38 kB Ôöé gzip:   2.22 kB
+#13 21.41 ../dist/public/assets/ServiceInvoices-BB0ytful.js                6.40 kB Ôöé gzip:   2.59 kB
+#13 21.41 ../dist/public/assets/OrgServiceInvoices-B_D6g7PT.js             6.40 kB Ôöé gzip:   2.59 kB
+#13 21.41 ../dist/public/assets/ProjectManagerDashboard-9bU86XWx.js        6.46 kB Ôöé gzip:   2.11 kB
+#13 21.41 ../dist/public/assets/CreditNoteDetails-eblYECPD.js              6.46 kB Ôöé gzip:   2.08 kB
+#13 21.41 ../dist/public/assets/AttendanceDetails-eCcJnn77.js              6.50 kB Ôöé gzip:   1.98 kB
+#13 21.41 ../dist/public/assets/CreateServiceInvoice-WcsLJfgz.js           6.50 kB Ôöé gzip:   2.22 kB
+#13 21.41 ../dist/public/assets/OrgCreateServiceInvoice-D3Wwju6p.js        6.50 kB Ôöé gzip:   2.22 kB
+#13 21.41 ../dist/public/assets/Documentation-DoZpzGX6.js                  6.50 kB Ôöé gzip:   2.55 kB
+#13 21.41 ../dist/public/assets/ExpenseBudgetReport-DUjRMH3U.js            6.51 kB Ôöé gzip:   1.79 kB
+#13 21.41 ../dist/public/assets/SystemLogsViewer-BmHWEjdG.js               6.51 kB Ôöé gzip:   2.21 kB
+#13 21.41 ../dist/public/assets/Notifications-sWQOBH_Z.js                  6.51 kB Ôöé gzip:   1.99 kB
+#13 21.41 ../dist/public/assets/OrgContractDetail-CNtFlknp.js              6.55 kB Ôöé gzip:   1.80 kB
+#13 21.41 ../dist/public/assets/EditContact-DssgIG9k.js                    6.57 kB Ôöé gzip:   2.11 kB
+#13 21.41 ../dist/public/assets/OrgEditContact-Cz4n5Ay0.js                 6.57 kB Ôöé gzip:   2.11 kB
+#13 21.41 ../dist/public/assets/TaxInformation-CXiSvTx7.js                 6.60 kB Ôöé gzip:   2.22 kB
+#13 21.41 ../dist/public/assets/CreateOrder-YSB6iXeU.js                    6.62 kB Ôöé gzip:   2.21 kB
+#13 21.41 ../dist/public/assets/EditOpportunity-ChMtuV20.js                6.65 kB Ôöé gzip:   2.08 kB
+#13 21.41 ../dist/public/assets/AuditLogs-ByQJulT1.js                      6.66 kB Ôöé gzip:   2.55 kB
+#13 21.41 ../dist/public/assets/EditOrder-BxTIL6k9.js                      6.68 kB Ôöé gzip:   2.33 kB
+#13 21.41 ../dist/public/assets/OrgEditOrder-C-1Uxcur.js                   6.68 kB Ôöé gzip:   2.33 kB
+#13 21.41 ../dist/public/assets/LPODetails-CzlmW-4I.js                     6.73 kB Ôöé gzip:   2.05 kB
+#13 21.41 ../dist/public/assets/CreateService-BqKnqitR.js                  6.73 kB Ôöé gzip:   2.26 kB
+#13 21.41 ../dist/public/assets/OrgCreateService-BE_oDj73.js               6.73 kB Ôöé gzip:   2.26 kB
+#13 21.41 ../dist/public/assets/CreateBenefit-BqD43sNF.js                  6.73 kB Ôöé gzip:   2.27 kB
+#13 21.41 ../dist/public/assets/Login-BUFWPX-8.js                          6.76 kB Ôöé gzip:   2.26 kB
+#13 21.41 ../dist/public/assets/OrgLeave-cAGMdL6W.js                       6.80 kB Ôöé gzip:   2.39 kB
+#13 21.41 ../dist/public/assets/OrgEditContract-Du-3iOmC.js                6.80 kB Ôöé gzip:   2.13 kB
+#13 21.41 ../dist/public/assets/Calendar-DP9sJDbr.js                       6.81 kB Ôöé gzip:   2.39 kB
+#13 21.41 ../dist/public/assets/OrgCalendar-B66XalDy.js                    6.81 kB Ôöé gzip:   2.39 kB
+#13 21.41 ../dist/public/assets/Reminders-t57shepP.js                      6.84 kB Ôöé gzip:   2.16 kB
+#13 21.41 ../dist/public/assets/OrgServiceInvoiceDetails-niovITCn.js       6.84 kB Ôöé gzip:   2.05 kB
+#13 21.41 ../dist/public/assets/HRReports-PwyM0-An.js                      6.86 kB Ôöé gzip:   2.41 kB
+#13 21.41 ../dist/public/assets/UserDetails-Ck6jcIKP.js                    6.87 kB Ôöé gzip:   1.68 kB
+#13 21.41 ../dist/public/assets/EditProposal-BK9N85aO.js                   6.90 kB Ôöé gzip:   2.13 kB
+#13 21.41 ../dist/public/assets/OrgEditProposal-CQzfTYPG.js                6.90 kB Ôöé gzip:   2.13 kB
+#13 21.41 ../dist/public/assets/OrgCreateOrder-19qpD1Zn.js                 7.02 kB Ôöé gzip:   2.30 kB
+#13 21.41 ../dist/public/assets/ResetPassword-B-Z19UnY.js                  7.09 kB Ôöé gzip:   2.02 kB
+#13 21.41 ../dist/public/assets/OrgContracts-DJOIqr2I.js                   7.13 kB Ôöé gzip:   2.52 kB
+#13 21.41 ../dist/public/assets/WorkOrders-D_QXs_sN.js                     7.16 kB Ôöé gzip:   2.60 kB
+#13 21.41 ../dist/public/assets/OrgWorkOrders-DzfSa_bc.js                  7.16 kB Ôöé gzip:   2.60 kB
+#13 21.41 ../dist/public/assets/SalaryStructures-CBJD5YOi.js               7.18 kB Ôöé gzip:   2.27 kB
+#13 21.41 ../dist/public/assets/OrgSalaryStructures-SmwSE3te.js            7.18 kB Ôöé gzip:   2.27 kB
+#13 21.41 ../dist/public/assets/EditServiceInvoice-Cs_9RyNw.js             7.19 kB Ôöé gzip:   2.37 kB
+#13 21.41 ../dist/public/assets/OrgEditServiceInvoice-BdBEFboW.js          7.19 kB Ôöé gzip:   2.37 kB
+#13 21.41 ../dist/public/assets/OrgInvoiceDetail-BeWIekjU.js               7.24 kB Ôöé gzip:   1.99 kB
+#13 21.41 ../dist/public/assets/Benefits-D8i-bGuo.js                       7.31 kB Ôöé gzip:   2.20 kB
+#13 21.41 ../dist/public/assets/OrgCreateContract-DTO3yq91.js              7.33 kB Ôöé gzip:   2.14 kB
+#13 21.41 ../dist/public/assets/Signup-DyHwFzFv.js                         7.36 kB Ôöé gzip:   2.29 kB
+#13 21.41 ../dist/public/assets/ChartOfAccountsHierarchy-CVlhJ8uG.js       7.45 kB Ôöé gzip:   2.02 kB
+#13 21.41 ../dist/public/assets/ExpenseBudgetReport-BvnvAFQh.js            7.51 kB Ôöé gzip:   2.64 kB
+#13 21.41 ../dist/public/assets/OrgHR-tWxXwJV0.js                          7.51 kB Ôöé gzip:   2.39 kB
+#13 21.41 ../dist/public/assets/OrgCreateProject-DUyNsein.js               7.53 kB Ôöé gzip:   2.41 kB
+#13 21.41 ../dist/public/assets/Warehouses-C6i3ng2g.js                     7.54 kB Ôöé gzip:   2.30 kB
+#13 21.41 ../dist/public/assets/SystemHealth-7xWP0cN8.js                   7.56 kB Ôöé gzip:   1.75 kB
+#13 21.41 ../dist/public/assets/HRAnalyticsPage-u76aYkN2.js                7.57 kB Ôöé gzip:   2.07 kB
+#13 21.41 ../dist/public/assets/Products-BprTfEoJ.js                       7.68 kB Ôöé gzip:   2.64 kB
+#13 21.41 ../dist/public/assets/OrgProducts-DEz-Eku6.js                    7.68 kB Ôöé gzip:   2.64 kB
+#13 21.41 ../dist/public/assets/locations-CtzeVEdQ.js                      7.69 kB Ôöé gzip:   2.76 kB
+#13 21.41 ../dist/public/assets/AllowancesDeductions-BZrHL9jc.js           7.70 kB Ôöé gzip:   2.38 kB
+#13 21.41 ../dist/public/assets/TermsAndConditions-CqdCP_ZB.js             7.76 kB Ôöé gzip:   2.64 kB
+#13 21.41 ../dist/public/assets/LeaveManagement-18nCxJAH.js                7.77 kB Ôöé gzip:   2.50 kB
+#13 21.41 ../dist/public/assets/Contact-CX1QbUVQ.js                        7.77 kB Ôöé gzip:   2.77 kB
+#13 21.41 ../dist/public/assets/HR-CP1c94Fn.js                             7.79 kB Ôöé gzip:   2.51 kB
+#13 21.41 ../dist/public/assets/ProposalTemplates-CJZfPQoh.js              7.79 kB Ôöé gzip:   2.50 kB
+#13 21.41 ../dist/public/assets/OrgWorkOrderDetail-D6AQKi-P.js             7.80 kB Ôöé gzip:   1.95 kB
+#13 21.41 ../dist/public/assets/EditService-Dc2ld1MX.js                    7.85 kB Ôöé gzip:   2.55 kB
+#13 21.41 ../dist/public/assets/OrgEditService-DVtqW8q8.js                 7.85 kB Ôöé gzip:   2.55 kB
+#13 21.41 ../dist/public/assets/PayrollDetails-BqgD_XCg.js                 7.88 kB Ôöé gzip:   2.05 kB
+#13 21.41 ../dist/public/assets/OrgPayrollDetails-ChUUBLxf.js              7.88 kB Ôöé gzip:   2.05 kB
+#13 21.41 ../dist/public/assets/DisciplinaryRecords-C1B9p8Sy.js            7.88 kB Ôöé gzip:   2.43 kB
+#13 21.41 ../dist/public/assets/OrgCRM-DW8qfLC9.js                         7.93 kB Ôöé gzip:   2.50 kB
+#13 21.41 ../dist/public/assets/HRAdminDashboard-LwQS4H-8.js               7.95 kB Ôöé gzip:   2.35 kB
+#13 21.41 ../dist/public/assets/OrgEditProject-CC7kRULu.js                 7.99 kB Ôöé gzip:   2.35 kB
+#13 21.41 ../dist/public/assets/EditCreditNote-2f7WRer6.js                 8.00 kB Ôöé gzip:   2.59 kB
+#13 21.41 ../dist/public/assets/OrgEditCreditNote-B99FnuQk.js              8.00 kB Ôöé gzip:   2.59 kB
+#13 21.41 ../dist/public/assets/FinancialDashboard-D5nJ2Cwp.js             8.03 kB Ôöé gzip:   2.55 kB
+#13 21.41 ../dist/public/assets/Accounting-BS7adFJ5.js                     8.04 kB Ôöé gzip:   2.56 kB
+#13 21.41 ../dist/public/assets/OrgFinancialDashboard-tNg1D-RB.js          8.05 kB Ôöé gzip:   2.52 kB
+#13 21.41 ../dist/public/assets/ContractTemplates-g0Zbl12_.js              8.11 kB Ôöé gzip:   2.58 kB
+#13 21.41 ../dist/public/assets/OrgContractTemplates-DxDao16_.js           8.11 kB Ôöé gzip:   2.58 kB
+#13 21.41 ../dist/public/assets/UserGuide-BdJ38P2g.js                      8.15 kB Ôöé gzip:   3.04 kB
+#13 21.41 ../dist/public/assets/PerformanceReviews-CZ3nwO0_.js             8.18 kB Ôöé gzip:   2.64 kB
+#13 21.41 ../dist/public/assets/OrgPerformanceReviews-iqcndY5D.js          8.18 kB Ôöé gzip:   2.64 kB
+#13 21.41 ../dist/public/assets/TaskDetails-BNHV1QbY.js                    8.21 kB Ôöé gzip:   2.23 kB
+#13 21.41 ../dist/public/assets/OrgProjects-DE2fAfM3.js                    8.25 kB Ôöé gzip:   2.72 kB
+#13 21.41 ../dist/public/assets/Notes-BqiQa5bj.js                          8.38 kB Ôöé gzip:   2.71 kB
+#13 21.41 ../dist/public/assets/IntegrationGuides-C2dvL-Gm.js              8.55 kB Ôöé gzip:   3.17 kB
+#13 21.41 ../dist/public/assets/EstimateDetails-LYub_uAl.js                8.77 kB Ôöé gzip:   2.73 kB
+#13 21.41 ../dist/public/assets/AccountingManagement-CsYezCPK.js           8.81 kB Ôöé gzip:   2.32 kB
+#13 21.41 ../dist/public/assets/UiElements-Ch_mbMlR.js                     8.86 kB Ôöé gzip:   2.85 kB
+#13 21.41 ../dist/public/assets/AssetManagement-oYR6dPZu.js                8.90 kB Ôöé gzip:   2.80 kB
+#13 21.41 ../dist/public/assets/CSVImportExport-C4VGrU6h.js                8.90 kB Ôöé gzip:   3.02 kB
+#13 21.41 ../dist/public/assets/EnhancedReceiptManagement-D_tLmdUS.js      8.91 kB Ôöé gzip:   3.16 kB
+#13 21.41 ../dist/public/assets/LeadsDetails-CvJ26mn3.js                   8.93 kB Ôöé gzip:   2.54 kB
+#13 21.41 ../dist/public/assets/OverduePayments-D7WR8Ut0.js                8.98 kB Ôöé gzip:   2.64 kB
+#13 21.41 ../dist/public/assets/Payments-BFCK1EjX.js                       9.04 kB Ôöé gzip:   3.32 kB
+#13 21.41 ../dist/public/assets/OrgPayments-CZUH_Bop.js                    9.04 kB Ôöé gzip:   3.32 kB
+#13 21.41 ../dist/public/assets/ActivityTrail-lBBi24A2.js                  9.05 kB Ôöé gzip:   2.70 kB
+#13 21.41 ../dist/public/assets/RecurringInvoices-tNYHYvZP.js              9.06 kB Ôöé gzip:   2.76 kB
+#13 21.41 ../dist/public/assets/CreateCreditNote-LWgEwGP5.js               9.08 kB Ôöé gzip:   2.82 kB
+#13 21.41 ../dist/public/assets/OrgCreateCreditNote-QFBxVsYF.js            9.08 kB Ôöé gzip:   2.82 kB
+#13 21.41 ../dist/public/assets/PaymentReconciliation-BVjCm1HB.js          9.20 kB Ôöé gzip:   2.93 kB
+#13 21.41 ../dist/public/assets/PrivacyPolicy-BysCMtk0.js                  9.21 kB Ôöé gzip:   2.83 kB
+#13 21.41 ../dist/public/assets/PayrollApprovals-Bs_dRGH_.js               9.21 kB Ôöé gzip:   2.71 kB
+#13 21.41 ../dist/public/assets/Opportunities-CnLsjzpO.js                  9.23 kB Ôöé gzip:   3.27 kB
+#13 21.42 ../dist/public/assets/BillingDashboard-BJ4TXk9B.js               9.30 kB Ôöé gzip:   3.15 kB
+#13 21.42 ../dist/public/assets/DepartmentPayrollReports-BX7pIlcy.js       9.31 kB Ôöé gzip:   2.96 kB
+#13 21.42 ../dist/public/assets/Quotes-BMywc4EO.js                         9.34 kB Ôöé gzip:   3.38 kB
+#13 21.42 ../dist/public/assets/HRAnalytics-COSiW7w9.js                    9.37 kB Ôöé gzip:   2.74 kB
+#13 21.42 ../dist/public/assets/About-J0ylwYQI.js                          9.44 kB Ôöé gzip:   3.53 kB
+#13 21.42 ../dist/public/assets/OrgPricing-DpCrzMr6.js                     9.50 kB Ôöé gzip:   3.40 kB
+#13 21.42 ../dist/public/assets/CreatePayment-BJAyyetI.js                  9.56 kB Ôöé gzip:   3.02 kB
+#13 21.42 ../dist/public/assets/OrgTicketDetail-Bxh3zBt4.js                9.59 kB Ôöé gzip:   2.25 kB
+#13 21.42 ../dist/public/assets/OrgInventory-D9sSlpzE.js                   9.60 kB Ôöé gzip:   3.07 kB
+#13 21.42 ../dist/public/assets/OrgDeliveryNotes-DBczoonn.js               9.72 kB Ôöé gzip:   3.30 kB
+#13 21.42 ../dist/public/assets/Onboarding-j6f7iGcq.js                     9.81 kB Ôöé gzip:   2.80 kB
+#13 21.42 ../dist/public/assets/DeliveryNotes-DO9acQf1.js                  9.81 kB Ôöé gzip:   3.31 kB
+#13 21.42 ../dist/public/assets/EditUser-BPwY5ILm.js                       9.84 kB Ôöé gzip:   2.98 kB
+#13 21.42 ../dist/public/assets/CommunicationDetails-SzSnAY-F.js           9.88 kB Ôöé gzip:   2.87 kB
+#13 21.42 ../dist/public/assets/AdminCronJobs-5i4RtEtH.js                  9.89 kB Ôöé gzip:   3.18 kB
+#13 21.42 ../dist/public/assets/ProjectMilestones-Cjx4HM0p.js              9.97 kB Ôöé gzip:   2.98 kB
+#13 21.42 ../dist/public/assets/Estimates-C0clwvlV.js                      9.98 kB Ôöé gzip:   3.65 kB
+#13 21.42 ../dist/public/assets/CreateUser-hV11oofW.js                    10.02 kB Ôöé gzip:   3.21 kB
+#13 21.42 ../dist/public/assets/Expenses-D_Pis3xS.js                      10.04 kB Ôöé gzip:   3.50 kB
+#13 21.42 ../dist/public/assets/OrgExpenses-ClPOusMB.js                   10.04 kB Ôöé gzip:   3.50 kB
+#13 21.42 ../dist/public/assets/Inventory-BYajhQ58.js                     10.08 kB Ôöé gzip:   3.24 kB
+#13 21.42 ../dist/public/assets/Receipts-BCYSfrZ2.js                      10.14 kB Ôöé gzip:   3.58 kB
+#13 21.42 ../dist/public/assets/ClientForm-DIUTRyBg.js                    10.15 kB Ôöé gzip:   2.41 kB
+#13 21.42 ../dist/public/assets/OrgExpenseDetail-Bx53oGGO.js              10.25 kB Ôöé gzip:   2.77 kB
+#13 21.42 ../dist/public/assets/AccountantDashboard-BbKCU_5Y.js           10.26 kB Ôöé gzip:   3.09 kB
+#13 21.42 ../dist/public/assets/Integrations-BX9PopBy.js                  10.33 kB Ôöé gzip:   3.08 kB
+#13 21.42 ../dist/public/assets/HRAutomation-CAYaQV-Q.js                  10.33 kB Ôöé gzip:   2.79 kB
+#13 21.42 ../dist/public/assets/PaymentReports-Dbzra60T.js                10.37 kB Ôöé gzip:   2.97 kB
+#13 21.42 ../dist/public/assets/SupplierForm-T6YgjebI.js                  10.38 kB Ôöé gzip:   2.71 kB
+#13 21.42 ../dist/public/assets/HRAnalyticsDashboard-DvkvRrbC.js          10.39 kB Ôöé gzip:   2.76 kB
+#13 21.42 ../dist/public/assets/OrgEstimates-B1UGDdcK.js                  10.40 kB Ôöé gzip:   3.74 kB
+#13 21.42 ../dist/public/assets/PaymentPlans-Bfh9Fbx-.js                  10.48 kB Ôöé gzip:   3.22 kB
+#13 21.42 ../dist/public/assets/GlobalSettings-CAVvSOiM.js                10.48 kB Ôöé gzip:   3.02 kB
+#13 21.42 ../dist/public/assets/ReportBuilder-CQeH2zHs.js                 10.49 kB Ôöé gzip:   2.77 kB
+#13 21.42 ../dist/public/assets/OrgReceipts-BX5oLDBF.js                   10.57 kB Ôöé gzip:   3.67 kB
+#13 21.42 ../dist/public/assets/CreateServiceTemplate-bDksmXZL.js         10.58 kB Ôöé gzip:   2.98 kB
+#13 21.42 ../dist/public/assets/GRN-BVix2vCY.js                           10.58 kB Ôöé gzip:   3.32 kB
+#13 21.42 ../dist/public/assets/OrgGRN-Xxw29O0L.js                        10.58 kB Ôöé gzip:   3.32 kB
+#13 21.42 ../dist/public/assets/CreateProject-Ce-LyOFA.js                 10.64 kB Ôöé gzip:   3.29 kB
+#13 21.42 ../dist/public/assets/OrgQuotations-YFZKPA4e.js                 10.64 kB Ôöé gzip:   3.56 kB
+#13 21.42 ../dist/public/assets/CannedResponses-DYEyJOii.js               10.64 kB Ôöé gzip:   3.08 kB
+#13 21.42 ../dist/public/assets/OrgCannedResponses-Du5nl06Z.js            10.64 kB Ôöé gzip:   3.08 kB
+#13 21.42 ../dist/public/assets/BudgetDetail-DzK7wAla.js                  10.67 kB Ôöé gzip:   3.34 kB
+#13 21.42 ../dist/public/assets/OrgBudgetDetail-DIfm51hF.js               10.67 kB Ôöé gzip:   3.34 kB
+#13 21.42 ../dist/public/assets/DashboardHome-DkYfMHrf.js                 10.69 kB Ôöé gzip:   3.10 kB
+#13 21.42 ../dist/public/assets/EditPayment-BeAN03AA.js                   10.73 kB Ôöé gzip:   3.22 kB
+#13 21.42 ../dist/public/assets/OrgEditPayment-vat4-Lwv.js                10.73 kB Ôöé gzip:   3.22 kB
+#13 21.42 ../dist/public/assets/CreateOpportunity-C84E4RbI.js             10.80 kB Ôöé gzip:   3.26 kB
+#13 21.42 ../dist/public/assets/EmployeeContracts-CJyMC3Z1.js             10.82 kB Ôöé gzip:   2.61 kB
+#13 21.42 ../dist/public/assets/TenantCommunications-Bye9guAs.js          10.84 kB Ôöé gzip:   3.11 kB
+#13 21.42 ../dist/public/assets/EditPayroll-BnxOspOl.js                   10.90 kB Ôöé gzip:   3.18 kB
+#13 21.42 ../dist/public/assets/OrgEditPayroll-Cn1lWCLL.js                10.90 kB Ôöé gzip:   3.18 kB
+#13 21.42 ../dist/public/assets/Payslips-B-muvQ4G.js                      10.93 kB Ôöé gzip:   3.27 kB
+#13 21.42 ../dist/public/assets/OrgDashboardHome-jMINxZJ8.js              11.03 kB Ôöé gzip:   3.28 kB
+#13 21.42 ../dist/public/assets/ProcurementLPOs-CfE4cthA.js               11.03 kB Ôöé gzip:   3.00 kB
+#13 21.42 ../dist/public/assets/LPOs-8tMSo6HQ.js                          11.09 kB Ôöé gzip:   4.03 kB
+#13 21.42 ../dist/public/assets/MaintenanceAdmin-CavPbr9L.js              11.13 kB Ôöé gzip:   3.37 kB
+#13 21.42 ../dist/public/assets/CustomReportBuilder-DIMlDa8k.js           11.16 kB Ôöé gzip:   3.31 kB
+#13 21.42 ../dist/public/assets/Quotations-DwhLX6PF.js                    11.23 kB Ôöé gzip:   3.73 kB
+#13 21.42 ../dist/public/assets/TimeTracking-BUqPjMRK.js                  11.30 kB Ôöé gzip:   3.34 kB
+#13 21.42 ../dist/public/assets/ContractManagement-DDnMQ_3z.js            11.36 kB Ôöé gzip:   3.28 kB
+#13 21.42 ../dist/public/assets/OrgLPOs-B16AmbJC.js                       11.37 kB Ôöé gzip:   4.07 kB
+#13 21.42 ../dist/public/assets/OrgProjectDetail-CoBOTsDk.js              11.44 kB Ôöé gzip:   3.61 kB
+#13 21.42 ../dist/public/assets/OrgContacts-ry0RFpNE.js                   11.45 kB Ôöé gzip:   3.67 kB
+#13 21.42 ../dist/public/assets/QuoteDetails-D-YCrdIF.js                  11.46 kB Ôöé gzip:   3.15 kB
+#13 21.42 ../dist/public/assets/Suppliers-DvyR3NFx.js                     11.49 kB Ôöé gzip:   4.20 kB
+#13 21.42 ../dist/public/assets/Contacts-B3W0vIss.js                      11.52 kB Ôöé gzip:   3.70 kB
+#13 21.42 ../dist/public/assets/ProcurementImprests-Zwov0QXu.js           11.60 kB Ôöé gzip:   2.85 kB
+#13 21.42 ../dist/public/assets/SystemSettings-aN1eQLMw.js                11.62 kB Ôöé gzip:   3.18 kB
+#13 21.42 ../dist/public/assets/EnterpriseTenantsManagement-DCYf1zV2.js   11.63 kB Ôöé gzip:   3.31 kB
+#13 21.42 ../dist/public/assets/FileManager-C4SdSfP-.js                   11.68 kB Ôöé gzip:   4.02 kB
+#13 21.42 ../dist/public/assets/KPITracking-CZZlktaW.js                   11.69 kB Ôöé gzip:   3.11 kB
+#13 21.42 ../dist/public/assets/EnhancedChangePassword-DIiwjzhT.js        11.73 kB Ôöé gzip:   2.94 kB
+#13 21.42 ../dist/public/assets/UnifiedLanding-DgWzzltJ.js                11.89 kB Ôöé gzip:   3.15 kB
+#13 21.42 ../dist/public/assets/WorkflowAutomation-Blg_TpcZ.js            11.97 kB Ôöé gzip:   3.37 kB
+#13 21.42 ../dist/public/assets/Training-D6EcRL45.js                      11.99 kB Ôöé gzip:   3.42 kB
+#13 21.42 ../dist/public/assets/SubscriptionDetails-BFUxHMh1.js           12.04 kB Ôöé gzip:   2.91 kB
+#13 21.42 ../dist/public/assets/CustomerPortal-Dd4YJ43V.js                12.06 kB Ôöé gzip:   2.91 kB
+#13 21.42 ../dist/public/assets/RecurringExpenses-CXM9Vnkq.js             12.15 kB Ôöé gzip:   3.77 kB
+#13 21.42 ../dist/public/assets/OrganizationUsersManagement-C7Ft8DvV.js   12.18 kB Ôöé gzip:   3.46 kB
+#13 21.42 ../dist/public/assets/SalesPipeline-9-6d_97b.js                 12.22 kB Ôöé gzip:   3.62 kB
+#13 21.42 ../dist/public/assets/OrgSalesPipeline-fIFPWFgu.js              12.22 kB Ôöé gzip:   3.62 kB
+#13 21.42 ../dist/public/assets/Projects-DcnVEBpu.js                      12.26 kB Ôöé gzip:   3.63 kB
+#13 21.42 ../dist/public/assets/ServiceDetails-BMPPeDkK.js                12.27 kB Ôöé gzip:   3.17 kB
+#13 21.42 ../dist/public/assets/Demo-BfiQ15Lk.js                          12.37 kB Ôöé gzip:   3.79 kB
+#13 21.42 ../dist/public/assets/Features-DmmmzlHT.js                      12.65 kB Ôöé gzip:   4.43 kB
+#13 21.42 ../dist/public/assets/OrgTimesheets-GtgJ97wE.js                 12.84 kB Ôöé gzip:   3.88 kB
+#13 21.42 ../dist/public/assets/Timesheets-C1Q7PIKg.js                    12.84 kB Ôöé gzip:   3.88 kB
+#13 21.42 ../dist/public/assets/NotificationCenter-Drh5oK3h.js            12.87 kB Ôöé gzip:   3.33 kB
+#13 21.42 ../dist/public/assets/Account-CuVzwbIs.js                       12.87 kB Ôöé gzip:   3.34 kB
+#13 21.42 ../dist/public/assets/ExecutiveDashboard-B7_cVVc5.js            12.88 kB Ôöé gzip:   3.37 kB
+#13 21.42 ../dist/public/assets/OrgJobGroups-BJdSqiM0.js                  12.95 kB Ôöé gzip:   3.43 kB
+#13 21.42 ../dist/public/assets/ReceiptDetails-CvEmmdoW.js                13.06 kB Ôöé gzip:   3.43 kB
+#13 21.42 ../dist/public/assets/Proposals-BMrHL_g5.js                     13.11 kB Ôöé gzip:   4.02 kB
+#13 21.42 ../dist/public/assets/OrgProposals-Dpm7EsYp.js                  13.11 kB Ôöé gzip:   4.02 kB
+#13 21.42 ../dist/public/assets/OrgDashboard-Ce362wxG.js                  13.20 kB Ôöé gzip:   3.91 kB
+#13 21.42 ../dist/public/assets/ProcurementOrders-D38Mb8yk.js             13.25 kB Ôöé gzip:   3.29 kB
+#13 21.42 ../dist/public/assets/Recruitment-Bop9Le5r.js                   13.36 kB Ôöé gzip:   3.23 kB
+#13 21.42 ../dist/public/assets/EditProject-CL7I5UUT.js                   13.42 kB Ôöé gzip:   3.93 kB
+#13 21.42 ../dist/public/assets/OrgSuppliers-D6hdRWqX.js                  13.43 kB Ôöé gzip:   4.43 kB
+#13 21.42 ../dist/public/assets/OrgLeads-CRKImiWg.js                      13.45 kB Ôöé gzip:   3.74 kB
+#13 21.42 ../dist/public/assets/OrgTasks-BgjJNsN9.js                      13.45 kB Ôöé gzip:   3.79 kB
+#13 21.42 ../dist/public/assets/Tasks-BzMZ9shs.js                         13.45 kB Ôöé gzip:   3.79 kB
+#13 21.42 ../dist/public/assets/Leads-Cwlycngz.js                         13.45 kB Ôöé gzip:   3.74 kB
+#13 21.42 ../dist/public/assets/OrgCommunications-BLbCgeUV.js             13.51 kB Ôöé gzip:   3.57 kB
+#13 21.42 ../dist/public/assets/ChartOfAccounts-CA6sW5Xp.js               13.59 kB Ôöé gzip:   4.09 kB
+#13 21.42 ../dist/public/assets/OrgChartOfAccounts-cxCoAndm.js            13.59 kB Ôöé gzip:   4.09 kB
+#13 21.42 ../dist/public/assets/CreatePayroll-B5EzMSw6.js                 13.64 kB Ôöé gzip:   3.11 kB
+#13 21.42 ../dist/public/assets/OrgCreatePayroll-CWOTbPza.js              13.64 kB Ôöé gzip:   3.11 kB
+#13 21.42 ../dist/public/assets/ExpensesDetails-C_t3o-5a.js               13.64 kB Ôöé gzip:   3.97 kB
+#13 21.42 ../dist/public/assets/Tickets-DwbTmIor.js                       13.65 kB Ôöé gzip:   4.14 kB
+#13 21.42 ../dist/public/assets/OrgTickets-CF-5Ijwt.js                    13.65 kB Ôöé gzip:   4.14 kB
+#13 21.42 ../dist/public/assets/TroubleshootingGuide-D2GVZhzk.js          13.85 kB Ôöé gzip:   4.85 kB
+#13 21.42 ../dist/public/assets/BackupRestore-BCo3daqu.js                 13.89 kB Ôöé gzip:   3.27 kB
+#13 21.42 ../dist/public/assets/OrgBilling-OFcwOIya.js                    13.94 kB Ôöé gzip:   4.04 kB
+#13 21.42 ../dist/public/assets/ProfessionalBudgeting-Ckce20ll.js         13.96 kB Ôöé gzip:   4.00 kB
+#13 21.42 ../dist/public/assets/Pricing-BsFz3A2Z.js                       14.20 kB Ôöé gzip:   4.56 kB
+#13 21.42 ../dist/public/assets/Imprests-CtxXFaQj.js                      14.33 kB Ôöé gzip:   4.62 kB
+#13 21.42 ../dist/public/assets/KenyanPayrollCalculator-B9fWUZmF.js       14.57 kB Ôöé gzip:   3.72 kB
+#13 21.42 ../dist/public/assets/OrgImprests-BrtMobvP.js                   14.63 kB Ôöé gzip:   4.68 kB
+#13 21.42 ../dist/public/assets/ThemeCustomization-LAN7Hmxy.js            14.81 kB Ôöé gzip:   3.82 kB
+#13 21.42 ../dist/public/assets/Roles-DUBTRCvP.js                         15.06 kB Ôöé gzip:   3.60 kB
+#13 21.42 ../dist/public/assets/Payroll-Bf240OqQ.js                       15.06 kB Ôöé gzip:   4.15 kB
+#13 21.42 ../dist/public/assets/OrgPayroll-uY-Ytwnl.js                    15.06 kB Ôöé gzip:   4.15 kB
+#13 21.42 ../dist/public/assets/Clients-B-S1kO7g.js                       15.13 kB Ôöé gzip:   4.54 kB
+#13 21.42 ../dist/public/assets/Communications-DwO_Un6z.js                15.14 kB Ôöé gzip:   4.33 kB
+#13 21.42 ../dist/public/assets/SupplierDetails-sYISDMNL.js               15.21 kB Ôöé gzip:   3.26 kB
+#13 21.42 ../dist/public/assets/JobGroupDetails-Mc0znO6i.js               15.38 kB Ôöé gzip:   4.17 kB
+#13 21.42 ../dist/public/assets/Forecasting-BVdrwpfv.js                   15.44 kB Ôöé gzip:   3.59 kB
+#13 21.42 ../dist/public/assets/OrgForecasting-DdNaMkjE.js                15.44 kB Ôöé gzip:   3.59 kB
+#13 21.42 ../dist/public/assets/OrgInvoices-B_SrJwyb.js                   15.99 kB Ôöé gzip:   5.03 kB
+#13 21.42 ../dist/public/assets/Invoices-DcGspgyq.js                      16.05 kB Ôöé gzip:   5.07 kB
+#13 21.42 ../dist/public/assets/ClientPortal-D8_8z064.js                  16.08 kB Ôöé gzip:   4.04 kB
+#13 21.42 ../dist/public/assets/JobGroups-KSZWTlBt.js                     16.21 kB Ôöé gzip:   3.90 kB
+#13 21.42 ../dist/public/assets/DepartmentDetails-BBNOFVnd.js             16.39 kB Ôöé gzip:   4.32 kB
+#13 21.42 ../dist/public/assets/OrgDepartmentDetails-BmMztwX2.js          16.39 kB Ôöé gzip:   4.32 kB
+#13 21.42 ../dist/public/assets/OrgKnowledgeBase-Cx6maGQv.js              16.40 kB Ôöé gzip:   4.25 kB
+#13 21.42 ../dist/public/assets/KnowledgeBase-BvufKRDJ.js                 16.40 kB Ôöé gzip:   4.25 kB
+#13 21.42 ../dist/public/assets/OrgClientDetail-CCoLSRuf.js               16.62 kB Ôöé gzip:   4.35 kB
+#13 21.42 ../dist/public/assets/Orders-DjJm-gvw.js                        16.74 kB Ôöé gzip:   4.94 kB
+#13 21.42 ../dist/public/assets/OrgOrders-D4RnJGLW.js                     16.74 kB Ôöé gzip:   4.94 kB
+#13 21.42 ../dist/public/assets/SuperAdminDashboard-HgoNRt6j.js           16.89 kB Ôöé gzip:   4.48 kB
+#13 21.42 ../dist/public/assets/WebsiteFooter-CurC1vz_.js                 16.93 kB Ôöé gzip:   4.60 kB
+#13 21.42 ../dist/public/assets/AdminDashboard-R6AIEeeW.js                16.98 kB Ôöé gzip:   4.03 kB
+#13 21.42 ../dist/public/assets/DocumentManagement-D-qmNLGd.js            17.04 kB Ôöé gzip:   4.84 kB
+#13 21.42 ../dist/public/assets/Subscriptions-DtuhAnMq.js                 17.14 kB Ôöé gzip:   4.29 kB
+#13 21.42 ../dist/public/assets/StaffDashboard-B1GjzPD6.js                17.27 kB Ôöé gzip:   4.33 kB
+#13 21.42 ../dist/public/assets/BackupManagement-BnbgJfeL.js              17.31 kB Ôöé gzip:   4.83 kB
+#13 21.42 ../dist/public/assets/documentTemplate-C1To6Bzg.js              17.35 kB Ôöé gzip:   4.20 kB
+#13 21.42 ../dist/public/assets/BecomeAPartner-DYoHt1f9.js                17.41 kB Ôöé gzip:   5.29 kB
+#13 21.42 ../dist/public/assets/AccountSettings-Bvo3bc0B.js               18.19 kB Ôöé gzip:   4.47 kB
+#13 21.42 ../dist/public/assets/AIHub-DfM7Zir4.js                         18.65 kB Ôöé gzip:   4.64 kB
+#13 21.42 ../dist/public/assets/CustomHomepageBuilder-dUSlbJ1k.js         18.87 kB Ôöé gzip:   5.08 kB
+#13 21.42 ../dist/public/assets/BrandCustomization-DarMAPtJ.js            18.93 kB Ôöé gzip:   4.35 kB
+#13 21.42 ../dist/public/assets/BookADemo-71qCAqUo.js                     19.11 kB Ôöé gzip:   5.12 kB
+#13 21.42 ../dist/public/assets/EditExpense-Bdqk5RqW.js                   19.35 kB Ôöé gzip:   5.26 kB
+#13 21.42 ../dist/public/assets/OrgEditExpense-DUOI4W6K.js                19.35 kB Ôöé gzip:   5.26 kB
+#13 21.42 ../dist/public/assets/Approvals-CDoyYrvu.js                     19.97 kB Ôöé gzip:   4.90 kB
+#13 21.42 ../dist/public/assets/OrgApprovals-BFRQrSaj.js                  19.97 kB Ôöé gzip:   4.90 kB
+#13 21.42 ../dist/public/assets/CreateEmployee-BTTLx9UT.js                20.76 kB Ôöé gzip:   5.05 kB
+#13 21.42 ../dist/public/assets/OrgReports-sN9Qyiji.js                    20.77 kB Ôöé gzip:   5.26 kB
+#13 21.42 ../dist/public/assets/OrgStaffChat-CpIVc8NN.js                  20.90 kB Ôöé gzip:   6.40 kB
+#13 21.42 ../dist/public/assets/ICTDashboard-DY4hH8Tk.js                  21.11 kB Ôöé gzip:   5.16 kB
+#13 21.42 ../dist/public/assets/EditEmployee-jy2eNEYV.js                  21.17 kB Ôöé gzip:   5.00 kB
+#13 21.42 ../dist/public/assets/SuperAdminPricingTiers-BMsEqHD8.js        21.43 kB Ôöé gzip:   5.20 kB
+#13 21.42 ../dist/public/assets/HRPayrollManagement-DIPk_F8a.js           21.46 kB Ôöé gzip:   5.05 kB
+#13 21.42 ../dist/public/assets/PayslipManagement-DeUqPewk.js             21.67 kB Ôöé gzip:   6.93 kB
+#13 21.42 ../dist/public/assets/DocumentForm-DPHaQswN.js                  21.87 kB Ôöé gzip:   5.90 kB
+#13 21.42 ../dist/public/assets/CreateExpense-D5NZcQL9.js                 22.03 kB Ôöé gzip:   6.09 kB
+#13 21.42 ../dist/public/assets/OrgCreateExpense-DEjRM22B.js              22.03 kB Ôöé gzip:   6.09 kB
+#13 21.42 ../dist/public/assets/Employees-I-nFmYMw.js                     22.08 kB Ôöé gzip:   5.81 kB
+#13 21.42 ../dist/public/assets/OrgEmployees-kkmOLW2N.js                  22.08 kB Ôöé gzip:   5.81 kB
+#13 21.42 ../dist/public/assets/Checkout-jBiFH7Su.js                      23.41 kB Ôöé gzip:   7.82 kB
+#13 21.42 ../dist/public/assets/InvoiceDetails-BK0uV5zH.js                23.48 kB Ôöé gzip:   6.05 kB
+#13 21.42 ../dist/public/assets/FeatureDetail-BHs2W2X1.js                 23.79 kB Ôöé gzip:   7.47 kB
+#13 21.42 ../dist/public/assets/StaffChat-zmnim-z9.js                     24.37 kB Ôöé gzip:   7.01 kB
+#13 21.42 ../dist/public/assets/date-utils-COA5zMcC.js                    25.29 kB Ôöé gzip:   7.51 kB
+#13 21.42 ../dist/public/assets/Reports-BUyIQ06v.js                       25.84 kB Ôöé gzip:   6.59 kB
+#13 21.42 ../dist/public/assets/purify.es-4eNOHKSq.js                     28.74 kB Ôöé gzip:  11.02 kB
+#13 21.42 ../dist/public/assets/CreateCommunication-Cop_gPT0.js           30.73 kB Ôöé gzip:  10.18 kB
+#13 21.42 ../dist/public/assets/HRDashboard-BX1XKB1V.js                   30.93 kB Ôöé gzip:   6.60 kB
+#13 21.42 ../dist/public/assets/ClientDetails-CUUbK2uD.js                 31.37 kB Ôöé gzip:   6.57 kB
+#13 21.42 ../dist/public/assets/DocumentTemplates-DTrueAji.js             31.39 kB Ôöé gzip:   6.59 kB
+#13 21.42 ../dist/public/assets/pdfGenerator-CiuoELHu.js                  37.65 kB Ôöé gzip:  11.12 kB
+#13 21.42 ../dist/public/assets/RichTextEditor-iHGhBFgo.js                37.96 kB Ôöé gzip:   8.43 kB
+#13 21.42 ../dist/public/assets/LandingPage-Dd4ey1vI.js                   38.07 kB Ôöé gzip:  10.10 kB
+#13 21.42 ../dist/public/assets/OrgEmployeeDetails-D6hIaP6-.js            41.96 kB Ôöé gzip:   8.45 kB
+#13 21.42 ../dist/public/assets/AdminManagement-BMU6Ut5y.js               42.17 kB Ôöé gzip:   9.96 kB
+#13 21.42 ../dist/public/assets/EmployeeDetails-DkKc0NxH.js               42.71 kB Ôöé gzip:   8.54 kB
+#13 21.42 ../dist/public/assets/OrgLayout-DJYlieFD.js                     44.28 kB Ôöé gzip:  11.13 kB
+#13 21.42 ../dist/public/assets/ProjectDetails-_b9K5nw3.js                45.29 kB Ôöé gzip:   9.42 kB
+#13 21.42 ../dist/public/assets/AdminEmailTemplates-TPkILnkX.js           51.49 kB Ôöé gzip:  12.43 kB
+#13 21.42 ../dist/public/assets/lucide-react-BFIjfoL5.js                  61.58 kB Ôöé gzip:  18.04 kB
+#13 21.42 ../dist/public/assets/DocumentBlockEditor-yA1y_EkK.js           68.90 kB Ôöé gzip:  15.76 kB
+#13 21.42 ../dist/public/assets/MultiTenancy-DlVJI4fS.js                  69.67 kB Ôöé gzip:  13.96 kB
+#13 21.42 ../dist/public/assets/CreateQuote-r3h7eNqh.js                   71.71 kB Ôöé gzip:  19.54 kB
+#13 21.42 ../dist/public/assets/WebsiteAdmin-myhwY8xF.js                  75.47 kB Ôöé gzip:  14.38 kB
+#13 21.42 ../dist/public/assets/api-client-BvX2riSn.js                    81.61 kB Ôöé gzip:  22.27 kB
+#13 21.42 ../dist/public/assets/index.es-B54zMHEB.js                     158.79 kB Ôöé gzip:  53.05 kB
+#13 21.42 ../dist/public/assets/html2canvas-DXEQVQnt.js                  201.04 kB Ôöé gzip:  47.43 kB
+#13 21.42 ../dist/public/assets/Settings-CVG34Z1c.js                     284.76 kB Ôöé gzip:  53.89 kB
+#13 21.42 ../dist/public/assets/vendor-react-ui-BcLy8Tpi.js              314.57 kB Ôöé gzip: 100.19 kB
+#13 21.42 ../dist/public/assets/OrgSettings-C7PfleeG.js                  326.36 kB Ôöé gzip:  65.40 kB
+#13 21.42 ../dist/public/assets/jspdf.es.min-B5BOp-jM.js                 384.80 kB Ôöé gzip: 125.62 kB
+#13 21.42 ../dist/public/assets/rich-editor-DQKc7IGv.js                  414.84 kB Ôöé gzip: 130.90 kB
+#13 21.42 ../dist/public/assets/xlsx-BojT3SgY.js                         424.38 kB Ôöé gzip: 141.60 kB
+#13 21.42 ../dist/public/assets/index-CfCL6P-t.js                        873.90 kB Ôöé gzip: 224.30 kB
+#13 21.42 Ô£ô built in 18.35s
+#13 22.06 
+#13 22.06   dist/index.js  3.6mb ÔÜá´©Å
+#13 22.06 
+#13 22.06 ÔÜí Done in 70ms
+#13 DONE 22.1s
+
+#14 [9/9] RUN chmod +x /app/docker/entrypoint.sh
+#14 DONE 0.2s
+
+#15 exporting to image
+#15 exporting layers
+#15 exporting layers 6.4s done
+#15 exporting manifest sha256:cfdbdfb8e07179046825582a356f8c8af39c3836793919e629c32c69e7f50866 0.0s done
+#15 exporting config sha256:01505746698fb6da316da07229987c6a37b406fbae2fda3eb90117cbc48ddced 0.0s done
+#15 exporting attestation manifest sha256:821408a8156ba1ed292571575748e6d23e2ace62b72c1c78f688ec92e4cf0246 0.1s done
+#15 exporting manifest list sha256:3abfa0df2fe0a768557d52ccc47ab6830f26b04d965c7ef1833825bc483049af
+#15 exporting manifest list sha256:3abfa0df2fe0a768557d52ccc47ab6830f26b04d965c7ef1833825bc483049af 0.0s done
+#15 naming to docker.io/library/Kiini: One Hub. Total Control-app:latest 0.0s done
+#15 unpacking to docker.io/library/Kiini: One Hub. Total Control-app:latest
+#15 unpacking to docker.io/library/Kiini: One Hub. Total Control-app:latest 1.6s done
+#15 DONE 8.2s
+
+#16 resolving provenance for metadata file
+#16 DONE 0.1s
+ Image Kiini: One Hub. Total Control-app Built 
+ Container Kiini: One Hub. Total Control-db-1 Running 
+ Container Kiini: One Hub. Total Control-app-1 Recreate 
+ Container Kiini: One Hub. Total Control-app-1 Recreated 
+ Container Kiini: One Hub. Total Control-db-1 Waiting 
+ Container Kiini: One Hub. Total Control-db-1 Healthy 
+ Container Kiini: One Hub. Total Control-app-1 Starting 
+ Container Kiini: One Hub. Total Control-app-1 Started 

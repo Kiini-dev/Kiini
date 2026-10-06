@@ -1,0 +1,203 @@
+import { useState, useCallback } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Search, X, Filter } from "lucide-react";
+
+interface EmployeeSearchFilterProps {
+  onSearch: (query: string) => void;
+  onFilter: (filters: EmployeeFilters) => void;
+  isLoading?: boolean;
+}
+
+export interface EmployeeFilters {
+  status?: "active" | "inactive" | "on-leave" | "all";
+  department?: string;
+  sortBy?: "name" | "date" | "department";
+  sortOrder?: "asc" | "desc";
+}
+
+export function EmployeeSearchFilter({
+  onSearch,
+  onFilter,
+  isLoading = false,
+}: EmployeeSearchFilterProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState<EmployeeFilters>({
+    status: "all",
+    department: "all",
+    sortBy: "name",
+    sortOrder: "asc",
+  });
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleSearch = useCallback(
+    (value: string) => {
+      setSearchQuery(value);
+      onSearch(value);
+    },
+    [onSearch]
+  );
+
+  const handleFilterChange = useCallback(
+    (key: keyof EmployeeFilters, value: string) => {
+      const newFilters = { ...filters, [key]: value };
+      setFilters(newFilters);
+      onFilter(newFilters);
+    },
+    [filters, onFilter]
+  );
+
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery("");
+    const defaultFilters: EmployeeFilters = {
+      status: "all",
+      department: "all",
+      sortBy: "name",
+      sortOrder: "asc",
+    };
+    setFilters(defaultFilters);
+    onFilter(defaultFilters);
+    onSearch("");
+  }, [onFilter, onSearch]);
+
+  const hasActiveFilters =
+    searchQuery ||
+    filters.status !== "all" ||
+    filters.department !== "all" ||
+    filters.sortBy !== "name" ||
+    filters.sortOrder !== "asc";
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="relative flex-1">
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search employees..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="pl-8"
+          disabled={isLoading}
+        />
+      </div>
+
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn(hasActiveFilters && "bg-blue-50 text-blue-600")}
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80" align="end">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select
+                value={filters.status || "all"}
+                onValueChange={(value) =>
+                  handleFilterChange("status", value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="on-leave">On Leave</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Department</label>
+              <Select
+                value={filters.department || "all"}
+                onValueChange={(value) =>
+                  handleFilterChange("department", value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  <SelectItem value="engineering">Engineering</SelectItem>
+                  <SelectItem value="sales">Sales</SelectItem>
+                  <SelectItem value="finance">Finance</SelectItem>
+                  <SelectItem value="hr">HR</SelectItem>
+                  <SelectItem value="operations">Operations</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Sort By</label>
+              <Select
+                value={filters.sortBy || "name"}
+                onValueChange={(value) =>
+                  handleFilterChange("sortBy", value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="date">Date Hired</SelectItem>
+                  <SelectItem value="department">Department</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Order</label>
+              <Select
+                value={filters.sortOrder || "asc"}
+                onValueChange={(value) =>
+                  handleFilterChange("sortOrder", value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="asc">Ascending</SelectItem>
+                  <SelectItem value="desc">Descending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearFilters}
+                className="flex-1"
+              >
+                <X className="mr-1 h-4 w-4" />
+                Clear
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}

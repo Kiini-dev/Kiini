@@ -1,0 +1,1 @@
+import{ao as a,aQ as s,al as r,am as i,ap as x}from"./index-Bmob1iPg.js";var A=a({chartName:"AreaChart",GraphicalChild:s,axisComponents:[{axisType:"xAxis",AxisComp:r},{axisType:"yAxis",AxisComp:i}],formatAxisMap:x});export{A};

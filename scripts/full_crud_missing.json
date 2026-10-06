@@ -1,0 +1,66 @@
+[
+  {
+    "entity": "LPO",
+    "index": "LPOs",
+    "create": "CreateLPO",
+    "edit": "EditLPO",
+    "detailCandidates": [
+      "LPODetail",
+      "LPODetails"
+    ],
+    "orgs": [
+      "OrgLPOs",
+      "OrgCreateLPO",
+      "OrgEditLPO",
+      "OrgLPODetail"
+    ]
+  },
+  {
+    "entity": "LPO",
+    "index": "LPOs",
+    "create": "CreateLPO",
+    "edit": "EditLPO",
+    "detailCandidates": [
+      "LPODetail",
+      "LPODetails"
+    ],
+    "orgs": [
+      "OrgLPOs",
+      "OrgCreateLPO",
+      "OrgEditLPO",
+      "OrgLPODetail"
+    ]
+  },
+  {
+    "entity": "LPO",
+    "index": "LPOs",
+    "create": "CreateLPO",
+    "edit": "EditLPO",
+    "detailCandidates": [
+      "LPODetail",
+      "LPODetails"
+    ],
+    "orgs": [
+      "OrgLPOs",
+      "OrgCreateLPO",
+      "OrgEditLPO",
+      "OrgLPODetail"
+    ]
+  },
+  {
+    "entity": "LPO",
+    "index": "LPOs",
+    "create": "CreateLPO",
+    "edit": "EditLPO",
+    "detailCandidates": [
+      "LPODetail",
+      "LPODetails"
+    ],
+    "orgs": [
+      "OrgLPOs",
+      "OrgCreateLPO",
+      "OrgEditLPO",
+      "OrgLPODetail"
+    ]
+  }
+]

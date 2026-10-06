@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kiini — Brand Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:ital,opsz@0,6..72;1,6..72&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --indigo:#14192E;
+    --indigo-2:#1E2542;
+    --amber:#E8A33D;
+    --amber-2:#F4C071;
+    --teal:#1F7A6C;
+    --paper:#F7F5EF;
+    --paper-2:#EFEBE1;
+    --ink:#171712;
+    --ink-soft:#4A4A42;
+    --line: rgba(23,23,18,0.12);
+    --bg: var(--paper);
+    --bg-2: var(--paper-2);
+    --fg: var(--ink);
+    --fg-soft: var(--ink-soft);
+    --line-c: var(--line);
+    --card: #FFFFFF;
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: var(--indigo);
+      --bg-2: var(--indigo-2);
+      --fg: #F2EFE6;
+      --fg-soft: #C9C6BC;
+      --line-c: rgba(242,239,230,0.14);
+      --card:#1A2140;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: var(--indigo);
+    --bg-2: var(--indigo-2);
+    --fg: #F2EFE6;
+    --fg-soft: #C9C6BC;
+    --line-c: rgba(242,239,230,0.14);
+    --card:#1A2140;
+  }
+  html{scroll-padding-top: env(safe-area-inset-top, 0px);}
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family:'Manrope',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px; margin:0 auto; padding:0 24px 120px;}
+  header.hero{
+    padding:72px 0 56px; border-bottom:1px solid var(--line-c);
+    display:flex; align-items:center; justify-content:space-between; gap:32px; flex-wrap:wrap;
+  }
+  .lockup{display:flex; align-items:center; gap:16px;}
+  .wordmark{font-size:44px; font-weight:800; letter-spacing:-0.02em;}
+  .tagline{font-size:15px; color:var(--fg-soft); margin-top:6px; letter-spacing:0.01em;}
+  section{padding:56px 0; border-bottom:1px solid var(--line-c);}
+  section:last-of-type{border-bottom:none;}
+  h2{font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:var(--fg-soft); font-weight:700; margin:0 0 28px;}
+  h3{font-size:22px; font-weight:700; margin:0 0 10px; letter-spacing:-0.01em;}
+  p{line-height:1.65; color:var(--fg-soft); max-width:62ch; font-size:16px;}
+  .lede{font-family:'Newsreader',serif; font-size:24px; line-height:1.5; color:var(--fg); font-style:italic; max-width:56ch;}
+
+  .mark-row{display:flex; gap:48px; align-items:center; flex-wrap:wrap;}
+  .clearspace{border:1px dashed var(--line-c); padding:24px; border-radius:4px; display:inline-flex;}
+
+  .rule-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-top:24px;}
+  .rule-card{background:var(--card); border:1px solid var(--line-c); border-radius:8px; padding:18px 20px;}
+  .rule-card b{display:block; font-size:13px; margin-bottom:6px;}
+  .rule-card.no b{color:#B4462F;}
+  .rule-card.yes b{color:var(--teal);}
+  .rule-card span{font-size:14px; color:var(--fg-soft); line-height:1.5;}
+
+  .swatches{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-top:20px;}
+  .sw{border-radius:8px; overflow:hidden; border:1px solid var(--line-c);}
+  .sw .chip{height:88px;}
+  .sw .meta{background:var(--card); padding:12px 14px;}
+  .sw .meta b{display:block; font-size:14px;}
+  .sw .meta span{font-size:12px; color:var(--fg-soft); font-family:ui-monospace,monospace;}
+
+  .type-sample{background:var(--card); border:1px solid var(--line-c); border-radius:8px; padding:28px 28px 24px; margin-top:20px;}
+  .type-sample .h{font-size:34px; font-weight:800; letter-spacing:-0.02em; margin-bottom:6px;}
+  .type-sample .b{font-size:16px; color:var(--fg-soft); line-height:1.6; max-width:56ch;}
+  .type-label{font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--fg-soft); margin-top:18px; margin-bottom:6px;}
+
+  .voice-list{display:grid; gap:18px; margin-top:20px;}
+  .voice-item{display:grid; grid-template-columns:120px 1fr; gap:20px; align-items:baseline;}
+  .voice-item b{font-size:16px;}
+  .voice-item span{font-size:14px; color:var(--fg-soft); line-height:1.6;}
+
+  .dodont{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px;}
+  .dodont .box{border-radius:8px; padding:16px 18px; font-size:14px; line-height:1.6;}
+  .dodont .do{background:rgba(31,122,108,0.10); border:1px solid rgba(31,122,108,0.35);}
+  .dodont .dont{background:rgba(180,70,47,0.08); border:1px solid rgba(180,70,47,0.3);}
+  .dodont .box b{display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;}
+
+  .app-row{display:flex; gap:16px; flex-wrap:wrap; margin-top:20px; align-items:center;}
+  .fav{width:56px;height:56px;border-radius:12px;background:var(--indigo);display:flex;align-items:center;justify-content:center;}
+  .btn{display:inline-flex; align-items:center; gap:8px; background:var(--amber); color:var(--indigo); font-weight:700; font-size:14px; padding:11px 20px; border-radius:7px;}
+  .btn.ghost{background:transparent; border:1.5px solid var(--fg); color:var(--fg);}
+  .chip-tag{font-size:13px; font-weight:600; padding:6px 12px; border-radius:100px; background:rgba(31,122,108,0.14); color:var(--teal);}
+
+  footer{padding:48px 0 0; color:var(--fg-soft); font-size:13px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="lockup">
+      <svg width="56" height="56" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="28" cy="28" r="26" fill="none" stroke="#1F7A6C" stroke-width="2.5"/>
+        <circle cx="28" cy="28" r="18" fill="none" stroke="#1F7A6C" stroke-width="2.5" opacity="0.55"/>
+        <circle cx="28" cy="28" r="10" fill="#E8A33D"/>
+      </svg>
+      <div>
+        <div class="wordmark">Kiini</div>
+        <div class="tagline">One Hub. Total Control.</div>
+      </div>
+    </div>
+    <p style="max-width:280px; font-size:13px; margin:0;">Brand guide · v1.0<br>Official brand guide</p>
+  </header>
+
+  <section>
+    <h2>Overview</h2>
+    <p class="lede">"Kiini" is Swahili for core — the center everything else is built around. That's the idea the whole system runs on: one core, every part of the business connected to it.</p>
+    <p style="margin-top:18px;">Kiini brings the business into one connected workspace, giving teams clarity and control across the work they do every day.</p>
+  </section>
+
+  <section>
+    <h2>Logomark</h2>
+    <div class="mark-row">
+      <div class="clearspace">
+        <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#1F7A6C" stroke-width="5"/>
+          <circle cx="60" cy="60" r="38" fill="none" stroke="#1F7A6C" stroke-width="5" opacity="0.55"/>
+          <circle cx="60" cy="60" r="21" fill="#E8A33D"/>
+        </svg>
+      </div>
+      <div>
+        <h3>Concept</h3>
+        <p>Two concentric rings converge on a solid core. The rings read as the hub — connected modules, data, and teams — orbiting a single point of control. The solid center is deliberately the warmest color in the mark: it's where control lives.</p>
+      </div>
+    </div>
+
+    <div class="rule-grid">
+      <div class="rule-card yes"><b>Clear space</b><span>Keep space equal to the mark's radius on all sides. Never crop the outer ring.</span></div>
+      <div class="rule-card yes"><b>Minimum size</b><span>24px for the mark alone, 120px width for the full lockup with wordmark.</span></div>
+      <div class="rule-card no"><b>Don't</b><span>Recolor the core off-amber, stretch the rings unevenly, or add a drop shadow.</span></div>
+      <div class="rule-card no"><b>Don't</b><span>Place the mark on busy photography without a solid backing shape.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Color</h2>
+    <p>Indigo carries the brand's weight; amber marks the single point of control; teal is the connective, growth color. Together they read as grounded and precise rather than loud.</p>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#14192E;"></div><div class="meta"><b>Kiini Indigo</b><span>#14192E</span></div></div>
+      <div class="sw"><div class="chip" style="background:#E8A33D;"></div><div class="meta"><b>Core Amber</b><span>#E8A33D</span></div></div>
+      <div class="sw"><div class="chip" style="background:#1F7A6C;"></div><div class="meta"><b>Hub Teal</b><span>#1F7A6C</span></div></div>
+      <div class="sw"><div class="chip" style="background:#F7F5EF;border-bottom:1px solid var(--line-c);"></div><div class="meta"><b>Paper</b><span>#F7F5EF</span></div></div>
+      <div class="sw"><div class="chip" style="background:#171712;"></div><div class="meta"><b>Ink</b><span>#171712</span></div></div>
+    </div>
+    <p style="margin-top:20px; font-size:14px;">Indigo and Paper are the two backgrounds (dark UI / light marketing pages). Amber is reserved for the logomark core, primary actions, and the one accent per screen — never for large fills or body text.</p>
+  </section>
+
+  <section>
+    <h2>Typography</h2>
+    <div class="type-sample">
+      <div class="type-label">Headlines · Manrope 800</div>
+      <div class="h">Every department, one core.</div>
+      <div class="type-label" style="margin-top:22px;">Body · Manrope 400/500</div>
+      <div class="b">Kiini connects CRM, operations, and reporting into a single system, so nothing runs on a spreadsheet no one else can see.</div>
+      <div class="type-label" style="margin-top:22px;">Editorial accent · Newsreader italic</div>
+      <div class="b" style="font-family:'Newsreader',serif; font-style:italic; font-size:19px;">Used sparingly — pull quotes, the tagline in long-form contexts, nothing in the product UI.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Voice</h2>
+    <div class="voice-list">
+      <div class="voice-item"><b>Direct</b><span>State what the product does, not what it "empowers" you to do. Say "Kiini tracks every invoice", not "Kiini empowers seamless financial visibility."</span></div>
+      <div class="voice-item"><b>Grounded</b><span>Write for a business owner running real operations, not a hype cycle. No "revolutionize," "game-changing," "seamless."</span></div>
+      <div class="voice-item"><b>Precise</b><span>Name the actual module or action. "Approve the invoice," not "take control of your workflow."</span></div>
+    </div>
+    <div class="dodont">
+      <div class="box do"><b>Do</b>"One hub for sales, stock, and staff — no more switching tabs."</div>
+      <div class="box dont"><b>Don't</b>"Unlock unparalleled synergy across your entire business ecosystem."</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Applications</h2>
+    <div class="app-row">
+      <div class="fav"><svg width="32" height="32" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26" fill="none" stroke="#1F7A6C" stroke-width="3"/><circle cx="28" cy="28" r="10" fill="#E8A33D"/></svg></div>
+      <span class="btn">Get started</span>
+      <span class="btn ghost">View demo</span>
+      <span class="chip-tag">Kiini: One Hub. Total Control.</span>
+    </div>
+    <p style="margin-top:22px; font-size:14px;">Tagline lockups: for any inline, single-line mention — headers, email signatures, business cards, meta titles — use the colon form: <b>"Kiini: One Hub. Total Control."</b> Reserve the stacked wordmark-over-tagline lockup for splash screens and the login page, where the mark and the words are already visually separated.</p>
+  </section>
+
+  <footer>
+    Kiini brand guide · prepared for Kiini
+  </footer>
+
+</div>
+</body>
+</html>

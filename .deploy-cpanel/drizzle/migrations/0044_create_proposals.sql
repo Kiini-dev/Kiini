@@ -1,0 +1,25 @@
+-- Migration: Create proposals table with document upload support
+CREATE TABLE IF NOT EXISTS `proposals` (
+    `id` varchar(64) NOT NULL,
+    `proposalNumber` varchar(100) NOT NULL,
+    `clientId` varchar(64) NOT NULL,
+    `title` varchar(255) DEFAULT NULL,
+    `status` enum('draft','sent','accepted','rejected') NOT NULL DEFAULT 'draft',
+    `issueDate` datetime NOT NULL,
+    `expiryDate` datetime DEFAULT NULL,
+    `subtotal` int NOT NULL DEFAULT 0,
+    `taxAmount` int NOT NULL DEFAULT 0,
+    `discountAmount` int NOT NULL DEFAULT 0,
+    `total` int NOT NULL DEFAULT 0,
+    `notes` text DEFAULT NULL,
+    `documentUrl` longtext DEFAULT NULL,
+    `fileName` varchar(255) DEFAULT NULL,
+    `description` text DEFAULT NULL,
+    `createdBy` varchar(64) DEFAULT NULL,
+    `createdAt` timestamp NULL DEFAULT NULL,
+    `updatedAt` timestamp NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `proposal_number_idx` (`proposalNumber`),
+    KEY `client_idx` (`clientId`),
+    KEY `status_idx` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

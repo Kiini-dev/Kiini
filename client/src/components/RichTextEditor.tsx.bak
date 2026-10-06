@@ -1,0 +1,455 @@
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import { TextStyle } from "@tiptap/extension-text-style";
+import { Color } from "@tiptap/extension-text-style";
+import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { cn } from "@/lib/utils";
+import { Toggle } from "@/components/ui/toggle";
+import {
+  Bold,
+  Italic,
+  Underline as UnderlineIcon,
+  List,
+  ListOrdered,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Strikethrough,
+  Heading2,
+  Link as LinkIcon,
+  Image as ImageIcon,
+  Minus,
+  Indent,
+  Outdent,
+  Table as TableIcon,
+  Code,
+  Maximize,
+  Plus,
+  Trash2,
+  Rows3,
+  Columns3,
+  MergeIcon,
+  SplitIcon,
+} from "lucide-react";
+
+interface RichTextEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  minHeight?: string;
+  className?: string;
+  readOnly?: boolean;
+}
+
+export function RichTextEditor({
+  value,
+  onChange,
+  placeholder = "Enter text...",
+  minHeight = "150px",
+  className,
+  readOnly = false,
+}: RichTextEditorProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [tablePickerOpen, setTablePickerOpen] = useState(false);
+  const [tableHover, setTableHover] = useState({ rows: 0, cols: 0 });
+  const tablePickerRef = useRef<HTMLDivElement>(null);
+
+  // Close table picker on outside click
+  useEffect(() => {
+    if (!tablePickerOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (tablePickerRef.current && !tablePickerRef.current.contains(e.target as Node)) {
+        setTablePickerOpen(false);
+        setTableHover({ rows: 0, cols: 0 });
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [tablePickerOpen]);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder }),
+      Underline,
+      TextStyle,
+      Color,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-primary underline" } }),
+      Image.configure({ inline: true }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableCell,
+      TableHeader,
+    ],
+    content: value || "",
+    editable: !readOnly,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+  });
+
+  const setLink = useCallback(() => {
+    if (!editor) return;
+    const previousUrl = editor.getAttributes("link").href;
+    const url = window.prompt("URL", previousUrl);
+    if (url === null) return;
+    if (url === "") {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  }, [editor]);
+
+  const addImage = useCallback(() => {
+    if (!editor) return;
+    const url = window.prompt("Image URL");
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+  }, [editor]);
+
+  const insertTable = useCallback(() => {
+    if (!editor) return;
+    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+  }, [editor]);
+
+  // Sync external value changes (e.g., edit forms loading data from API)
+  useEffect(() => {
+    if (!editor) return;
+    const isEmpty = (html: string) =>
+      !html || html === "<p></p>" || html.trim() === "";
+    if (!editor.isFocused && value !== editor.getHTML()) {
+      if (!(isEmpty(value) && isEmpty(editor.getHTML()))) {
+        editor.commands.setContent(value || "");
+      }
+    }
+  }, [value, editor]);
+
+  if (!editor) return null;
+
+  return (
+    <div className={cn(
+      "border rounded-md overflow-hidden bg-background",
+      isFullscreen && "fixed inset-0 z-50 rounded-none border-0",
+      className
+    )}>
+      {!readOnly && (
+        <div className="flex flex-wrap gap-0.5 p-1 border-b bg-muted/30">
+          <Toggle
+            size="sm"
+            pressed={editor.isActive("heading", { level: 2 })}
+            onPressedChange={() =>
+              editor.chain().focus().toggleHeading({ level: 2 }).run()
+            }
+            aria-label="Heading"
+          >
+            <Heading2 className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive("bold")}
+            onPressedChange={() => editor.chain().focus().toggleBold().run()}
+            aria-label="Bold"
+          >
+            <Bold className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive("italic")}
+            onPressedChange={() => editor.chain().focus().toggleItalic().run()}
+            aria-label="Italic"
+          >
+            <Italic className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive("underline")}
+            onPressedChange={() =>
+              editor.chain().focus().toggleUnderline().run()
+            }
+            aria-label="Underline"
+          >
+            <UnderlineIcon className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive("strike")}
+            onPressedChange={() => editor.chain().focus().toggleStrike().run()}
+            aria-label="Strikethrough"
+          >
+            <Strikethrough className="h-4 w-4" />
+          </Toggle>
+          <div className="w-px h-6 bg-border mx-0.5 self-center" />
+          <Toggle
+            size="sm"
+            pressed={editor.isActive("link")}
+            onPressedChange={setLink}
+            aria-label="Link"
+          >
+            <LinkIcon className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={false}
+            onPressedChange={addImage}
+            aria-label="Image"
+          >
+            <ImageIcon className="h-4 w-4" />
+          </Toggle>
+          <div className="w-px h-6 bg-border mx-0.5 self-center" />
+          <Toggle
+            size="sm"
+            pressed={editor.isActive({ textAlign: "left" })}
+            onPressedChange={() =>
+              editor.chain().focus().setTextAlign("left").run()
+            }
+            aria-label="Align left"
+          >
+            <AlignLeft className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive({ textAlign: "center" })}
+            onPressedChange={() =>
+              editor.chain().focus().setTextAlign("center").run()
+            }
+            aria-label="Align center"
+          >
+            <AlignCenter className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive({ textAlign: "right" })}
+            onPressedChange={() =>
+              editor.chain().focus().setTextAlign("right").run()
+            }
+            aria-label="Align right"
+          >
+            <AlignRight className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive({ textAlign: "justify" })}
+            onPressedChange={() =>
+              editor.chain().focus().setTextAlign("justify").run()
+            }
+            aria-label="Align justify"
+          >
+            <AlignJustify className="h-4 w-4" />
+          </Toggle>
+          <div className="w-px h-6 bg-border mx-0.5 self-center" />
+          <Toggle
+            size="sm"
+            pressed={false}
+            onPressedChange={() =>
+              editor.chain().focus().setHorizontalRule().run()
+            }
+            aria-label="Horizontal rule"
+          >
+            <Minus className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive("bulletList")}
+            onPressedChange={() =>
+              editor.chain().focus().toggleBulletList().run()
+            }
+            aria-label="Bullet list"
+          >
+            <List className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={editor.isActive("orderedList")}
+            onPressedChange={() =>
+              editor.chain().focus().toggleOrderedList().run()
+            }
+            aria-label="Ordered list"
+          >
+            <ListOrdered className="h-4 w-4" />
+          </Toggle>
+          <div className="w-px h-6 bg-border mx-0.5 self-center" />
+          <div className="relative" ref={tablePickerRef}>
+            <button
+              type="button"
+              className={cn(
+                "inline-flex items-center justify-center h-8 w-8 rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground",
+                (editor.isActive("table") || tablePickerOpen) && "bg-accent text-accent-foreground"
+              )}
+              aria-label="Insert table"
+              onClick={() => setTablePickerOpen(!tablePickerOpen)}
+            >
+              <TableIcon className="h-4 w-4" />
+            </button>
+            {tablePickerOpen && (
+              <div className="absolute top-full left-0 mt-1 z-50 bg-popover border rounded-md shadow-md p-3">
+                <div className="text-xs font-medium mb-2 text-muted-foreground">
+                  {tableHover.rows > 0 ? `${tableHover.rows} × ${tableHover.cols} Table` : "Select table size"}
+                </div>
+                <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(8, 1fr)` }}>
+                  {Array.from({ length: 8 }, (_, row) =>
+                    Array.from({ length: 8 }, (_, col) => (
+                      <button
+                        key={`${row}-${col}`}
+                        type="button"
+                        title={`${row + 1} × ${col + 1}`}
+                        className={cn(
+                          "w-4 h-4 border rounded-[2px] transition-colors",
+                          row < tableHover.rows && col < tableHover.cols
+                            ? "bg-primary border-primary"
+                            : "bg-muted/40 border-border hover:border-primary/50"
+                        )}
+                        onMouseEnter={() => setTableHover({ rows: row + 1, cols: col + 1 })}
+                        onMouseLeave={() => setTableHover({ rows: 0, cols: 0 })}
+                        onClick={() => {
+                          editor.chain().focus().insertTable({ rows: row + 1, cols: col + 1, withHeaderRow: true }).run();
+                          setTablePickerOpen(false);
+                          setTableHover({ rows: 0, cols: 0 });
+                        }}
+                      />
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          {editor.isActive("table") && (
+            <>
+              <div className="w-px h-6 bg-border mx-0.5 self-center" />
+              <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().addRowBefore().run()} aria-label="Add row above" title="Add row above">
+                <Rows3 className="h-4 w-4" />
+                <Plus className="h-2.5 w-2.5 -ml-1 -mt-2" />
+              </Toggle>
+              <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().addRowAfter().run()} aria-label="Add row below" title="Add row below">
+                <Rows3 className="h-4 w-4" />
+                <Plus className="h-2.5 w-2.5 -ml-1 mt-2" />
+              </Toggle>
+              <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().deleteRow().run()} aria-label="Delete row" title="Delete row">
+                <Rows3 className="h-4 w-4 text-destructive" />
+                <Minus className="h-2.5 w-2.5 -ml-1 text-destructive" />
+              </Toggle>
+              <div className="w-px h-6 bg-border mx-0.5 self-center" />
+              <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().addColumnBefore().run()} aria-label="Add column before" title="Add column before">
+                <Columns3 className="h-4 w-4" />
+                <Plus className="h-2.5 w-2.5 -ml-1 -mt-2" />
+              </Toggle>
+              <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().addColumnAfter().run()} aria-label="Add column after" title="Add column after">
+                <Columns3 className="h-4 w-4" />
+                <Plus className="h-2.5 w-2.5 -ml-1 mt-2" />
+              </Toggle>
+              <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().deleteColumn().run()} aria-label="Delete column" title="Delete column">
+                <Columns3 className="h-4 w-4 text-destructive" />
+                <Minus className="h-2.5 w-2.5 -ml-1 text-destructive" />
+              </Toggle>
+              <div className="w-px h-6 bg-border mx-0.5 self-center" />
+              <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().mergeCells().run()} aria-label="Merge cells" title="Merge cells">
+                <MergeIcon className="h-4 w-4" />
+              </Toggle>
+              <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().splitCell().run()} aria-label="Split cell" title="Split cell">
+                <SplitIcon className="h-4 w-4" />
+              </Toggle>
+              <div className="w-px h-6 bg-border mx-0.5 self-center" />
+              <Toggle size="sm" pressed={false} onPressedChange={() => editor.chain().focus().deleteTable().run()} aria-label="Delete table" title="Delete table">
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Toggle>
+            </>
+          )}
+          <div className="w-px h-6 bg-border mx-0.5 self-center" />
+          <Toggle
+            size="sm"
+            pressed={editor.isActive("codeBlock")}
+            onPressedChange={() =>
+              editor.chain().focus().toggleCodeBlock().run()
+            }
+            aria-label="Code view"
+          >
+            <Code className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            size="sm"
+            pressed={isFullscreen}
+            onPressedChange={() => setIsFullscreen(!isFullscreen)}
+            aria-label="Fullscreen"
+          >
+            <Maximize className="h-4 w-4" />
+          </Toggle>
+        </div>
+      )}
+      <style>{`
+        .rich-text-editor-content table {
+          border-collapse: collapse;
+          width: 100%;
+          margin: 8px 0;
+        }
+        .rich-text-editor-content table td,
+        .rich-text-editor-content table th {
+          border: 1px solid #d1d5db;
+          padding: 6px 10px;
+          min-width: 60px;
+          vertical-align: top;
+        }
+        .rich-text-editor-content table th {
+          background-color: #f3f4f6;
+          font-weight: 600;
+        }
+        .rich-text-editor-content table .selectedCell {
+          background-color: #dbeafe;
+        }
+        .rich-text-editor-content .column-resize-handle {
+          background-color: #3b82f6;
+          width: 2px;
+          position: absolute;
+          right: -1px;
+          top: 0;
+          bottom: 0;
+          pointer-events: none;
+        }
+        .rich-text-editor-content .tableWrapper {
+          overflow-x: auto;
+        }
+      `}</style>
+      <EditorContent
+        editor={editor}
+        style={{ minHeight: isFullscreen ? "calc(100vh - 50px)" : minHeight }}
+        className="rich-text-editor-content"
+      />
+    </div>
+  );
+}
+
+/** Renders stored HTML as read-only rich text */
+export function RichTextDisplay({
+  html,
+  className,
+}: {
+  html: string;
+  className?: string;
+}) {
+  if (!html || html === "<p></p>") return null;
+  return (
+    <div
+      className={cn(
+        "prose prose-sm max-w-none text-foreground",
+        "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1",
+        "[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5",
+        "[&_li]:my-0.5 [&_p]:my-1",
+        "[&_table]:border-collapse [&_table]:w-full [&_table]:my-2",
+        "[&_td]:border [&_td]:border-gray-300 [&_td]:px-2.5 [&_td]:py-1.5",
+        "[&_th]:border [&_th]:border-gray-300 [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:bg-gray-100 [&_th]:font-semibold",
+        className
+      )}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}

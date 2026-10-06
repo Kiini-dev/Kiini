@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Proposal {{PROPOSAL_NUMBER}}</title>
+<style>
+@page { size: A4; margin: 16mm; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #263238; font-size: 12px; line-height: 1.5; }
+.document { max-width: 820px; margin: 0 auto; }
+.header { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 16px; border-bottom: 3px solid #315c8c; }
+.company h1 { margin: 0; color: #315c8c; font-size: 22px; }
+.company p { margin: 3px 0; color: #607d8b; }
+.logo { max-width: 110px; max-height: 70px; object-fit: contain; }
+.hero { background: #eef4fb; margin: 24px 0 16px; padding: 22px; border-left: 5px solid #315c8c; }
+.hero h2 { margin: 0 0 8px; color: #17395f; font-size: 25px; }
+.hero p { margin: 4px 0; }
+.meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 22px; }
+.box { border: 1px solid #cfd8dc; border-radius: 4px; padding: 11px; }
+.label { display: block; color: #607d8b; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+.value { font-weight: 700; }
+.section { margin: 18px 0; }
+.section h3 { margin: 0 0 8px; color: #315c8c; font-size: 13px; border-bottom: 1px solid #bbdefb; padding-bottom: 5px; }
+.total { display: flex; justify-content: space-between; align-items: center; background: #315c8c; color: #fff; padding: 15px 18px; margin-top: 22px; font-size: 15px; font-weight: 700; }
+.footer { border-top: 1px solid #cfd8dc; margin-top: 35px; padding-top: 10px; text-align: center; color: #78909c; font-size: 10px; }
+@media print { .document { max-width: none; } }
+</style>
+</head>
+<body>
+<div class="document">
+  <header class="header">
+    <div class="company">
+      <h1>{{COMPANY_NAME}}</h1>
+      <p>{{COMPANY_ADDRESS}}</p>
+      <p>{{COMPANY_EMAIL}} | {{COMPANY_PHONE}}</p>
+    </div>
+    <img class="logo" src="{{COMPANY_LOGO}}" alt="Company logo">
+  </header>
+  <section class="hero">
+    <h2>{{TITLE}}</h2>
+    <p>Prepared for <strong>{{CLIENT_NAME}}</strong></p>
+    <p>We are pleased to present this proposal for your consideration.</p>
+  </section>
+  <div class="meta">
+    <div class="box"><span class="label">Proposal number</span><span class="value">{{PROPOSAL_NUMBER}}</span></div>
+    <div class="box"><span class="label">Proposal date</span><span class="value">{{PROPOSAL_DATE}}</span></div>
+    <div class="box"><span class="label">Valid until</span><span class="value">{{VALID_UNTIL}}</span></div>
+  </div>
+  <section class="section">
+    <h3>Client</h3>
+    <p><strong>{{CLIENT_NAME}}</strong><br>{{CLIENT_COMPANY}}<br>{{CLIENT_EMAIL}}<br>{{CLIENT_ADDRESS}}</p>
+  </section>
+  <section class="section">
+    <h3>Investment Summary</h3>
+    <div class="box">
+      <p>Subtotal: <strong>{{SUBTOTAL}}</strong></p>
+      <p>Tax: <strong>{{TAX_AMOUNT}}</strong></p>
+      <p>Discount: <strong>{{DISCOUNT_AMOUNT}}</strong></p>
+      <div class="total"><span>Total Proposal Value</span><span>{{TOTAL_AMOUNT}}</span></div>
+    </div>
+  </section>
+  <section class="section">
+    <h3>Notes and Terms</h3>
+    <div>{{NOTES}}</div>
+  </section>
+  <footer class="footer">Prepared by {{PREPARED_BY}} | {{COMPANY_NAME}} | {{COMPANY_EMAIL}}</footer>
+</div>
+</body>
+</html>

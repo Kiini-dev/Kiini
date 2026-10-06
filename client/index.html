@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1"
+    />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <title>Kiini: One Hub. Total Control</title>
+    <style>
+      body { margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+      #root { min-height: 100vh; }
+      #loading { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        min-height: 100vh;
+        background: #f5f5f5;
+        font-size: 16px;
+      }
+      .error { color: red; }
+    </style>
+  </head>
+
+  <body>
+    <div id="root">
+      <div id="loading">Loading application...</div>
+    </div>
+    <noscript>
+      <div style="padding: 20px; color: red; font-size: 16px;">
+        This application requires JavaScript to be enabled.
+      </div>
+    </noscript>
+    <!-- Theme persistence script - prevents flash of wrong theme on page load -->
+    <script>
+      (function() {
+        try {
+          const savedTheme = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+          
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {
+          console.error('Theme initialization error:', e);
+        }
+      })();
+    </script>
+    <!-- ensure Download icon exists globally in case of chunk mishap -->
+    <script>
+      /*
+        Provide a harmless default React component immediately. Some
+        chunks occasionally reference `Download` as a free variable; if
+        it were `null` React throws error #130. A functional component
+        that returns null is acceptable—we're just avoiding a crash.
+      */
+      var Download = function(props){ return null; };
+      window.Download = Download;
+      // also provide a harmless label component globally to prevent
+      // runtime ReferenceError when a module forgets to import it
+      var Label = function(props){ return React ? React.createElement('label', props) : null; };
+      window.Label = Label;
+      // Lucide icons are bundled locally by Vite. Avoid any remote icon loader
+      // so dashboard chunks can render in offline / restricted environments.
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function(){
+        var endpoint = "%VITE_ANALYTICS_ENDPOINT%";
+        var websiteId = "%VITE_ANALYTICS_WEBSITE_ID%";
+        // Only inject analytics script if endpoint is provided and not the raw placeholder
+        if (endpoint && !endpoint.includes('%')) {
+          try {
+            var s = document.createElement('script');
+            s.async = true; s.defer = true;
+            s.src = 'https://' + endpoint.replace(/\/+$/,'') + '/umami';
+            if (websiteId && !websiteId.includes('%')) s.setAttribute('data-website-id', websiteId);
+            document.head.appendChild(s);
+          } catch (e) {
+            // swallow errors to avoid breaking the app
+            console.warn('Umami injection failed', e);
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>

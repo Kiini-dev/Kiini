@@ -1,0 +1,135 @@
+[
+  {
+    "entity": "Department",
+    "indexPlural": "Departments",
+    "missing": [
+      "OrgDepartmentDetail"
+    ]
+  },
+  {
+    "entity": "Employee",
+    "indexPlural": "Employees",
+    "missing": [
+      "OrgEmployeeDetail"
+    ]
+  },
+  {
+    "entity": "Payroll",
+    "indexPlural": "Payroll",
+    "missing": [
+      "OrgPayrollDetail"
+    ]
+  },
+  {
+    "entity": "SalaryStructure",
+    "indexPlural": "SalaryStructures",
+    "missing": [
+      "OrgSalaryStructureDetail"
+    ]
+  },
+  {
+    "entity": "ServiceInvoice",
+    "indexPlural": "ServiceInvoices",
+    "missing": [
+      "OrgServiceInvoiceDetail"
+    ]
+  },
+  {
+    "entity": "Department",
+    "indexPlural": "Departments",
+    "missing": [
+      "OrgDepartmentDetail"
+    ]
+  },
+  {
+    "entity": "Department",
+    "indexPlural": "Departments",
+    "missing": [
+      "OrgDepartmentDetail"
+    ]
+  },
+  {
+    "entity": "Department",
+    "indexPlural": "Departments",
+    "missing": [
+      "OrgDepartmentDetail"
+    ]
+  },
+  {
+    "entity": "Employee",
+    "indexPlural": "Employees",
+    "missing": [
+      "OrgEmployeeDetail"
+    ]
+  },
+  {
+    "entity": "Payroll",
+    "indexPlural": "Payroll",
+    "missing": [
+      "OrgPayrollDetail"
+    ]
+  },
+  {
+    "entity": "SalaryStructure",
+    "indexPlural": "SalaryStructures",
+    "missing": [
+      "OrgSalaryStructureDetail"
+    ]
+  },
+  {
+    "entity": "ServiceInvoice",
+    "indexPlural": "ServiceInvoices",
+    "missing": [
+      "OrgServiceInvoiceDetail"
+    ]
+  },
+  {
+    "entity": "Employee",
+    "indexPlural": "Employees",
+    "missing": [
+      "OrgEmployeeDetail"
+    ]
+  },
+  {
+    "entity": "Employee",
+    "indexPlural": "Employees",
+    "missing": [
+      "OrgEmployeeDetail"
+    ]
+  },
+  {
+    "entity": "Payroll",
+    "indexPlural": "Payroll",
+    "missing": [
+      "OrgPayrollDetail"
+    ]
+  },
+  {
+    "entity": "SalaryStructure",
+    "indexPlural": "SalaryStructures",
+    "missing": [
+      "OrgSalaryStructureDetail"
+    ]
+  },
+  {
+    "entity": "SalaryStructure",
+    "indexPlural": "SalaryStructures",
+    "missing": [
+      "OrgSalaryStructureDetail"
+    ]
+  },
+  {
+    "entity": "ServiceInvoice",
+    "indexPlural": "ServiceInvoices",
+    "missing": [
+      "OrgServiceInvoiceDetail"
+    ]
+  },
+  {
+    "entity": "ServiceInvoice",
+    "indexPlural": "ServiceInvoices",
+    "missing": [
+      "OrgServiceInvoiceDetail"
+    ]
+  }
+]

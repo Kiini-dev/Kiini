@@ -1,0 +1,554 @@
+/**
+ * Collaboration Hub Page
+ * Team collaboration, comments, and task management
+ */
+
+import React, { useState } from 'react';
+import { trpc } from "@/lib/trpc";
+import { Plus, Trash2, CheckCircle, Clock, Users, MessageSquare } from 'lucide-react';
+
+interface Task {
+  id: number;
+  title: string;
+  description?: string;
+  assignedTo: { id: number; name: string; avatar?: string };
+  assignedBy: { id: number; name: string };
+  status: 'open' | 'in_progress' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  dueDate?: Date;
+  comments: number;
+  attachments: number;
+  entityType?: string;
+  entityId?: number;
+}
+
+interface TeamMember {
+  id: number;
+  name: string;
+  avatar?: string;
+  status: 'online' | 'away' | 'offline';
+  currentActivity?: string;
+  workingOn?: { type: string; id: number };
+}
+
+interface CollaborativeNote {
+  id: number;
+  title: string;
+  content: string;
+  contributors: { id: number; name: string }[];
+  lastModified: Date;
+  collaborators: { id: number; name: string; status: 'online' | 'offline'; viewingSection?: string }[];
+}
+
+const CollaborationHub: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('tasks');
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: 1,
+      title: 'Verify invoice line items',
+      description: 'Cross-check invoice amounts with PO and receipts',
+      assignedTo: { id: 5, name: 'Sarah Johnson', avatar: 'SJ' },
+      assignedBy: { id: 3, name: 'John Manager' },
+      status: 'in_progress',
+      priority: 'high',
+      dueDate: new Date(Date.now() + 86400000),
+      comments: 3,
+      attachments: 2,
+      entityType: 'invoice',
+      entityId: 42,
+    },
+    {
+      id: 2,
+      title: 'Send invoice to client',
+      description: 'Forward finalized invoice after approval',
+      assignedTo: { id: 8, name: 'Finance Officer', avatar: 'FO' },
+      assignedBy: { id: 3, name: 'John Manager' },
+      status: 'open',
+      priority: 'medium',
+      dueDate: new Date(Date.now() + 172800000),
+      comments: 1,
+      attachments: 0,
+      entityType: 'invoice',
+      entityId: 42,
+    },
+    {
+      id: 3,
+      title: 'Process payment',
+      description: 'Process payment once invoice is confirmed',
+      assignedTo: { id: 8, name: 'Finance Officer', avatar: 'FO' },
+      assignedBy: { id: 1, name: 'Admin User' },
+      status: 'open',
+      priority: 'high',
+      dueDate: new Date(Date.now() + 259200000),
+      comments: 0,
+      attachments: 1,
+      entityType: 'payment',
+      entityId: 15,
+    },
+  ]);
+
+  const [teamMembers] = useState<TeamMember[]>([
+    {
+      id: 1,
+      name: 'Admin User',
+      avatar: 'AU',
+      status: 'online',
+      currentActivity: 'Reviewing reports',
+      workingOn: { type: 'report', id: 5 },
+    },
+    {
+      id: 3,
+      name: 'John Manager',
+      avatar: 'JM',
+      status: 'online',
+      currentActivity: 'Invoice approval',
+      workingOn: { type: 'invoice', id: 42 },
+    },
+    {
+      id: 5,
+      name: 'Sarah Johnson',
+      avatar: 'SJ',
+      status: 'away',
+      currentActivity: 'In meeting',
+    },
+    {
+      id: 8,
+      name: 'Finance Officer',
+      avatar: 'FO',
+      status: 'offline',
+    },
+  ]);
+
+  const [notes, setNotes] = useState<CollaborativeNote>({
+    id: 1,
+    title: 'Invoice INV-2025-001 Review Notes',
+    content: '# Key Points\n- Verified all line items\n- Payment terms confirmed as Net 30\n- No discrepancies found\n\n## Action Items\n- [ ] Send to accounting\n- [ ] Schedule payment\n- [x] Verify client information',
+    contributors: [
+      { id: 3, name: 'John Manager' },
+      { id: 5, name: 'Sarah Johnson' },
+      { id: 1, name: 'Admin User' },
+    ],
+    lastModified: new Date(Date.now() - 1800000),
+    collaborators: [
+      { id: 3, name: 'John Manager', status: 'online', viewingSection: 'Payment Terms' },
+      { id: 5, name: 'Sarah Johnson', status: 'offline' },
+    ],
+  });
+
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [form] = Form.useForm();
+  const [newTaskData, setNewTaskData] = useState({
+    title: '',
+    description: '',
+    assignedTo: '',
+    priority: 'medium' as Task['priority'],
+  });
+
+  const handleCreateTask = () => {
+    if (!newTaskData.title || !newTaskData.assignedTo) {
+      return;
+    }
+
+    const task: Task = {
+      id: Math.max(...tasks.map(t => t.id), 0) + 1,
+      title: newTaskData.title,
+      description: newTaskData.description,
+      assignedTo: teamMembers.find(m => String(m.id) === newTaskData.assignedTo) || teamMembers[0],
+      assignedBy: { id: 1, name: 'Current User' },
+      status: 'open',
+      priority: newTaskData.priority,
+      dueDate: new Date(Date.now() + 86400000),
+      comments: 0,
+      attachments: 0,
+    };
+
+    setTasks([...tasks, task]);
+    setNewTaskData({ title: '', description: '', assignedTo: '', priority: 'medium' });
+    setShowNewTaskModal(false);
+  };
+
+  const handleTaskStatusChange = (taskId: number, newStatus: Task['status']) => {
+    setTasks(tasks.map(t =>
+      t.id === taskId ? { ...t, status: newStatus } : t
+    ));
+  };
+
+  const getPriorityColor = (priority: Task['priority']) => {
+    const colors = {
+      low: 'blue',
+      medium: 'orange',
+      high: 'red',
+      urgent: 'purple',
+    };
+    return colors[priority];
+  };
+
+  const getStatusIcon = (status: Task['status']) => {
+    if (status === 'completed') return <CheckCircleOutlined />;
+    if (status === 'in_progress') return <ClockCircleOutlined />;
+    return <MessageOutlined />;
+  };
+
+  const TasksList = () => (
+    <div className="space-y-4">
+      <div className="flex justify-between mb-6">
+        <h2 className="text-2xl font-bold">Tasks</h2>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => setShowNewTaskModal(true)}
+        >
+          New Task
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {tasks.map(task => (
+          <Card key={task.id} className="hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  {getStatusIcon(task.status)}
+                  <h3 className="text-lg font-semibold">{task.title}</h3>
+                  <Tag color={getPriorityColor(task.priority)}>
+                    {task.priority.toUpperCase()}
+                  </Tag>
+                </div>
+
+                {task.description && (
+                  <p className="text-sm text-gray-600 mb-3">{task.description}</p>
+                )}
+
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <Avatar size="small" icon={<UserOutlined />}>
+                      {task.assignedTo.avatar}
+                    </Avatar>
+                    <span>{task.assignedTo.name}</span>
+                  </div>
+                  {task.dueDate && (
+                    <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                  )}
+                  {task.comments > 0 && (
+                    <span>{task.comments} comments</span>
+                  )}
+                  {task.attachments > 0 && (
+                    <span>{task.attachments} attachments</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                {task.status !== 'completed' && (
+                  <Button
+                    size="small"
+                    type="primary"
+                    onClick={() => handleTaskStatusChange(task.id, 'completed')}
+                  >
+                    Complete
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => setTasks(tasks.filter(t => t.id !== task.id))}
+                />
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <div className="pt-4 text-sm text-gray-600">
+        <div>{tasks.filter(t => t.status === 'completed').length} of {tasks.length} tasks completed</div>
+      </div>
+    </div>
+  );
+
+  const CommentsSection = () => (
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-6">Comments & Discussions</h2>
+
+      <Card>
+        <div className="mb-4">
+          <Input.TextArea
+            placeholder="Add a comment... (type @ to mention someone)"
+            rows={3}
+          />
+          <div className="mt-2 flex justify-end">
+            <Button type="primary" icon={<SendOutlined />}>
+              Post Comment
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="space-y-4">
+          <Comment
+            author={<span className="font-semibold">John Manager</span>}
+            avatar={<Avatar icon={<UserOutlined />}>JM</Avatar>}
+            content={
+              <p>Great work on this invoice processing! We need to coordinate with @Sarah Johnson on the next batch.</p>
+            }
+            datetime={
+              <span className="text-gray-600 text-xs">
+                {new Date(Date.now() - 3600000).toLocaleString()}
+              </span>
+            }
+          />
+
+          <Comment
+            author={<span className="font-semibold">Sarah Johnson</span>}
+            avatar={<Avatar icon={<UserOutlined />}>SJ</Avatar>}
+            content={
+              <p>Thanks! I'll handle the verification tomorrow. Also, we should review the compliance requirements.</p>
+            }
+            datetime={
+              <span className="text-gray-600 text-xs">
+                {new Date(Date.now() - 1800000).toLocaleString()}
+              </span>
+            }
+          />
+
+          <Comment
+            author={<span className="font-semibold">Admin User</span>}
+            avatar={<Avatar icon={<UserOutlined />}>AU</Avatar>}
+            content={
+              <p>@John Manager, please review the compliance requirements for this transaction.</p>
+            }
+            datetime={
+              <span className="text-gray-600 text-xs">
+                {new Date(Date.now() - 7200000).toLocaleString()}
+              </span>
+            }
+          />
+        </div>
+      </Card>
+    </div>
+  );
+
+  const TeamPresence = () => (
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-6">Team Presence</h2>
+
+      <div className="grid grid-cols-1 gap-3">
+        {teamMembers.map(member => (
+          <Card key={member.id} className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Avatar size="large" icon={<UserOutlined />}>
+                    {member.avatar}
+                  </Avatar>
+                  <div
+                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                      member.status === 'online'
+                        ? 'bg-green-500'
+                        : member.status === 'away'
+                        ? 'bg-yellow-500'
+                        : 'bg-gray-500'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <div className="font-semibold">{member.name}</div>
+                  <div className="text-sm text-gray-600">{member.status}</div>
+                  {member.currentActivity && (
+                    <div className="text-xs text-blue-600">{member.currentActivity}</div>
+                  )}
+                  {member.workingOn && (
+                    <div className="text-xs text-gray-500">
+                      Working on {member.workingOn.type} #{member.workingOn.id}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {member.status === 'online' && (
+                <Button size="small" type="primary">
+                  Chat
+                </Button>
+              )}
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <div className="mt-6 p-4 bg-blue-50 rounded">
+        <h3 className="font-semibold mb-3">Team Summary</h3>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div className="text-2xl font-bold text-green-600">
+              {teamMembers.filter(m => m.status === 'online').length}
+            </div>
+            <div className="text-xs text-gray-600">Online</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {teamMembers.filter(m => m.status === 'away').length}
+            </div>
+            <div className="text-xs text-gray-600">Away</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-gray-600">
+              {teamMembers.filter(m => m.status === 'offline').length}
+            </div>
+            <div className="text-xs text-gray-600">Offline</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const SharedNotes = () => (
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold mb-6">Shared Notes</h2>
+
+      <Card>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="text-xl font-semibold">{notes.title}</h3>
+            <div className="text-sm text-gray-600 mt-2">
+              Last modified: {new Date(notes.lastModified).toLocaleString()}
+            </div>
+          </div>
+          <Button type="primary">Edit</Button>
+        </div>
+
+        <div className="mb-4 p-4 bg-gray-50 rounded font-mono text-sm whitespace-pre-wrap">
+          {notes.content}
+        </div>
+
+        <div className="border-t pt-4">
+          <h4 className="font-semibold mb-3">Contributors & Collaborators</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-sm font-medium text-gray-600">Contributors</span>
+              <div className="flex gap-2 mt-2">
+                {notes.contributors.map(c => (
+                  <Avatar key={c.id} title={c.name} icon={<UserOutlined />}>
+                    {c.name.split(' ').map(n => n[0]).join('')}
+                  </Avatar>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-600">Currently Editing</span>
+              <div className="mt-2">
+                {notes.collaborators.map(c => (
+                  <div key={c.id} className="text-sm">
+                    <Avatar size="small" icon={<UserOutlined />} />
+                    <span className="ml-2">{c.name}</span>
+                    {c.viewingSection && (
+                      <span className="text-gray-600">({c.viewingSection})</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8 text-gray-900 flex items-center gap-2">
+          <TeamOutlined />
+          Collaboration Hub
+        </h1>
+
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            {
+              key: 'tasks',
+              label: <span>Tasks ({tasks.length})</span>,
+              children: <TasksList />,
+            },
+            {
+              key: 'comments',
+              label: 'Comments & Discussions',
+              children: <CommentsSection />,
+            },
+            {
+              key: 'team',
+              label: 'Team Presence',
+              children: <TeamPresence />,
+            },
+            {
+              key: 'notes',
+              label: 'Shared Notes',
+              children: <SharedNotes />,
+            },
+          ]}
+        />
+
+        <Modal
+          title="Create New Task"
+          open={showNewTaskModal}
+          onOk={handleCreateTask}
+          onCancel={() => setShowNewTaskModal(false)}
+        >
+          <Form layout="vertical">
+            <Form.Item label="Task Title" required>
+              <Input
+                placeholder="e.g., Review invoice"
+                value={newTaskData.title}
+                onChange={(e) => setNewTaskData({ ...newTaskData, title: e.target.value })}
+              />
+            </Form.Item>
+
+            <Form.Item label="Description">
+              <Input.TextArea
+                rows={3}
+                placeholder="Task description"
+                value={newTaskData.description}
+                onChange={(e) => setNewTaskData({ ...newTaskData, description: e.target.value })}
+              />
+            </Form.Item>
+
+            <Form.Item label="Assign To" required>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={newTaskData.assignedTo}
+                onChange={(e) => setNewTaskData({ ...newTaskData, assignedTo: e.target.value })}
+              >
+                <option value="">Select a team member</option>
+                {teamMembers.map(m => (
+                  <option key={m.id} value={String(m.id)}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </Form.Item>
+
+            <Form.Item label="Priority">
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={newTaskData.priority}
+                onChange={(e) =>
+                  setNewTaskData({
+                    ...newTaskData,
+                    priority: e.target.value as Task['priority'],
+                  })
+                }
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    </div>
+  );
+};
+
+export default CollaborationHub;

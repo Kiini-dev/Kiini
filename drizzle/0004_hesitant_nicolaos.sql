@@ -1,0 +1,9 @@
+DROP TABLE `auditLogs`;
+DROP TABLE `communicationLogs`;
+DROP TABLE `guestClients`;
+DROP TABLE `inventoryTransactions`;
+DROP TABLE `reminders`;
+DROP TABLE `scheduledReminders`;
+DROP TABLE `stockAlerts`;
+DROP TABLE `systemSettings`;
+DROP TABLE `userPermissions`;

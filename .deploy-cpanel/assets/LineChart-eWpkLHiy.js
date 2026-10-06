@@ -1,0 +1,1 @@
+import{ao as a,ar as i,al as s,am as r,ap as x}from"./index-Bmob1iPg.js";var o=a({chartName:"LineChart",GraphicalChild:i,axisComponents:[{axisType:"xAxis",AxisComp:s},{axisType:"yAxis",AxisComp:r}],formatAxisMap:x});export{o as L};

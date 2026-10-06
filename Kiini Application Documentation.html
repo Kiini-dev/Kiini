@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kiini — Application Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --indigo:#14192E; --amber:#E8A33D; --teal:#1F7A6C;
+    --paper:#F7F5EF; --paper-2:#EFEBE1; --ink:#171712; --ink-soft:#4A4A42;
+    --line: rgba(23,23,18,0.12);
+    --bg: var(--paper); --fg: var(--ink); --fg-soft: var(--ink-soft);
+    --line-c: var(--line); --card:#FFFFFF; --code-bg:#F1EFE6;
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: var(--indigo); --fg:#F2EFE6; --fg-soft:#C9C6BC;
+      --line-c: rgba(242,239,230,0.14); --card:#1A2140; --code-bg:#232B4E;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: var(--indigo); --fg:#F2EFE6; --fg-soft:#C9C6BC;
+    --line-c: rgba(242,239,230,0.14); --card:#1A2140; --code-bg:#232B4E;
+  }
+  html{scroll-padding-top: env(safe-area-inset-top, 0px);}
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--fg); font-family:'Manrope',system-ui,sans-serif;}
+  .wrap{max-width:880px; margin:0 auto; padding:0 24px 100px;}
+  header.hero{padding:64px 0 40px; border-bottom:1px solid var(--line-c);}
+  .lockup{display:flex; align-items:center; gap:14px;}
+  .wordmark{font-size:36px; font-weight:800; letter-spacing:-0.02em;}
+  .tagline{font-size:14px; color:var(--fg-soft); margin-top:4px;}
+  .sub{margin-top:22px; font-size:15px; color:var(--fg-soft); max-width:60ch; line-height:1.6;}
+  .meta-line{margin-top:18px; font-size:12px; color:var(--fg-soft);}
+
+  nav.toc{display:flex; flex-wrap:wrap; gap:8px; padding:28px 0; border-bottom:1px solid var(--line-c);}
+  nav.toc a{font-size:13px; color:var(--fg-soft); text-decoration:none; padding:6px 12px; border:1px solid var(--line-c); border-radius:100px;}
+
+  section{padding:48px 0; border-bottom:1px solid var(--line-c); scroll-margin-top:24px;}
+  section:last-of-type{border-bottom:none;}
+  .sec-head{display:flex; align-items:center; gap:14px; margin-bottom:14px;}
+  .sec-num{width:34px; height:34px; border-radius:8px; background:var(--teal); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0;}
+  h2{font-size:20px; font-weight:700; margin:0; letter-spacing:-0.01em;}
+  p.desc{line-height:1.65; color:var(--fg-soft); max-width:64ch; font-size:15px; margin:0 0 22px;}
+
+  table{width:100%; border-collapse:collapse; margin-bottom:22px;}
+  th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--fg-soft); padding:0 0 8px; border-bottom:1px solid var(--line-c);}
+  td{font-size:14px; padding:9px 0; border-bottom:1px solid var(--line-c);}
+  td.cap{color:var(--fg);}
+  td.state{color:var(--teal); font-weight:600; font-size:13px;}
+
+  .flow{font-size:14px; color:var(--fg-soft); background:var(--card); border:1px solid var(--line-c); border-radius:8px; padding:14px 16px; margin-bottom:20px; line-height:1.7;}
+  .flow b{color:var(--fg); font-weight:700;}
+
+  .routes{background:var(--code-bg); border-radius:8px; padding:14px 16px; font-size:13px;}
+  .routes .r-label{font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--fg-soft); margin-bottom:6px;}
+  .routes code{font-family:ui-monospace,monospace; font-size:12.5px;}
+  .routes .access{margin-top:10px; font-size:13px; color:var(--fg-soft);}
+
+  footer{padding:40px 0 0; color:var(--fg-soft); font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="lockup">
+      <svg width="44" height="44" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="28" cy="28" r="26" fill="none" stroke="#1F7A6C" stroke-width="2.5"/>
+        <circle cx="28" cy="28" r="18" fill="none" stroke="#1F7A6C" stroke-width="2.5" opacity="0.55"/>
+        <circle cx="28" cy="28" r="10" fill="#E8A33D"/>
+      </svg>
+      <div>
+        <div class="wordmark">Kiini</div>
+        <div class="tagline">Kiini: One Hub. Total Control.</div>
+      </div>
+    </div>
+    <div class="sub">Application documentation — current platform state, modules, workflows, routes, permissions, and operational guidance.</div>
+    <div class="meta-line">Updated 06/10/2026 · Application reference · Features are subject to role and organization configuration</div>
+  </header>
+
+  <nav class="toc">
+    <a href="#overview">Overview</a>
+    <a href="#crm">CRM &amp; Sales</a>
+    <a href="#finance">Accounting &amp; Finance</a>
+    <a href="#projects">Projects &amp; Delivery</a>
+    <a href="#hr">HR &amp; Payroll</a>
+    <a href="#procurement">Procurement &amp; Operations</a>
+    <a href="#admin">Administration &amp; Security</a>
+    <a href="#reports">Reports &amp; Exports</a>
+  </nav>
+
+  <section id="overview">
+    <div class="sec-head"><div class="sec-num">01</div><h2>Platform Overview</h2></div>
+    <p class="desc">Kiini is an organization-aware business operations platform covering customer management, finance, projects, people, procurement, reporting, and administration — one core system for every part of the business.</p>
+    <table>
+      <tr><th>Capability</th><th>Current state</th></tr>
+      <tr><td class="cap">Role-based navigation</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Organization-scoped records</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Notifications and activity history</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Global search and command palette</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Responsive desktop and mobile layouts</td><td class="state">Available</td></tr>
+    </table>
+    <div class="flow"><b>Typical workflow:</b> Sign in → Open role dashboard → Choose a business module → Create or review records → Track notifications and reports</div>
+    <div class="routes">
+      <div class="r-label">Routes</div>
+      <code>/crm-home, /dashboard, /documentation</code>
+      <div class="access">Access: all authenticated users; available modules depend on role and permissions.</div>
+    </div>
+  </section>
+
+  <section id="crm">
+    <div class="sec-head"><div class="sec-num">02</div><h2>CRM and Sales</h2></div>
+    <p class="desc">Manage the customer lifecycle from lead and client records through opportunities, proposals, estimates, invoices, receipts, and follow-up communication.</p>
+    <table>
+      <tr><th>Capability</th><th>Current state</th></tr>
+      <tr><td class="cap">Client profiles and contacts</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Sales pipeline stages</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Quotes, estimates, and proposals</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Invoice generation and delivery</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Payment and receipt tracking</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Client portal access</td><td class="state">Available</td></tr>
+    </table>
+    <div class="flow"><b>Typical workflow:</b> Create client → Create opportunity → Prepare estimate or proposal → Convert to invoice → Record payment → Review client history</div>
+    <div class="routes">
+      <div class="r-label">Routes</div>
+      <code>/clients, /leads, /opportunities, /proposals, /estimates, /invoices, /receipts</code>
+      <div class="access">Access: sales, account managers, admins, accountants, and clients have different read/write scopes.</div>
+    </div>
+  </section>
+
+  <section id="finance">
+    <div class="sec-head"><div class="sec-num">03</div><h2>Accounting and Finance</h2></div>
+    <p class="desc">Track sales and non-sales income, expenses, payments, budgets, accounts, reconciliations, and financial performance. Organization accounting policies and the platform's own accounting scope are managed separately.</p>
+    <table>
+      <tr><th>Capability</th><th>Current state</th></tr>
+      <tr><td class="cap">Invoices and payment allocations</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Payment reports and filters</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Expense management</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Non-sales inflows with account classification</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Income ledger and SaaS revenue views</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Debit/credit balances using each account's normal side</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Organization-specific accounting policies</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Budgets and variance tracking</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Bank reconciliation</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Financial dashboards and exports</td><td class="state">Available</td></tr>
+    </table>
+    <div class="flow"><b>Typical workflow:</b> Create invoice → Send or approve invoice → Record payment → Reconcile account → Review reports → Export evidence</div>
+    <div class="routes">
+      <div class="r-label">Routes</div>
+      <code>/accounting, /invoices, /payments, /payments/reports, /financial-dashboard, /budgets, /chart-of-accounts, /income-ledger, /finance/non-sales-inflows, /finance/accounting-policies</code>
+      <div class="access">Access: accountants, finance managers, admins, and authorized approvers.</div>
+    </div>
+  </section>
+
+  <section id="projects">
+    <div class="sec-head"><div class="sec-num">04</div><h2>Projects and Delivery</h2></div>
+    <p class="desc">Plan delivery work with projects, milestones, tasks, team assignments, progress, files, comments, and project-level financial context.</p>
+    <table>
+      <tr><th>Capability</th><th>Current state</th></tr>
+      <tr><td class="cap">Project metadata and cover visuals</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Progress and status tracking</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Task lists and approvals</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Team assignments</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Project comments</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Client read-only project portal</td><td class="state">Available</td></tr>
+    </table>
+    <div class="flow"><b>Typical workflow:</b> Create project → Assign manager and team → Create tasks → Track progress → Review comments → Complete delivery</div>
+    <div class="routes">
+      <div class="r-label">Routes</div>
+      <code>/projects, /projects/create, /projects/:id, /projects/:id/edit, /project-reports</code>
+      <div class="access">Access: project managers and authorized staff manage delivery. Client portal access is read-only.</div>
+    </div>
+  </section>
+
+  <section id="hr">
+    <div class="sec-head"><div class="sec-num">05</div><h2>HR and Payroll</h2></div>
+    <p class="desc">Maintain employee records and handle attendance, leave, payroll, allowances, deductions, benefits, performance, and statutory reporting.</p>
+    <table>
+      <tr><th>Capability</th><th>Current state</th></tr>
+      <tr><td class="cap">Employee profiles and photos</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Attendance and leave workflows</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Flexible leave durations and automatic start/end/day calculations</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Weekday-based leave day counting (weekends excluded)</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Payroll processing</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Allowances and deductions</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Payslips and statutory reports</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Performance and contract records</td><td class="state">Available</td></tr>
+    </table>
+    <div class="flow"><b>Typical workflow:</b> Create employee → Configure compensation → Capture attendance → Process payroll → Review approvals → Issue payslips</div>
+    <div class="routes">
+      <div class="r-label">Routes</div>
+      <code>/employees, /attendance, /leave-management, /payroll, /allowances-deductions, /hr-reports, /payroll/tax-compliance</code>
+      <div class="access">Access: HR, payroll, admins, managers, and employees according to configured permissions.</div>
+    </div>
+  </section>
+
+  <section id="procurement">
+    <div class="sec-head"><div class="sec-num">06</div><h2>Procurement and Operations</h2></div>
+    <p class="desc">Manage suppliers, purchase requests, orders, inventory, assets, work orders, service records, and operational controls.</p>
+    <table>
+      <tr><th>Capability</th><th>Current state</th></tr>
+      <tr><td class="cap">Supplier directory</td><td class="state">Available</td></tr>
+      <tr><td class="cap">LPO and purchase order workflows</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Inventory and warehouse records</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Assets and maintenance</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Approvals and audit trail</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Operational dashboards</td><td class="state">Available</td></tr>
+    </table>
+    <div class="flow"><b>Typical workflow:</b> Create supplier → Raise request → Approve purchase → Receive or issue stock → Track cost → Review audit trail</div>
+    <div class="routes">
+      <div class="r-label">Routes</div>
+      <code>/suppliers, /procurement, /purchase-orders, /inventory, /assets, /work-orders, /erp-operations</code>
+      <div class="access">Access: procurement, finance, operations, admins, and assigned managers.</div>
+    </div>
+  </section>
+
+  <section id="admin">
+    <div class="sec-head"><div class="sec-num">07</div><h2>Administration and Security</h2></div>
+    <p class="desc">Configure organizations, users, roles, custom permissions, organization accounting policies, templates, integrations, backups, system health, and audit controls.</p>
+    <table>
+      <tr><th>Capability</th><th>Current state</th></tr>
+      <tr><td class="cap">User and role management</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Feature permissions</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Organization-specific accounting policies and platform-wide policy scope</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Email templates</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Organization settings</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Backups and restore</td><td class="state">Available</td></tr>
+      <tr><td class="cap">System health and audit logs</td><td class="state">Available</td></tr>
+      <tr><td class="cap">API and integration settings</td><td class="state">Available</td></tr>
+    </table>
+    <div class="flow"><b>Typical workflow:</b> Create user → Assign role → Grant permissions → Configure settings → Monitor activity → Review audit evidence</div>
+    <div class="routes">
+      <div class="r-label">Routes</div>
+      <code>/admin/management, /admin/email-templates, /settings, /system-health, /audit-logs, /documentation</code>
+      <div class="access">Access: admins and super admins; sensitive operations require elevated permissions.</div>
+    </div>
+  </section>
+
+  <section id="reports">
+    <div class="sec-head"><div class="sec-num">08</div><h2>Reports and Exports</h2></div>
+    <p class="desc">Use live report pages and exports for operational review, management decisions, compliance, and record sharing.</p>
+    <table>
+      <tr><th>Capability</th><th>Current state</th></tr>
+      <tr><td class="cap">Live filtered reports</td><td class="state">Available</td></tr>
+      <tr><td class="cap">CSV exports</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Detailed multi-page PDF export</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Weekly and monthly management reports</td><td class="state">Available</td></tr>
+      <tr><td class="cap">AI-assisted analytics summaries</td><td class="state">Available</td></tr>
+      <tr><td class="cap">Role-scoped report access</td><td class="state">Available</td></tr>
+    </table>
+    <div class="flow"><b>Typical workflow:</b> Choose report → Set date and record filters → Review totals and details → Export CSV or PDF → Share or archive output</div>
+    <div class="routes">
+      <div class="r-label">Routes</div>
+      <code>/reports, /reports/sales, /payments/reports, /financial-reports, /hr-reports, /project-reports, /reports/customers</code>
+      <div class="access">Access: report visibility follows organization and feature permissions.</div>
+    </div>
+  </section>
+
+  <footer>Kiini application documentation · updated October 2026</footer>
+
+</div>
+</body>
+</html>

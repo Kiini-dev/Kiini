@@ -1,0 +1,1 @@
+import{an as a,am as i,ak as s,al as t,ao as e}from"./index-C4MPA5Gw.js";var o=a({chartName:"BarChart",GraphicalChild:i,defaultTooltipEventType:"axis",validateTooltipEventTypes:["axis","item"],axisComponents:[{axisType:"xAxis",AxisComp:s},{axisType:"yAxis",AxisComp:t}],formatAxisMap:e});export{o as B};

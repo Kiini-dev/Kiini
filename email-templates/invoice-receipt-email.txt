@@ -1,0 +1,52 @@
+KIINI SOLUTIONS
+Invoice & Receipt
+================================================================================
+
+Dear [CLIENT_NAME],
+
+Thank you for your business! We are pleased to confirm that we have received 
+your payment.
+
+Please find attached your invoice and official receipt for the services 
+provided. We appreciate your prompt payment and continued trust in Kiini 
+Solutions.
+
+TRANSACTION SUMMARY
+--------------------------------------------------------------------------------
+Invoice Number:     [INVOICE_NUMBER]
+Receipt Number:     [RECEIPT_NUMBER]
+Invoice Date:       [INVOICE_DATE]
+Payment Date:       [PAYMENT_DATE]
+Payment Method:     [PAYMENT_METHOD]
+Amount Paid:        KES [AMOUNT]
+
+ATTACHED DOCUMENTS
+--------------------------------------------------------------------------------
+📄 [INVOICE_NUMBER].pdf - Invoice Document
+🧾 [RECEIPT_NUMBER].pdf - Official Receipt
+
+If you have any questions about this invoice or receipt, please don't hesitate 
+to contact us. We're here to help!
+
+View your documents online:
+https://accounts.kiini.africa/client-portal
+
+PAYMENT INFORMATION (For Future Reference)
+--------------------------------------------------------------------------------
+Bank:               Equity Bank Kenya
+Account Name:       Kiini
+Account Number:     1234567890
+M-Pesa Paybill:     123456
+Account Number:     KIINI
+
+================================================================================
+— Redefining Technology!!! —
+
+KIINI SOLUTIONS
+Email: info@kiini.africa
+Phone: +254 700 000 000
+Website: www.kiini.africa
+
+© 2024 Kiini. All rights reserved.
+This email and any attachments are confidential and intended solely for the recipient.
+

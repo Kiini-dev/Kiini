@@ -1,0 +1,2 @@
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS emailVerificationRequired TINYINT(1) NOT NULL DEFAULT 0;

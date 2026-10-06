@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Warranty {{WARRANTY_NUMBER}}</title>
+<style>
+@page { size: A4; margin: 16mm; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #263238; font-size: 12px; line-height: 1.5; }
+.document { max-width: 820px; margin: 0 auto; }
+.header { display: flex; justify-content: space-between; gap: 24px; border-bottom: 3px solid #39735b; padding-bottom: 16px; }
+.company h1 { margin: 0; color: #39735b; font-size: 22px; }
+.company p { margin: 3px 0; color: #607d8b; }
+.logo { max-width: 110px; max-height: 70px; object-fit: contain; }
+.title { text-align: center; margin: 26px 0 18px; }
+.title h2 { margin: 0; color: #254f3d; font-size: 24px; letter-spacing: 1px; }
+.meta, .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.box { border: 1px solid #cfd8dc; border-radius: 4px; padding: 13px; }
+.label { display: block; color: #607d8b; font-size: 10px; text-transform: uppercase; letter-spacing: .6px; }
+.value { font-weight: 700; }
+.section { margin: 18px 0; }
+.section h3 { margin: 0 0 8px; color: #39735b; font-size: 13px; border-bottom: 1px solid #b7d8c6; padding-bottom: 5px; }
+.highlight { background: #eef8f1; border-left: 5px solid #39735b; padding: 14px; }
+.signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 42px; margin-top: 55px; }
+.signature { border-top: 1px solid #455a64; padding-top: 7px; }
+.footer { border-top: 1px solid #cfd8dc; margin-top: 35px; padding-top: 10px; text-align: center; color: #78909c; font-size: 10px; }
+@media print { .document { max-width: none; } }
+</style>
+</head>
+<body>
+<div class="document">
+  <header class="header">
+    <div class="company">
+      <h1>{{COMPANY_NAME}}</h1>
+      <p>{{COMPANY_ADDRESS}}</p>
+      <p>{{COMPANY_EMAIL}} | {{COMPANY_PHONE}}</p>
+    </div>
+    <img class="logo" src="{{COMPANY_LOGO}}" alt="Company logo">
+  </header>
+  <div class="title"><h2>WARRANTY CERTIFICATE</h2></div>
+  <div class="meta">
+    <div class="box"><span class="label">Warranty number</span><span class="value">{{WARRANTY_NUMBER}}</span></div>
+    <div class="box"><span class="label">Purchase date</span><span class="value">{{PURCHASE_DATE}}</span></div>
+    <div class="box"><span class="label">Expiry date</span><span class="value">{{EXPIRY_DATE}}</span></div>
+    <div class="box"><span class="label">Status</span><span class="value">{{STATUS}}</span></div>
+  </div>
+  <div class="parties">
+    <div class="box"><span class="label">Product</span><span class="value">{{PRODUCT}}</span><p>{{SERIAL_NUMBER}}</p></div>
+    <div class="box"><span class="label">Supplier / Vendor</span><span class="value">{{VENDOR}}</span></div>
+  </div>
+  <section class="section">
+    <h3>Coverage</h3>
+    <div class="highlight">{{COVERAGE}}</div>
+  </section>
+  <section class="section">
+    <h3>Claim Terms</h3>
+    <div>{{CLAIM_TERMS}}</div>
+  </section>
+  <section class="section">
+    <h3>Notes</h3>
+    <div>{{NOTES}}</div>
+  </section>
+  <div class="signatures">
+    <div class="signature">Issued by {{COMPANY_NAME}}<br><br>Name and signature</div>
+    <div class="signature">Customer acknowledgement<br><br>Name and signature</div>
+  </div>
+  <footer class="footer">{{COMPANY_NAME}} | {{COMPANY_EMAIL}} | {{COMPANY_PHONE}}</footer>
+</div>
+</body>
+</html>
