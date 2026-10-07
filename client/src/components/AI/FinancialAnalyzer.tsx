@@ -90,7 +90,7 @@ export function FinancialAnalyzer() {
               className="resize-none"
             />
             <p className="text-xs text-gray-500">
-              Characters: {dataDescription.length}
+              Enter amounts in normal currency units (for example, 50,000 KES), not cents. Characters: {dataDescription.length}
             </p>
           </div>
 

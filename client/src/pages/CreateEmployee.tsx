@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Users, UserPlus, Plus, Upload, X, Copy, Check, Save, Shield, CreditCard, MapPin, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmployeeAccountSection } from "@/components/EmployeeAccountSection";
+import { PhoneInput } from "@/components/PhoneInput";
 
 export default function CreateEmployee() {
   const [, navigate] = useLocation();
@@ -136,6 +137,7 @@ export default function CreateEmployee() {
       reader.onload = () => {
         const photoDataUrl = reader.result as string;
         createEmployeeMutation.mutate({
+          employeeNumber: formData.employeeNumber || undefined,
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email || undefined,
@@ -177,6 +179,7 @@ export default function CreateEmployee() {
       reader.readAsDataURL(photoFile);
     } else {
       createEmployeeMutation.mutate({
+        employeeNumber: formData.employeeNumber || undefined,
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email || undefined,
@@ -242,6 +245,14 @@ export default function CreateEmployee() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label>Employee Number</Label>
+                  <Input
+                    placeholder="Leave blank to assign automatically"
+                    value={formData.employeeNumber}
+                    onChange={(e) => setFormData({ ...formData, employeeNumber: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>Hire Date <span className="text-destructive">*</span></Label>
                   <Input
                     type="date"
@@ -279,12 +290,7 @@ export default function CreateEmployee() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Phone Number</Label>
-                  <Input
-                    placeholder="+254 712 345 678"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
+                  <PhoneInput label="Phone Number" value={formData.phone} onChange={(phone) => setFormData({ ...formData, phone })} placeholder="712 345 678" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -565,11 +571,7 @@ export default function CreateEmployee() {
                 </div>
                 <div className="space-y-2">
                   <Label>Phone Number</Label>
-                  <Input
-                    placeholder="+254 722 000 000"
-                    value={formData.emergencyContactPhone}
-                    onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
-                  />
+                  <PhoneInput label="Phone Number" value={formData.emergencyContactPhone} onChange={(emergencyContactPhone) => setFormData({ ...formData, emergencyContactPhone })} placeholder="722 000 000" />
                 </div>
               </div>
             </CardContent>
@@ -801,4 +803,3 @@ export default function CreateEmployee() {
     </ModuleLayout>
   );
 }
-

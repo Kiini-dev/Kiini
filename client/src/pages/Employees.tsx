@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Download, DollarSign, Copy, Mail, Phone } from "lucide-react";
 import { BulkExportManager } from "@/components/DataExport";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/PhoneInput";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -452,15 +453,24 @@ export default function Employees() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      value={newEmployee.phone}
-                      onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
-                      placeholder="+254 712 345 678"
-                    />
+                    <PhoneInput id="phone" value={newEmployee.phone} onChange={(phone) => setNewEmployee({ ...newEmployee, phone })} placeholder="712 345 678" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Select value={newEmployee.country} onValueChange={(country) => setNewEmployee({ ...newEmployee, country })}>
+                      <SelectTrigger id="country"><SelectValue placeholder="Select country" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="KE">Kenya</SelectItem>
+                        <SelectItem value="UG">Uganda</SelectItem>
+                        <SelectItem value="TZ">Tanzania</SelectItem>
+                        <SelectItem value="RW">Rwanda</SelectItem>
+                        <SelectItem value="BW">Botswana</SelectItem>
+                        <SelectItem value="ZA">South Africa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="dateOfBirth">Date of Birth</Label>
                     <Input
@@ -732,12 +742,7 @@ export default function Employees() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="emergencyContactPhone">Emergency Phone</Label>
-                      <Input
-                        id="emergencyContactPhone"
-                        value={newEmployee.emergencyContactPhone}
-                        onChange={(e) => setNewEmployee({ ...newEmployee, emergencyContactPhone: e.target.value })}
-                        placeholder="+254 712 345 678"
-                      />
+                      <PhoneInput id="emergencyContactPhone" value={newEmployee.emergencyContactPhone} onChange={(emergencyContactPhone) => setNewEmployee({ ...newEmployee, emergencyContactPhone })} placeholder="712 345 678" />
                     </div>
                   </div>
 

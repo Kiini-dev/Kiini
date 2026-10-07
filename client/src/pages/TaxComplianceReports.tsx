@@ -25,24 +25,30 @@ export default function TaxComplianceReportsPage() {
   const [taxYear, setTaxYear] = useState(String(currentYear));
   const [employeeId, setEmployeeId] = useState("all");
   const [p9Status, setP9Status] = useState("all");
-  const rangeInput = { from: new Date(from), to: new Date(to) };
+  const rangeInput = {
+    from: new Date(`${from}T00:00:00.000Z`),
+    to: new Date(`${to}T23:59:59.999Z`),
+    ...(employeeId !== "all" ? { employeeId } : {}),
+  };
   const paye = trpc.taxCompliance.getPAYEReport.useQuery(rangeInput);
   const nssf = trpc.taxCompliance.getNSSFReport.useQuery(rangeInput);
   const shif = trpc.taxCompliance.getSHIFReport.useQuery(rangeInput);
   const housing = trpc.taxCompliance.getHousingLevyReport.useQuery(rangeInput);
   const kraExport = trpc.taxCompliance.getKRAFilingFormat.useQuery(rangeInput, { enabled: false });
-  const ytd = trpc.taxCompliance.getYearToDateSummary.useQuery({});
-  const employees = trpc.employees.list.useQuery({});
+  const ytd = trpc.taxCompliance.getYearToDateSummary.useQuery({
+    ...(employeeId !== "all" ? { employeeId } : {}),
+  });
+  const employees = trpc.employees.list.useQuery({ limit: 5000, offset: 0 });
   const p9QueryInput = {
     taxYear: Number(taxYear),
     ...(employeeId && employeeId !== "all" ? { employeeId } : {}),
     ...(p9Status && p9Status !== "all" ? { status: p9Status as any } : {}),
-    limit: 200,
+    limit: 500,
     offset: 0,
   };
   const p9 = trpc.p9Forms.list.useQuery(p9QueryInput);
   const generateP9 = trpc.p9Forms.generateForTaxYear.useMutation({ onSuccess: (result) => { toast.success(result.message); p9.refetch(); }, onError: (error) => toast.error(error.message) });
-  const refresh = () => { paye.refetch(); nssf.refetch(); shif.refetch(); housing.refetch(); ytd.refetch(); p9.refetch(); };
+  const refresh = () => { paye.refetch(); nssf.refetch(); shif.refetch(); housing.refetch(); ytd.refetch(); p9.refetch(); employees.refetch(); };
   const exportKra = async () => {
     const result = await kraExport.refetch();
     if (!result.data) { toast.error("No KRA filing data is available for this period"); return; }
@@ -50,6 +56,9 @@ export default function TaxComplianceReportsPage() {
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `KRA_Filing_${from}_to_${to}.csv`; link.click(); URL.revokeObjectURL(link.href); toast.success("KRA filing exported");
   };
   const p9Rows = p9.data?.p9Forms || [];
+  const reportErrors = [paye, nssf, shif, housing, ytd, p9, employees]
+    .filter((query) => query.isError)
+    .map((query) => query.error?.message || "Request failed");
   const total = (rows: any[], key: string) => rows.reduce((sum, row) => sum + Number(row[key] || 0), 0);
   const taxCards = [{ label: "PAYE", value: total(paye.data || [], "totalPayee"), tone: "border-l-blue-500" }, { label: "NSSF", value: total(nssf.data || [], "totalNSSF"), tone: "border-l-emerald-500" }, { label: "SHIF", value: total(shif.data || [], "totalSHIF"), tone: "border-l-violet-500" }, { label: "Housing Levy", value: total(housing.data || [], "totalHousing"), tone: "border-l-orange-500" }];
   const taxRowsByMonth = new Map<string, { month: string; paye: number; nssf: number; shif: number; housing: number }>();
@@ -69,6 +78,7 @@ export default function TaxComplianceReportsPage() {
   const table = (rows: any[], amountKey: string) => <Table><TableHeader><TableRow><TableHead>Month</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.month}><TableCell>{format(new Date(`${row.month}-01`), "MMM yyyy")}</TableCell><TableCell className="text-right">{money(Number(row[amountKey] || 0), code)}</TableCell></TableRow>)}</TableBody></Table>;
   return <ModuleLayout title="Tax Compliance & P9" description="PAYE, statutory deductions, KRA filing and annual employee certificates" icon={<BarChart3 className="h-5 w-5" />} breadcrumbs={[{ label: "Dashboard", href: "/crm-home" }, { label: "Reports", href: "/reports" }, { label: "Tax Compliance" }]} actions={<div className="flex gap-2"><Button variant="outline" onClick={refresh}><RefreshCcw className="mr-2 h-4 w-4" />Refresh</Button><Button onClick={exportKra}><Download className="mr-2 h-4 w-4" />KRA export</Button></div>}>
     <div className="kiini-report-shell grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]"><ReportNavigation active="/payroll/tax-compliance" /><div className="min-w-0 space-y-5">
+      {reportErrors.length > 0 && <Card role="alert" className="border-destructive"><CardContent className="pt-6 text-sm text-destructive">Some compliance data could not be loaded: {reportErrors.join("; ")}</CardContent></Card>}
       <Card className="kiini-report-toolbar"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Filter className="h-4 w-4" />Compliance controls</CardTitle><CardDescription>Use the same reporting period for monthly statutory returns and select a tax year for P9 certificates.</CardDescription></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div><label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">From</label><Input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></div><div><label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">To</label><Input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></div><div><label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">P9 tax year</label><Select value={taxYear} onValueChange={setTaxYear}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[0, 1, 2, 3].map((offset) => <SelectItem key={offset} value={String(currentYear - offset)}>{currentYear - offset}</SelectItem>)}</SelectContent></Select></div><div><label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Employee</label><Select value={employeeId} onValueChange={setEmployeeId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All employees</SelectItem>{(employees.data as any[] || []).map((employee) => <SelectItem key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</SelectItem>)}</SelectContent></Select></div></CardContent></Card>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{taxCards.map((card) => <StatsCard key={card.label} label={card.label} value={money(card.value, code)} description="Selected period" icon={<ShieldCheck className="h-5 w-5" />} color={card.tone} />)}</div>
       <ReportAnalyticsPanel title="Monthly statutory contributions" description={`${from} to ${to}`} categoryKey="month" data={taxChartData} series={[{ dataKey: "paye", label: "PAYE", color: "#0f766e" }, { dataKey: "nssf", label: "NSSF", color: "#2563eb" }, { dataKey: "shif", label: "SHIF", color: "#e8790c" }, { dataKey: "housing", label: "Housing levy", color: "#15803d" }]} formatValue={(value) => money(value * 100, code)} />

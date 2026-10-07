@@ -4,6 +4,7 @@ import { getDb } from '../db';
 import { invoices, invoiceItems, clients, settings } from '../../drizzle/schema';
 import { eq, and } from 'drizzle-orm';
 import { addCompanyLogo } from './company-info';
+import { formatMinorCurrencyAmount } from '../../shared/currency';
 
 /**
  * Generate an invoice PDF buffer using professional template layout
@@ -147,8 +148,8 @@ export async function generateInvoicePDF(invoiceId: string): Promise<Buffer> {
   const tableData = items.map((item) => [
     item.description || '',
     item.quantity.toString(),
-    `${cur} ${(item.unitPrice / 100).toFixed(2)}`,
-    `${cur} ${(item.total / 100).toFixed(2)}`,
+    formatMinorCurrencyAmount(item.unitPrice, cur, { symbol: cur, minimumFractionDigits: 2 }),
+    formatMinorCurrencyAmount(item.total, cur, { symbol: cur, minimumFractionDigits: 2 }),
   ]);
 
   autoTable(doc, {
@@ -195,20 +196,20 @@ export async function generateInvoicePDF(invoiceId: string): Promise<Buffer> {
   doc.setTextColor(80, 80, 80);
   
   doc.text('Subtotal:', 125, currentY + 2);
-  doc.text(`${cur} ${(invoice.subtotal / 100).toFixed(2)}`, 185, currentY + 2, { align: 'right' });
+  doc.text(formatMinorCurrencyAmount(invoice.subtotal, cur, { symbol: cur, minimumFractionDigits: 2 }), 185, currentY + 2, { align: 'right' });
 
   let totalLineY = currentY + 2;
   
   if (invoice.taxAmount && invoice.taxAmount > 0) {
     totalLineY += 5;
     doc.text('Tax:', 125, totalLineY);
-    doc.text(`${cur} ${(invoice.taxAmount / 100).toFixed(2)}`, 185, totalLineY, { align: 'right' });
+    doc.text(formatMinorCurrencyAmount(invoice.taxAmount, cur, { symbol: cur, minimumFractionDigits: 2 }), 185, totalLineY, { align: 'right' });
   }
 
   if (invoice.discountAmount && invoice.discountAmount > 0) {
     totalLineY += 5;
     doc.text('Discount:', 125, totalLineY);
-    doc.text(`-${cur} ${(invoice.discountAmount / 100).toFixed(2)}`, 185, totalLineY, { align: 'right' });
+    doc.text(`-${formatMinorCurrencyAmount(invoice.discountAmount, cur, { symbol: cur, minimumFractionDigits: 2 })}`, 185, totalLineY, { align: 'right' });
   }
 
   totalLineY += 8;
@@ -222,7 +223,7 @@ export async function generateInvoicePDF(invoiceId: string): Promise<Buffer> {
   doc.setFontSize(12);
   doc.setTextColor(255, 255, 255);
   doc.text('Total:', 125, totalLineY + 1);
-  doc.text(`${cur} ${(invoice.total / 100).toFixed(2)}`, 185, totalLineY + 1, { align: 'right' });
+  doc.text(formatMinorCurrencyAmount(invoice.total, cur, { symbol: cur, minimumFractionDigits: 2 }), 185, totalLineY + 1, { align: 'right' });
 
   currentY = totalLineY + 15;
 

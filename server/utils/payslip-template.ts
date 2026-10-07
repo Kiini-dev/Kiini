@@ -3,6 +3,8 @@
  * Generates a print-ready, email-safe HTML payslip.
  */
 
+import { formatMinorCurrencyAmount } from "../../shared/currency";
+
 export interface PayslipTemplateData {
   payPeriod: string; // "2025-01"
   payDate: string;   // "2025-01-31 23:59:00"
@@ -44,7 +46,11 @@ export interface PayslipTemplateData {
 }
 
 function ksh(cents: number): string {
-  return `KES ${(cents / 100).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatMinorCurrencyAmount(cents, "KES", {
+    symbol: "KES",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function monthLabel(period: string): string {

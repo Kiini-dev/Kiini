@@ -12,29 +12,29 @@ type EmployeeAccountForm = {
   password: string;
 };
 
-type EmployeeAccountSectionProps = {
-  formData: EmployeeAccountForm;
-  setFormData: (value: EmployeeAccountForm) => void;
+type EmployeeAccountSectionProps<T extends EmployeeAccountForm> = {
+  formData: T;
+  setFormData: (update: (current: T) => T) => void;
   usersData: any[];
   roleOptions: any[];
   includePassword?: boolean;
 };
 
-export function EmployeeAccountSection({
+export function EmployeeAccountSection<T extends EmployeeAccountForm>({
   formData,
   setFormData,
   usersData,
   roleOptions,
   includePassword = true,
-}: EmployeeAccountSectionProps) {
+}: EmployeeAccountSectionProps<T>) {
   const hasAccount = formData.accountMode !== "none";
   const updateRole = (value: string) => {
     const custom = roleOptions.find((role: any) => role.value === value && role.isCustom);
-    setFormData({
-      ...formData,
+    setFormData((current) => ({
+      ...current,
       role: custom ? (custom.baseRole || "staff") : value,
       customRoleId: custom ? value : "",
-    });
+    }));
   };
 
   return (
@@ -47,7 +47,7 @@ export function EmployeeAccountSection({
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Account setup</Label>
-            <Select value={formData.accountMode} onValueChange={(value) => setFormData({ ...formData, accountMode: value })}>
+            <Select value={formData.accountMode} onValueChange={(value) => setFormData((current) => ({ ...current, accountMode: value }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No login account</SelectItem>
@@ -59,7 +59,7 @@ export function EmployeeAccountSection({
           {formData.accountMode === "existing" ? (
             <div className="space-y-2">
               <Label>Existing user</Label>
-              <Select value={formData.existingUserId} onValueChange={(value) => setFormData({ ...formData, existingUserId: value })}>
+              <Select value={formData.existingUserId} onValueChange={(value) => setFormData((current) => ({ ...current, existingUserId: value }))}>
                 <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
                 <SelectContent>
                   {usersData.map((user: any) => (
@@ -83,7 +83,7 @@ export function EmployeeAccountSection({
         {includePassword && formData.accountMode === "create" && (
           <div className="space-y-2">
             <Label>Password (optional)</Label>
-            <Input type="password" value={formData.password} onChange={(event) => setFormData({ ...formData, password: event.target.value })} placeholder="Generate temporary password" />
+            <Input type="password" value={formData.password} onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))} placeholder="Generate temporary password" />
           </div>
         )}
       </TabsContent>
@@ -91,7 +91,7 @@ export function EmployeeAccountSection({
         <Label>Additional permissions</Label>
         <Input
           value={formData.permissionsText}
-          onChange={(event) => setFormData({ ...formData, permissionsText: event.target.value })}
+          onChange={(event) => setFormData((current) => ({ ...current, permissionsText: event.target.value }))}
           placeholder="e.g. reports:view, chat:send"
           disabled={!hasAccount}
         />

@@ -1,7 +1,7 @@
 import { router, protectedProcedure, createFeatureRestrictedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
-import { payroll, employees } from "../../drizzle/schema";
+import { payroll, employees, jobGroups } from "../../drizzle/schema";
 import ExcelJS from "exceljs";
 import {
   salaryStructures,
@@ -13,13 +13,18 @@ import {
   employeeTaxInfo,
   salaryIncrements,
 } from "../../drizzle/schema-extended";
-import { eq, and, gte, inArray, lt } from "drizzle-orm";
+import { eq, and, gte, inArray, isNull, lt } from "drizzle-orm";
 import { getCompanyInfo } from "../utils/company-info";
 import { v4 as uuidv4 } from "uuid";
 import { generateP9Form, generateP9DataFromPayroll } from "../utils/p9-form-generator";
 import { calculateKenyanPayroll } from "../utils/kenyan-payroll-calculator";
-import { processMonthlyPayroll, processAndDispatchPayslips } from "../jobs/payrollJobs";
+import { processMonthlyPayroll, processAndDispatchPayslips, processAndPayPayroll } from "../jobs/payrollJobs";
 import { TRPCError } from "@trpc/server";
+import {
+  applyJobGroupCompensationDefaults,
+  parseJobGroupPayrollDefaults,
+  resolveJobGroupPayrollAmount,
+} from "../services/jobGroupPayrollDefaults";
 
 export function normalizeDateValue(value: unknown): string {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -68,35 +73,74 @@ function monthlyAmount(amount: unknown, frequency: unknown): number {
 }
 
 async function getEmployeeCompensationPackage(db: any, employeeId: string) {
-  const [structureRows, allowanceRows, deductionRows, benefitRows] = await Promise.all([
+  const [employeeRows, structureRows, allowanceRows, deductionRows, benefitRows] = await Promise.all([
+    db.select().from(employees).where(eq(employees.id, employeeId)).limit(1),
     db.select().from(salaryStructures).where(eq(salaryStructures.employeeId, employeeId)),
     db.select().from(salaryAllowances).where(eq(salaryAllowances.employeeId, employeeId)),
     db.select().from(salaryDeductions).where(eq(salaryDeductions.employeeId, employeeId)),
     db.select().from(employeeBenefits).where(eq(employeeBenefits.employeeId, employeeId)),
   ]);
+  const employee = employeeRows[0];
+  const groupRows = employee?.jobGroupId
+    ? await db.select().from(jobGroups).where(eq(jobGroups.id, employee.jobGroupId)).limit(1)
+    : [];
+  const jobGroup = groupRows[0];
+  const basicSalaryUnits = employee?.salary ?? jobGroup?.defaultBasicSalary ?? 0;
 
   const structure = [...structureRows].sort((a: any, b: any) =>
     new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
-  )[0] || null;
+  )[0] || (basicSalaryUnits > 0 ? { basicSalary: Math.round(basicSalaryUnits * 100), effectiveDate: null, isJobGroupDefault: true } : null);
   const active = (row: any) => row.isActive !== false && (!row.endDate || new Date(row.endDate).getTime() >= Date.now());
-  const allowances = allowanceRows.filter(active).map((row: any) => ({
+  const allowances: any[] = allowanceRows.filter(active).map((row: any) => ({
     id: row.id,
     name: row.allowanceType,
     amount: monthlyAmount(row.amount, row.frequency),
     frequency: row.frequency,
   }));
-  const deductions = deductionRows.filter(active).map((row: any) => ({
+  const deductions: any[] = deductionRows.filter(active).map((row: any) => ({
     id: row.id,
     name: row.deductionType,
     amount: monthlyAmount(row.amount, row.frequency),
     frequency: row.frequency,
   }));
-  const benefits = benefitRows.filter(active).map((row: any) => ({
+  const benefits: any[] = benefitRows.filter(active).map((row: any) => ({
     id: row.id,
     name: row.benefitType,
     employeeCost: monthlyAmount(row.cost, "monthly"),
     employerCost: monthlyAmount(row.employerCost, "monthly"),
   }));
+  const appendMissingDefaults = (
+    existingRows: any[],
+    allRows: any[],
+    defaults: ReturnType<typeof parseJobGroupPayrollDefaults>,
+    typeField: string,
+    mapDefault: (item: ReturnType<typeof parseJobGroupPayrollDefaults>[number]) => any,
+  ) => {
+    const existingTypes = new Set(allRows.map((row: any) => row[typeField]));
+    for (const item of defaults) {
+      if (!existingTypes.has(item.type)) existingRows.push(mapDefault(item));
+    }
+  };
+  if (jobGroup) {
+    appendMissingDefaults(allowances, allowanceRows, parseJobGroupPayrollDefaults(jobGroup.defaultAllowances), "allowanceType", (item) => ({
+      id: null,
+      name: item.type,
+      amount: monthlyAmount(resolveJobGroupPayrollAmount(item, basicSalaryUnits), item.frequency),
+      frequency: item.frequency || "monthly",
+      isJobGroupDefault: true,
+    }));
+    appendMissingDefaults(deductions, deductionRows, parseJobGroupPayrollDefaults(jobGroup.defaultDeductions), "deductionType", (item) => ({
+      id: null,
+      name: item.type,
+      amount: monthlyAmount(resolveJobGroupPayrollAmount(item, basicSalaryUnits), item.frequency),
+      frequency: item.frequency || "monthly",
+      isJobGroupDefault: true,
+    }));
+    appendMissingDefaults(benefits, benefitRows, parseJobGroupPayrollDefaults(jobGroup.defaultBenefits), "benefitType", (item) => {
+      const amount = monthlyAmount(resolveJobGroupPayrollAmount(item, basicSalaryUnits), "monthly");
+      return { id: null, name: item.type, employeeCost: amount, employerCost: amount, isJobGroupDefault: true };
+    });
+  }
 
   return {
     structure,
@@ -111,6 +155,28 @@ async function getEmployeeCompensationPackage(db: any, employeeId: string) {
       employerBenefits: benefits.reduce((sum: number, row: any) => sum + row.employerCost, 0),
     },
   };
+}
+
+async function getCompensationRecord(db: any, kind: "allowance" | "deduction" | "benefit", id: string) {
+  const table = kind === "allowance" ? salaryAllowances : kind === "deduction" ? salaryDeductions : employeeBenefits;
+  const rows = await db.select().from(table).where(eq(table.id, id)).limit(1);
+  return rows[0] || null;
+}
+
+async function setCompensationRecordActive(
+  db: any,
+  kind: "allowance" | "deduction" | "benefit",
+  id: string,
+  isActive: boolean,
+) {
+  const table = kind === "allowance" ? salaryAllowances : kind === "deduction" ? salaryDeductions : employeeBenefits;
+  return db.update(table).set({ isActive, updatedAt: new Date() } as any).where(eq(table.id, id));
+}
+
+function assertCompensationEmployeeAccess(ctx: any, employee: any) {
+  if (ctx.user.organizationId && employee?.organizationId !== ctx.user.organizationId) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Compensation item not found" });
+  }
 }
 
 async function buildP9ForEmployee(
@@ -211,23 +277,25 @@ export const payrollRouter = router({
         });
       }
       try {
+        const employeeConditions = ctx.user.organizationId
+          ? [eq(employees.organizationId, ctx.user.organizationId)]
+          : ctx.user.role === "super_admin"
+            ? []
+            : [isNull(employees.organizationId)];
+        const employeeRows = await db.select().from(employees).where(
+          employeeConditions.length ? and(...employeeConditions) : undefined
+        );
+        const empMap = new Map(employeeRows.map((employee: any) => [employee.id, employee]));
+        if (!empMap.size) return [];
+
         const rows = await db
           .select()
           .from(payroll)
+          .where(inArray(payroll.employeeId, [...empMap.keys()]))
           .limit(input?.limit || 50)
           .offset(input?.offset || 0);
-        
-        // fetch employee info for names/departments
-        const empIds = rows.map((r: any) => r.employeeId);
-        let empMap = new Map();
-        if (empIds.length) {
-          const employeeConditions = [inArray(employees.id, empIds)];
-          if (ctx.user.organizationId) employeeConditions.push(eq(employees.organizationId, ctx.user.organizationId));
-          const empData = await db.select().from(employees).where(and(...employeeConditions));
-          empMap = new Map(empData.map((e: any) => [e.id, e]));
-        }
 
-        return rows.filter((row: any) => empMap.has(row.employeeId)).map((r: any) => {
+        return rows.map((r: any) => {
           const emp = empMap.get(r.employeeId) || {};
           return {
             ...r,
@@ -281,7 +349,7 @@ export const payrollRouter = router({
 
   byEmployee: protectedProcedure
     .input(z.object({ employeeId: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
       try {
@@ -1024,6 +1092,15 @@ export const payrollRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      const employeeRows = await db.select().from(employees).where(eq(employees.id, input.employeeId)).limit(1);
+      const employee = employeeRows[0];
+      if (!employee) throw new TRPCError({ code: "NOT_FOUND", message: "Employee not found" });
+      if (employee.jobGroupId) {
+        const groupRows = await db.select().from(jobGroups).where(eq(jobGroups.id, employee.jobGroupId)).limit(1);
+        if (groupRows[0]) {
+          await applyJobGroupCompensationDefaults(db, employee, groupRows[0], ctx.user.id);
+        }
+      }
       const compensation = await getEmployeeCompensationPackage(db, input.employeeId);
       const basicSalary = input.basicSalaryOverride ?? compensation.basicSalary;
       if (basicSalary <= 0) throw new TRPCError({ code: "BAD_REQUEST", message: "A salary structure or basic salary override is required" });
@@ -1258,6 +1335,76 @@ export const payrollRouter = router({
         return { success: true };
       }),
   }),
+
+  compensationItemDetails: createFeatureRestrictedProcedure("payroll:read")
+    .input(z.object({
+      kind: z.enum(["allowance", "deduction", "benefit"]),
+      id: z.string(),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const record = await getCompensationRecord(db, input.kind, input.id);
+      if (!record) throw new TRPCError({ code: "NOT_FOUND", message: "Compensation item not found" });
+
+      const employeeRows = await db.select().from(employees).where(eq(employees.id, record.employeeId)).limit(1);
+      assertCompensationEmployeeAccess(ctx, employeeRows[0]);
+      const details = await db.select().from(payrollDetails).where(eq(payrollDetails.itemId, input.id));
+      const payrollIds = [...new Set(details.map((detail: any) => detail.payrollId))];
+      const payrollRows = payrollIds.length
+        ? await db.select().from(payroll).where(inArray(payroll.id, payrollIds))
+        : [];
+      const payrollById = new Map(payrollRows.map((row: any) => [row.id, row]));
+      const history = details.map((detail: any) => {
+        const payrollRecord = payrollById.get(detail.payrollId);
+        return {
+          id: detail.id,
+          payrollId: detail.payrollId,
+          amount: detail.amount,
+          itemType: detail.itemType,
+          description: detail.description,
+          payPeriodStart: payrollRecord?.payPeriodStart ?? null,
+          payPeriodEnd: payrollRecord?.payPeriodEnd ?? null,
+          payrollStatus: payrollRecord?.status ?? "unknown",
+        };
+      }).sort((a: any, b: any) =>
+        new Date(b.payPeriodStart || 0).getTime() - new Date(a.payPeriodStart || 0).getTime()
+      );
+      return {
+        kind: input.kind,
+        item: record,
+        employee: employeeRows[0] || null,
+        totals: {
+          payrollLineCount: history.length,
+          payrollTotal: history.reduce((sum: number, line: any) => sum + Number(line.amount || 0), 0),
+          employeePayrollTotal: history
+            .filter((line: any) => line.itemType !== "employer_contribution")
+            .reduce((sum: number, line: any) => sum + Number(line.amount || 0), 0),
+          employerPayrollTotal: history
+            .filter((line: any) => line.itemType === "employer_contribution")
+            .reduce((sum: number, line: any) => sum + Number(line.amount || 0), 0),
+          distinctPayrollCount: payrollIds.length,
+        },
+        history,
+      };
+    }),
+
+  setCompensationItemActive: createFeatureRestrictedProcedure("payroll:edit")
+    .input(z.object({
+      kind: z.enum(["allowance", "deduction", "benefit"]),
+      id: z.string(),
+      isActive: z.boolean(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const record = await getCompensationRecord(db, input.kind, input.id);
+      if (!record) throw new TRPCError({ code: "NOT_FOUND", message: "Compensation item not found" });
+      const employeeRows = await db.select().from(employees).where(eq(employees.id, record.employeeId)).limit(1);
+      assertCompensationEmployeeAccess(ctx, employeeRows[0]);
+      await setCompensationRecordActive(db, input.kind, input.id, input.isActive);
+      return { success: true, isActive: input.isActive };
+    }),
 
   // ===================== Tax Information Management =====================
   taxInfo: router({
@@ -1749,6 +1896,15 @@ export const payrollRouter = router({
     .mutation(async ({ input, ctx }) => {
       const result = await processMonthlyPayroll(input?.year, input?.month, ctx.user.id, ctx.user.organizationId);
       return result;
+    }),
+
+  processAndPay: createFeatureRestrictedProcedure("payroll:create")
+    .input(z.object({
+      year: z.number().optional(),
+      month: z.number().min(1).max(12).optional(),
+    }).optional())
+    .mutation(async ({ input, ctx }) => {
+      return processAndPayPayroll(input?.year, input?.month, ctx.user.id, ctx.user.organizationId);
     }),
 
   /** Manually trigger payslip dispatch (admin/HR only) */

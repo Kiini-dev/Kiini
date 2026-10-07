@@ -35,11 +35,18 @@ export default function PayrollCostAllocations() {
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<(typeof centerTypes)[number]>("G&A");
   const [newDepartmentId, setNewDepartmentId] = useState("");
+  const [newExpenseAccountId, setNewExpenseAccountId] = useState("");
+  const [newPayrollLiabilityAccountId, setNewPayrollLiabilityAccountId] = useState("");
+  const [centerAccountMappings, setCenterAccountMappings] = useState<Record<string, {
+    expenseAccountId: string;
+    payrollLiabilityAccountId: string;
+  }>>({});
   const [exportStartDate, setExportStartDate] = useState(`${new Date().getFullYear()}-01-01`);
   const [exportEndDate, setExportEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [exportFormat, setExportFormat] = useState<"CSV" | "XLSX" | "PDF">("CSV");
   const employeesQuery = trpc.employees.list.useQuery({ limit: 500 }, { enabled: hasOrganization });
   const departmentsQuery = trpc.departments.list.useQuery({}, { enabled: hasOrganization });
+  const accountsQuery = trpc.chartOfAccounts.list.useQuery({ limit: 500 }, { enabled: hasOrganization });
   const centersQuery = trpc.payrollAllocations.listCostCenters.useQuery(
     { includeInactive: true },
     { enabled: !authLoading && Boolean(user) },
@@ -53,10 +60,16 @@ export default function PayrollCostAllocations() {
   const utils = trpc.useUtils();
   const saveAllocations = trpc.payrollAllocations.setEmployeeAllocations.useMutation();
   const createCenter = trpc.payrollAllocations.createCostCenter.useMutation();
+  const updateCenter = trpc.payrollAllocations.updateCostCenter.useMutation();
   const exportLedger = trpc.payrollAllocations.exportLedger.useMutation();
   const employees = employeesQuery.data ?? [];
   const centers = centersQuery.data ?? [];
   const departments = departmentsQuery.data ?? [];
+  const accounts = accountsQuery.data ?? [];
+  const expenseAccounts = accounts.filter((account: any) =>
+    ["expense", "operating expense", "cost of goods sold", "other expense"].includes(account.accountType)
+  );
+  const liabilityAccounts = accounts.filter((account: any) => account.accountType === "liability");
   const ledger = ledgerQuery.data ?? [];
   const currentSnapshotDate = historyQuery.data?.[0]?.effectiveDate;
   const totalPercentage = allocations.reduce((sum, row) => sum + (Number(row.allocationPercentage) || 0), 0);
@@ -101,21 +114,56 @@ export default function PayrollCostAllocations() {
       toast.error("Enter a cost-center code and name.");
       return;
     }
+    if (hasOrganization && (!newExpenseAccountId || !newPayrollLiabilityAccountId)) {
+      toast.error("Map the cost center to an expense account and payroll liability account.");
+      return;
+    }
     createCenter.mutate({
       code: newCode.trim(),
       name: newName.trim(),
       type: newType,
       departmentId: newDepartmentId || undefined,
+      expenseAccountId: newExpenseAccountId || undefined,
+      payrollLiabilityAccountId: newPayrollLiabilityAccountId || undefined,
     }, {
       onSuccess: () => {
         setNewCode("");
         setNewName("");
         setNewDepartmentId("");
+        setNewExpenseAccountId("");
+        setNewPayrollLiabilityAccountId("");
         toast.success("Cost center created.");
         centersQuery.refetch();
       },
       onError: (error) => toast.error(error.message),
     });
+  };
+
+  const saveCenterAccounts = (center: (typeof centers)[number]) => {
+    const mapping = centerAccountMappings[center.id] ?? {
+      expenseAccountId: center.expenseAccountId ?? "",
+      payrollLiabilityAccountId: center.payrollLiabilityAccountId ?? "",
+    };
+    if (!mapping.expenseAccountId || !mapping.payrollLiabilityAccountId) {
+      toast.error("Select both a payroll expense and liability account.");
+      return;
+    }
+    updateCenter.mutate({
+      id: center.id,
+      expenseAccountId: mapping.expenseAccountId,
+      payrollLiabilityAccountId: mapping.payrollLiabilityAccountId,
+    }, {
+      onSuccess: () => {
+        toast.success(`COA mapping saved for ${center.name}.`);
+        centersQuery.refetch();
+      },
+      onError: (error) => toast.error(error.message),
+    });
+  };
+
+  const accountLabel = (accountId?: string | null) => {
+    const account = accounts.find((account: any) => account.id === accountId);
+    return account ? `${account.accountCode} — ${account.accountName}` : "Not mapped";
   };
 
   const handleExport = () => {
@@ -221,7 +269,7 @@ export default function PayrollCostAllocations() {
               <CardDescription>
                 {isGlobalAdmin
                   ? "Manage global cost centers, isolated from organization records."
-                  : "Create organization-scoped cost centers, optionally linked to a department for budget charging."}
+                  : "Map each cost center to a payroll expense and liability account. Its department determines which annual budget is charged."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -232,6 +280,24 @@ export default function PayrollCostAllocations() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{centerTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
                 </Select>
+                {hasOrganization && (
+                  <>
+                    <Select value={newExpenseAccountId || "none"} onValueChange={(value) => setNewExpenseAccountId(value === "none" ? "" : value)}>
+                      <SelectTrigger><SelectValue placeholder="Payroll expense account" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Select expense account</SelectItem>
+                        {expenseAccounts.map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} — {account.accountName}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={newPayrollLiabilityAccountId || "none"} onValueChange={(value) => setNewPayrollLiabilityAccountId(value === "none" ? "" : value)}>
+                      <SelectTrigger><SelectValue placeholder="Payroll liability account" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Select liability account</SelectItem>
+                        {liabilityAccounts.map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} — {account.accountName}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
                 {hasOrganization && <Select value={newDepartmentId || "none"} onValueChange={(value) => setNewDepartmentId(value === "none" ? "" : value)}>
                   <SelectTrigger><SelectValue placeholder="Department (optional)" /></SelectTrigger>
                   <SelectContent>
@@ -245,9 +311,54 @@ export default function PayrollCostAllocations() {
               </Button>
               <div className="divide-y rounded-md border">
                 {centers.map((center) => (
-                  <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm" key={center.id}>
-                    <span><strong>{center.code}</strong> — {center.name}</span>
-                    <span className="text-muted-foreground">{center.type}{center.isActive !== 1 ? " · inactive" : ""}</span>
+                  <div className="space-y-2 px-3 py-3 text-sm" key={center.id}>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span><strong>{center.code}</strong> — {center.name}</span>
+                      <span className="text-muted-foreground">{center.type}{center.isActive !== 1 ? " · inactive" : ""}</span>
+                    </div>
+                    {hasOrganization && (
+                      <>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <Select
+                            value={centerAccountMappings[center.id]?.expenseAccountId ?? center.expenseAccountId ?? "none"}
+                            onValueChange={(value) => setCenterAccountMappings((current) => ({
+                              ...current,
+                              [center.id]: {
+                                expenseAccountId: value === "none" ? "" : value,
+                                payrollLiabilityAccountId: current[center.id]?.payrollLiabilityAccountId ?? center.payrollLiabilityAccountId ?? "",
+                              },
+                            }))}
+                          >
+                            <SelectTrigger aria-label={`Expense account for ${center.name}`}><SelectValue placeholder={accountLabel(center.expenseAccountId)} /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Select expense account</SelectItem>
+                              {expenseAccounts.map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} — {account.accountName}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={centerAccountMappings[center.id]?.payrollLiabilityAccountId ?? center.payrollLiabilityAccountId ?? "none"}
+                            onValueChange={(value) => setCenterAccountMappings((current) => ({
+                              ...current,
+                              [center.id]: {
+                                expenseAccountId: current[center.id]?.expenseAccountId ?? center.expenseAccountId ?? "",
+                                payrollLiabilityAccountId: value === "none" ? "" : value,
+                              },
+                            }))}
+                          >
+                            <SelectTrigger aria-label={`Payroll liability account for ${center.name}`}><SelectValue placeholder={accountLabel(center.payrollLiabilityAccountId)} /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Select liability account</SelectItem>
+                              {liabilityAccounts.map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} — {account.accountName}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button size="sm" variant="outline" disabled={updateCenter.isPending} onClick={() => saveCenterAccounts(center)}>
+                            Save COA mapping
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
                 {centers.length === 0 && <p className="p-3 text-sm text-muted-foreground">No cost centers configured yet.</p>}

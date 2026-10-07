@@ -49,6 +49,9 @@ export function CountrySelect({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
+            {value && !COUNTRIES.includes(value) && (
+              <SelectItem value={value} className="cursor-pointer">{value}</SelectItem>
+            )}
             {COUNTRIES.map((country) => (
               <SelectItem key={country} value={country} className="cursor-pointer">
                 {country}

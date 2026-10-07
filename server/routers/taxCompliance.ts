@@ -13,6 +13,9 @@ const dateRangeSchema = z.object({
   to: z.coerce.date(),
   employeeId: z.string().optional(),
   departmentId: z.string().optional(),
+}).refine(({ from, to }) => from <= to, {
+  message: "The start date must be on or before the end date",
+  path: ["to"],
 });
 
 async function getPayslipRows(
@@ -21,17 +24,17 @@ async function getPayslipRows(
   includeEmployeeDetails = false,
 ) {
   const pool = getPool();
-  if (!pool) return [];
+  if (!pool) {
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+  }
 
   const conditions = [
     "p.payPeriod BETWEEN ? AND ?",
     "p.status IN ('generated', 'sent', 'viewed', 'downloaded')",
   ];
   const params: unknown[] = [input.from.toISOString().slice(0, 7), input.to.toISOString().slice(0, 7)];
-  if (organizationId) {
-    conditions.push("p.organizationId = ?");
-    params.push(organizationId);
-  }
+  conditions.push(organizationId ? "p.organizationId = ?" : "p.organizationId IS NULL");
+  if (organizationId) params.push(organizationId);
   if (input.employeeId) {
     conditions.push("p.employeeId = ?");
     params.push(input.employeeId);
@@ -117,7 +120,7 @@ export const taxComplianceRouter = router({
   /**
    * Year-to-date tax summary (leverages existing calculation utility)
    */
-  getYearToDateSummary: createFeatureRestrictedProcedure("reporting:read")
+  getYearToDateSummary: readProcedure
     .input(z.object({ employeeId: z.string().optional() }))
     .query(async ({ input, ctx }) => {
       const now = new Date();

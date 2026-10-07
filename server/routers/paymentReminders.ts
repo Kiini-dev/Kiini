@@ -5,9 +5,11 @@ import { v4 as uuidv4 } from "uuid";
 import { queueEmail } from "./emailQueue";
 import { differenceInDays } from "date-fns";
 import { triggerEventNotification } from "./emailNotifications";
+import { formatMinorCurrencyAmount } from "../../shared/currency";
 
 function formatCurrency(amount: number, currency: string = "KES"): string {
-  return `${currency} ${(amount / 100).toLocaleString("en-KE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const code = /^[A-Z]{3}$/.test(currency) ? currency : "KES";
+  return formatMinorCurrencyAmount(amount, code, { symbol: currency });
 }
 
 const readProcedure = createFeatureRestrictedProcedure("accounting:payments:view");

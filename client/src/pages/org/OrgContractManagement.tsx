@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { useRequireFeature } from "@/lib/permissions";
 import { trpc } from "@/lib/trpc";
+import { SupplierSelector } from "@/components/SupplierSelector";
 
 const CONTRACT_TYPES = [
   { value: "service", label: "Service Agreement" },
@@ -185,8 +186,7 @@ export default function ContractManagement() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label>Vendor / Party Name *</Label>
-            <Input value={form.vendor} onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))} placeholder="e.g. ABC Supplies Ltd" />
+            <SupplierSelector label="Vendor / Party Name" value={form.vendor} onChange={vendor => setForm(f => ({ ...f, vendor }))} required />
           </div>
         </CardContent>
       </Card>

@@ -8,6 +8,7 @@ import { sendEmail } from "../_core/mail";import { getCompanyInfo } from "../uti
 import { renderInvoiceTemplate, renderEstimateTemplate } from "../utils/template-renderer";
 import { renderNotificationTemplate } from "../services/notificationRenderer";
 import { TRPCError } from "@trpc/server";
+import { formatMinorCurrencyAmount } from "../../shared/currency";
 /**
  * Resolve an email template by looking up user-customized version from settings.
  * Falls back to the provided default if no custom template is saved.
@@ -30,7 +31,7 @@ function replaceVars(template: string, vars: Record<string, string>): string {
 }
 
 function formatKES(amount: number): string {
-  return `KES ${(amount / 100).toLocaleString("en-KE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  return formatMinorCurrencyAmount(amount, "KES", { symbol: "KES" });
 }
 
 // Read company name from settings, fall back to env var, then default

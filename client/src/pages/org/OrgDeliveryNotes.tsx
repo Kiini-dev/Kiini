@@ -27,6 +27,7 @@ import { SummaryStatCards } from "@/components/list-page/SummaryStatCards";
 import { RowActionsMenu } from "@/components/list-page/RowActionsMenu";
 import { TableColumnSettings, useColumnVisibility, type ColumnConfig } from "@/components/list-page/TableColumnSettings";
 import { PaginationControls, usePagination } from "@/components/ui/data-table-controls";
+import { SupplierSelector } from "@/components/SupplierSelector";
 import { ListPageToolbar } from "@/components/list-page/ListPageToolbar";
 import { EnhancedBulkActions, bulkExportAction, bulkCopyIdsAction, bulkDeleteAction } from "@/components/list-page/EnhancedBulkActions";
 
@@ -146,7 +147,7 @@ export default function DeliveryNotes() {
   const DNForm = () => (
     <div className="grid gap-4 py-2">
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1"><Label>Supplier *</Label><Input value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))} placeholder="Supplier name" /></div>
+        <SupplierSelector value={form.supplier} onChange={supplier => setForm(f => ({ ...f, supplier }))} required />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1"><Label>Order Reference</Label><Input value={form.orderId} onChange={e => setForm(f => ({ ...f, orderId: e.target.value }))} placeholder="PO-001" /></div>

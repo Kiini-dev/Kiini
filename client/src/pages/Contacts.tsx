@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CountrySelect, CitySelect } from "@/components/LocationSelects";
+import { PhoneInput } from "@/components/PhoneInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
@@ -421,13 +422,13 @@ export default function Contacts() {
                 </div>
                 <div className="space-y-1">
                   <Label>Phone (Office)</Label>
-                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+254 20 123 4567" />
+                  <PhoneInput value={form.phone} onChange={(phone) => setForm({ ...form, phone })} placeholder="20 123 4567" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label>Mobile / WhatsApp</Label>
-                  <Input value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} placeholder="+254 7XX XXX XXX" />
+                  <PhoneInput value={form.mobile} onChange={(mobile) => setForm({ ...form, mobile })} placeholder="7XX XXX XXX" />
                 </div>
                 <div className="space-y-1">
                   <Label>City</Label>

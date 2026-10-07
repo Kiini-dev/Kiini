@@ -9,6 +9,7 @@
  */
 
 import { TRPCError } from "@trpc/server";
+import { formatMinorCurrencyAmount } from "../../shared/currency";
 import { eq, and, sql } from "drizzle-orm";
 import { budgets, accounts, departments } from "../../drizzle/schema";
 
@@ -237,7 +238,7 @@ export async function checkBudget(
         budgetName: budget.budgetName,
         requested: amountCents,
         remaining: budget.remaining,
-        message: `Budget "${budget.budgetName}" is insufficient${label}. Requested: Ksh ${(amountCents / 100).toLocaleString("en-KE")}, Available: Ksh ${(budget.remaining / 100).toLocaleString("en-KE")}.`,
+        message: `Budget "${budget.budgetName}" is insufficient${label}. Requested: ${formatMinorCurrencyAmount(amountCents, "KES", { symbol: "Ksh" })}, Available: ${formatMinorCurrencyAmount(budget.remaining, "KES", { symbol: "Ksh" })}.`,
       }),
     });
   }

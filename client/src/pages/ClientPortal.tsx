@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
   Users,
   Mail,
   Printer,
+  Upload,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuthWithPersistence } from "@/_core/hooks/useAuthWithPersistence";
@@ -53,6 +54,7 @@ export default function ClientPortal() {
   const [, setLocation] = useLocation();
   const { getUserName } = useUserLookup();
   const [searchQuery, setSearchQuery] = useState("");
+  const clientUploadInputRef = useRef<HTMLInputElement>(null);
   const { user, loading: authLoading, isAuthenticated } = useAuthWithPersistence({
     redirectOnUnauthenticated: true,
   });
@@ -79,6 +81,13 @@ export default function ClientPortal() {
 
   const documentsQuery = trpc.documents.getClientDocuments.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === "client",
+  });
+  const clientDocumentUpload = trpc.fileStorage.uploadClientDocument.useMutation({
+    onSuccess: () => {
+      toast.success("Document uploaded to your client folder");
+      void documentsQuery.refetch();
+    },
+    onError: (error) => toast.error(error.message || "Could not upload document"),
   });
 
   const downloadInvoiceMutation = trpc.invoices.downloadPDF.useMutation({
@@ -198,6 +207,10 @@ export default function ClientPortal() {
   };
 
   const previewDocument = (document: any) => {
+    if (document.isUploaded && document.fileUrl) {
+      window.open(document.fileUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
     if (document.documentType === "invoice") {
       previewInvoiceMutation.mutate({ id: document.id });
       return;
@@ -233,6 +246,18 @@ export default function ClientPortal() {
       recipientEmail: clientData.email,
       attachPDF: true,
     });
+  };
+
+  const uploadClientDocument = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => clientDocumentUpload.mutate({
+      name: file.name,
+      mimeType: file.type || "application/octet-stream",
+      size: file.size,
+      fileData: String(reader.result || ""),
+    });
+    reader.onerror = () => toast.error("Could not read that file");
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -550,6 +575,17 @@ export default function ClientPortal() {
 
           {/* Documents Tab */}
           <TabsContent value="documents" className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold">Client documents</h3>
+                <p className="text-sm text-muted-foreground">Generated invoices, estimates, receipts, and files shared with your account.</p>
+              </div>
+              <Button variant="outline" onClick={() => clientUploadInputRef.current?.click()} disabled={clientDocumentUpload.isPending}>
+                {clientDocumentUpload.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                Upload document
+              </Button>
+              <input ref={clientUploadInputRef} type="file" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadClientDocument(file); event.target.value = ""; }} />
+            </div>
             {documentsQuery.isLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -575,7 +611,15 @@ export default function ClientPortal() {
                         <TableCell>
                           <div className="flex justify-end gap-1">
                             <Button variant="ghost" size="icon" title="Preview document" aria-label="Preview document" onClick={() => previewDocument(doc)}><Eye className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" title="Download document" aria-label="Download document" onClick={() => doc.documentType === "invoice" ? downloadInvoiceMutation.mutate(doc.id) : window.open(`/api/${doc.documentType}s/${doc.id}/pdf`, "_blank")}><Download className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" title="Download document" aria-label="Download document" onClick={() => {
+                              if (doc.isUploaded && doc.fileUrl) {
+                                const link = document.createElement("a");
+                                link.href = doc.fileUrl;
+                                link.download = doc.documentName;
+                                link.click();
+                              } else if (doc.documentType === "invoice") downloadInvoiceMutation.mutate(doc.id);
+                              else window.open(`/api/${doc.documentType}s/${doc.id}/pdf`, "_blank");
+                            }}><Download className="h-4 w-4" /></Button>
                             <Button variant="ghost" size="icon" title="Print document" aria-label="Print document" onClick={() => doc.documentType === "invoice" ? printInvoice(doc.id) : window.print()}><Printer className="h-4 w-4" /></Button>
                             {doc.documentType === "invoice" && <Button variant="ghost" size="icon" title="Send document by email" aria-label="Send document by email" onClick={() => sendInvoice(doc)}><Mail className="h-4 w-4" /></Button>}
                           </div>

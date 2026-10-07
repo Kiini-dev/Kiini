@@ -14,6 +14,7 @@ import { getCompanyInfo } from "../utils/company-info";
 import { checkBudget, deductFromBudget, findActiveBudget } from "../utils/budgetEnforcer";
 import { sendEmailImmediately } from "../services/emailService";
 import { recordPayrollCostAllocation } from "../services/payrollCostAllocationService";
+import { formatMinorCurrencyAmount } from "../../shared/currency";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -215,8 +216,8 @@ export async function processMonthlyPayroll(
       const orgId = emp.organizationId;
       const departmentKey = String(emp.department ?? "").trim().toLowerCase();
       const departmentId = orgId ? organizationDepartments.get(orgId)?.get(departmentKey) : undefined;
-      if (!orgId || !departmentId) {
-        errors.push(`${emp.firstName} ${emp.lastName}: payroll was not created because an organization department could not be resolved`);
+      if (!orgId) {
+        errors.push(`${emp.firstName} ${emp.lastName}: payroll was not created because the employee is not assigned to an organization`);
         skipped++;
         continue;
       }
@@ -264,9 +265,12 @@ export async function processMonthlyPayroll(
           organizationId: orgId,
           payrollId: id,
           employeeId: emp.id,
+          createdBy: triggeredBy ?? null,
           payrollPeriodStart: payPeriodStart,
           payrollPeriodEnd: payPeriodEnd,
-          employeeDepartmentId: departmentId,
+          // Cost-center allocations are the authoritative accounting split. The
+          // employee's legacy free-text department is only a fallback for budgets.
+          employeeDepartmentId: departmentId ?? null,
           grossPayCents: calc.grossSalary,
           employerStatutoryCents,
           employerBenefitsCents,
@@ -508,11 +512,11 @@ export async function dispatchPayslips(
         pay_period: payPeriodLabel,
         pay_date: payslipData.payDate,
         payslip_number: `${payslipData.employee.id}-${payPeriodLabel}`,
-        basic_salary: `KES ${(payslipData.earnings.basicSalary / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`,
-        allowances: `KES ${(payslipData.earnings.allowances.reduce((sum, item) => sum + item.amount, 0) / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`,
-        gross_salary: `KES ${(payslipData.earnings.grossSalary / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`,
-        total_deductions: `KES ${(payslipData.deductions.total / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`,
-        net_salary: `KES ${(payslipData.netSalary / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`,
+        basic_salary: formatMinorCurrencyAmount(payslipData.earnings.basicSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        allowances: formatMinorCurrencyAmount(payslipData.earnings.allowances.reduce((sum, item) => sum + item.amount, 0), "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        gross_salary: formatMinorCurrencyAmount(payslipData.earnings.grossSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        total_deductions: formatMinorCurrencyAmount(payslipData.deductions.total, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        net_salary: formatMinorCurrencyAmount(payslipData.netSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
       }, emp.organizationId);
 
       // Upsert payslip record in DB
@@ -586,7 +590,7 @@ export async function dispatchPayslips(
           await createNotification({
             userId: empUserId,
             title: `📄 Your Payslip for ${payPeriodLabel} is Ready`,
-            message: `Your payslip for ${payPeriodLabel} has been issued. Net Pay: KES ${((record as any).netSalary / 100).toLocaleString()}. Click to view.`,
+            message: `Your payslip for ${payPeriodLabel} has been issued. Net Pay: ${formatMinorCurrencyAmount((record as any).netSalary, "KES", { symbol: "KES" })}. Click to view.`,
             type: "info" as any,
             category: "payslip",
             entityType: "payslip",
@@ -642,6 +646,51 @@ export async function processAndDispatchPayslips(
       ...payrollResult.errors.map((error) => `Payroll: ${error}`),
       ...payslipResult.errors,
     ],
+  };
+}
+
+export async function processAndPayPayroll(
+  targetYear?: number,
+  targetMonth?: number,
+  triggeredBy = "manual",
+  organizationId?: string | null
+): Promise<{ processed: number; skipped: number; dispatched: number; markedPaid: number; errors: string[] }> {
+  const result = await processAndDispatchPayslips(targetYear, targetMonth, triggeredBy, organizationId);
+  const pool = getPool();
+  if (!pool) {
+    return {
+      ...result,
+      markedPaid: 0,
+      errors: [...result.errors, "Payslips were generated, but payroll status could not be updated to paid because the database connection pool is unavailable."],
+    };
+  }
+
+  const now = fmt(new Date());
+  const year = targetYear ?? new Date().getFullYear();
+  const month = targetMonth ?? new Date().getMonth() + 1;
+  const payPeriodStart = fmt(new Date(year, month - 1, 1));
+  const organizationFilter = organizationId ? " AND e.organizationId = ?" : "";
+  const parameters = organizationId
+    ? [`${year}-${String(month).padStart(2, "0")}`, now, now, payPeriodStart, organizationId]
+    : [`${year}-${String(month).padStart(2, "0")}`, now, now, payPeriodStart];
+  const [updateResult] = await pool.query(
+    `UPDATE payroll p
+     INNER JOIN payslips s ON CONVERT(s.payrollId USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(p.id USING utf8mb4) COLLATE utf8mb4_unicode_ci AND s.payPeriod = ?
+     INNER JOIN employees e ON CONVERT(e.id USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(p.employeeId USING utf8mb4) COLLATE utf8mb4_unicode_ci
+     SET p.status = 'paid', p.paymentDate = COALESCE(p.paymentDate, ?), p.updatedAt = ?
+     WHERE p.payPeriodStart = ? AND p.status IN ('processed', 'paid')${organizationFilter}`,
+    parameters
+  );
+  const markedPaid =
+    typeof updateResult === "object" &&
+    updateResult !== null &&
+    "affectedRows" in updateResult
+      ? Number(updateResult.affectedRows)
+      : 0;
+
+  return {
+    ...result,
+    markedPaid,
   };
 }
 

@@ -6,11 +6,13 @@ import { ModuleLayout } from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/PhoneInput";
+import { CountrySelect } from "@/components/LocationSelects";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { User, Mail, Building2, Phone, MapPin, Upload } from "lucide-react";
+import { User, Mail, Building2, MapPin, Upload } from "lucide-react";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -245,17 +247,12 @@ export default function Profile() {
 
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        className="pl-9"
-                        placeholder="+254 700 000 000"
-                      />
-                    </div>
+                    <PhoneInput
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(phone) => setFormData((previous) => ({ ...previous, phone }))}
+                      placeholder="700 000 000"
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -310,16 +307,11 @@ export default function Profile() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      name="country"
-                      value={formData.country}
-                      onChange={handleInputChange}
-                      placeholder="Kenya"
-                    />
-                  </div>
+                  <CountrySelect
+                    value={formData.country}
+                    onChange={(country) => setFormData((previous) => ({ ...previous, country }))}
+                    label="Country"
+                  />
                 </div>
 
                 <Separator />
@@ -340,5 +332,4 @@ export default function Profile() {
     </ModuleLayout>
   );
 }
-
 

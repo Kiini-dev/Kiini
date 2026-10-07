@@ -43,6 +43,7 @@ import { addCompanyLetterhead, getCompanyInfo } from "../utils/company-info";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { toMajorCurrencyAmount } from "../../shared/currency";
 
 const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
 const DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b";
@@ -179,18 +180,23 @@ async function getChatDataContext(organizationId?: string | null, periodMonths =
   const inflow = paymentRows.reduce((sum, row) => sum + (row.amount || 0), 0);
   const outflow = expenseRows.reduce((sum, row) => sum + (row.amount || 0), 0);
   const unpaidTotal = unpaidRows.reduce((sum, row) => sum + ((row.total || 0) - (row.paidAmount || 0)), 0);
+  const formatMajorAmount = (amount: number) =>
+    toMajorCurrencyAmount(amount, "minor").toLocaleString("en-KE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   const formatDate = (value: string) => new Date(value).toLocaleDateString("en-GB");
   const invoiceLines = unpaidRows.length
     ? unpaidRows.map((invoice) => {
         const balance = (invoice.total || 0) - (invoice.paidAmount || 0);
-        return `- [${invoice.invoiceNumber}](/invoices/${invoice.id}) | Client: ${invoice.clientName || "Unknown"} | Balance: ${balance} | Due: ${formatDate(invoice.dueDate)}`;
+        return `- [${invoice.invoiceNumber}](/invoices/${invoice.id}) | Client: ${invoice.clientName || "Unknown"} | Balance: ${formatMajorAmount(balance)} | Due: ${formatDate(invoice.dueDate)}`;
       }).join("\n")
     : "No unpaid invoices found.";
 
   return [
-    "AUTHORITATIVE CRM DATA (organization-scoped; amounts are in the organization's configured currency):",
-    `Cash flow, ${allTime ? "all time" : `last ${periodMonths} month(s) (${formatDate(start)} to ${formatDate(end)}`}${allTime ? "" : ")"}: inflows=${paymentRowsResult ? inflow : "unavailable (payments schema needs repair)"}, outflows=${outflow}, net=${paymentRowsResult ? inflow - outflow : "unavailable"}.`,
-    `Unpaid invoices: count=${unpaidRows.length}, outstanding=${unpaidTotal}. Open list: [View all invoices](/invoices)`,
+    "AUTHORITATIVE CRM DATA (organization-scoped; monetary amounts are in major units of the organization's configured currency, not minor units):",
+    `Cash flow, ${allTime ? "all time" : `last ${periodMonths} month(s) (${formatDate(start)} to ${formatDate(end)}`}${allTime ? "" : ")"}: inflows=${paymentRowsResult ? formatMajorAmount(inflow) : "unavailable (payments schema needs repair)"}, outflows=${formatMajorAmount(outflow)}, net=${paymentRowsResult ? formatMajorAmount(inflow - outflow) : "unavailable"}.`,
+    `Unpaid invoices: count=${unpaidRows.length}, outstanding=${formatMajorAmount(unpaidTotal)}. Open list: [View all invoices](/invoices)`,
     "Unpaid invoice records:",
     invoiceLines,
     `Module record counts (organization-scoped): ${JSON.stringify(Object.fromEntries(moduleCounts))}`,
@@ -240,8 +246,13 @@ async function generateSalesReport(message: string, userId: string, organization
 
   if (allTime && rows[0]?.issueDate) startDate = new Date(rows[0].issueDate);
 
-  const totalInvoiced = rows.reduce((sum, row) => sum + (row.total || 0), 0);
-  const totalPaid = rows.reduce((sum, row) => sum + (row.paidAmount || 0), 0);
+  const reportRows = rows.map((row) => ({
+    ...row,
+    total: toMajorCurrencyAmount(row.total || 0, "minor"),
+    paidAmount: toMajorCurrencyAmount(row.paidAmount || 0, "minor"),
+  }));
+  const totalInvoiced = reportRows.reduce((sum, row) => sum + row.total, 0);
+  const totalPaid = reportRows.reduce((sum, row) => sum + row.paidAmount, 0);
   const outstanding = totalInvoiced - totalPaid;
   const title = allTime ? "Sales Report: All Time" : `Sales Report: ${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`;
   const csvCell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
@@ -254,14 +265,14 @@ async function generateSalesReport(message: string, userId: string, organization
     ["Address", companyInfo.address].map(csvCell).join(","),
     ["Report", title].map(csvCell).join(","),
     ["Invoice Number", "Client", "Issue Date", "Total", "Paid", "Outstanding", "Status"].map(csvCell).join(","),
-    ...rows.map((row) => [row.invoiceNumber, row.clientName || "Unknown", row.issueDate, row.total || 0, row.paidAmount || 0, (row.total || 0) - (row.paidAmount || 0), row.status].map(csvCell).join(",")),
+    ...reportRows.map((row) => [row.invoiceNumber, row.clientName || "Unknown", row.issueDate, row.total, row.paidAmount, row.total - row.paidAmount, row.status].map(csvCell).join(",")),
     ["Summary", "Total Invoiced", totalInvoiced].map(csvCell).join(","),
     ["Summary", "Total Paid", totalPaid].map(csvCell).join(","),
     ["Summary", "Outstanding", outstanding].map(csvCell).join(","),
   ].join("\n");
-  const markdown = [`# ${title}`, `\nPeriod: ${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`, `\n- Total invoiced: ${totalInvoiced}`, `- Total paid: ${totalPaid}`, `- Outstanding: ${outstanding}`, "\n| Invoice | Client | Date | Total | Paid | Status |", "|---|---|---|---:|---:|---|", ...rows.map((row) => `| [${row.invoiceNumber}](/invoices/${row.id}) | ${row.clientName || "Unknown"} | ${row.issueDate} | ${row.total || 0} | ${row.paidAmount || 0} | ${row.status} |`)].join("\n");
+  const markdown = [`# ${title}`, `\nPeriod: ${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`, `\n- Total invoiced: ${totalInvoiced}`, `- Total paid: ${totalPaid}`, `- Outstanding: ${outstanding}`, "\n| Invoice | Client | Date | Total | Paid | Status |", "|---|---|---|---:|---:|---|", ...reportRows.map((row) => `| [${row.invoiceNumber}](/invoices/${row.id}) | ${row.clientName || "Unknown"} | ${row.issueDate} | ${row.total} | ${row.paidAmount} | ${row.status} |`)].join("\n");
   const text = markdown.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/[#|]/g, "");
-  const json = JSON.stringify({ title, startDate, endDate, summary: { totalInvoiced, totalPaid, outstanding, invoiceCount: rows.length }, rows }, null, 2);
+  const json = JSON.stringify({ title, startDate, endDate, summary: { totalInvoiced, totalPaid, outstanding, invoiceCount: rows.length }, rows: reportRows }, null, 2);
   const pdf = new jsPDF();
   const reportStartY = addCompanyLetterhead(pdf, companyInfo, "Sales Report");
   pdf.setFontSize(16);
@@ -269,26 +280,26 @@ async function generateSalesReport(message: string, userId: string, organization
   pdf.setFontSize(10);
   pdf.text(`${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`, 14, reportStartY + 7);
   const monthlySales = new Map<string, { invoiced: number; paid: number }>();
-  rows.forEach((row) => {
+  reportRows.forEach((row) => {
     const month = new Date(row.issueDate).toLocaleString("en", { month: "short", year: "2-digit" });
     const totals = monthlySales.get(month) || { invoiced: 0, paid: 0 };
-    totals.invoiced += Number(row.total || 0) / 100;
-    totals.paid += Number(row.paidAmount || 0) / 100;
+    totals.invoiced += Number(row.total || 0);
+    totals.paid += Number(row.paidAmount || 0);
     monthlySales.set(month, totals);
   });
   const monthEntries = Array.from(monthlySales.entries());
   let pdfY = addPdfKpiCards(pdf, [
-    { label: "Total invoiced", value: `KES ${(totalInvoiced / 100).toLocaleString("en-KE", { maximumFractionDigits: 0 })}` },
-    { label: "Collected", value: `KES ${(totalPaid / 100).toLocaleString("en-KE", { maximumFractionDigits: 0 })}` },
-    { label: "Outstanding", value: `KES ${(outstanding / 100).toLocaleString("en-KE", { maximumFractionDigits: 0 })}` },
+    { label: "Total invoiced", value: `KES ${totalInvoiced.toLocaleString("en-KE", { maximumFractionDigits: 0 })}` },
+    { label: "Collected", value: `KES ${totalPaid.toLocaleString("en-KE", { maximumFractionDigits: 0 })}` },
+    { label: "Outstanding", value: `KES ${outstanding.toLocaleString("en-KE", { maximumFractionDigits: 0 })}` },
     { label: "Invoices", value: String(rows.length) },
   ], reportStartY + 14);
   pdfY = addPdfBarChart(pdf, "Monthly invoiced and collected", monthEntries.map(([month]) => month), [
     { label: "Invoiced", values: monthEntries.map(([, totals]) => totals.invoiced), color: [15, 118, 110] },
     { label: "Collected", values: monthEntries.map(([, totals]) => totals.paid), color: [37, 99, 235] },
   ], pdfY + 4);
-  autoTable(pdf, { startY: pdfY + 4, head: [["Invoice", "Client", "Date", "Total", "Paid", "Outstanding", "Status"]], body: rows.map((row) => [row.invoiceNumber, row.clientName || "Unknown", row.issueDate, row.total || 0, row.paidAmount || 0, (row.total || 0) - (row.paidAmount || 0), row.status]) });
-  const docx = await Packer.toBuffer(new Document({ sections: [{ children: [new Paragraph({ children: [new TextRun({ text: title, bold: true })] }), new Paragraph(`Total invoiced: ${totalInvoiced}`), new Paragraph(`Total paid: ${totalPaid}`), new Paragraph(`Outstanding: ${outstanding}`), ...rows.map((row) => new Paragraph(`${row.invoiceNumber} | ${row.clientName || "Unknown"} | ${row.total || 0} | ${row.status}`))] }] }));
+  autoTable(pdf, { startY: pdfY + 4, head: [["Invoice", "Client", "Date", "Total", "Paid", "Outstanding", "Status"]], body: reportRows.map((row) => [row.invoiceNumber, row.clientName || "Unknown", row.issueDate, row.total, row.paidAmount, row.total - row.paidAmount, row.status]) });
+  const docx = await Packer.toBuffer(new Document({ sections: [{ children: [new Paragraph({ children: [new TextRun({ text: title, bold: true })] }), new Paragraph(`Total invoiced: ${totalInvoiced}`), new Paragraph(`Total paid: ${totalPaid}`), new Paragraph(`Outstanding: ${outstanding}`), ...reportRows.map((row) => new Paragraph(`${row.invoiceNumber} | ${row.clientName || "Unknown"} | ${row.total} | ${row.status}`))] }] }));
   const dateStamp = new Date().toISOString().slice(0, 10);
   const files: Array<[string, string, string, Buffer]> = [
     ["csv", `Sales_Report_${dateStamp}.csv`, "text/csv", Buffer.from(csv)],
@@ -362,10 +373,10 @@ async function generateCashFlowReport(message: string, userId: string, organizat
     const month = new Date(endDate.getFullYear(), endDate.getMonth() - index, 1).toISOString().slice(0, 7);
     months.set(month, { income: 0, expenses: 0 });
   }
-  paymentRows.forEach((row) => { const month = months.get(monthKey(row.paymentDate)); if (month) month.income += row.amount || 0; });
-  expenseRows.forEach((row) => { const month = months.get(monthKey(row.expenseDate)); if (month) month.expenses += row.amount || 0; });
-  const totalIncome = paymentRows.reduce((sum, row) => sum + (row.amount || 0), 0);
-  const totalExpenses = expenseRows.reduce((sum, row) => sum + (row.amount || 0), 0);
+  paymentRows.forEach((row) => { const month = months.get(monthKey(row.paymentDate)); if (month) month.income += toMajorCurrencyAmount(row.amount || 0, "minor"); });
+  expenseRows.forEach((row) => { const month = months.get(monthKey(row.expenseDate)); if (month) month.expenses += toMajorCurrencyAmount(row.amount || 0, "minor"); });
+  const totalIncome = paymentRows.reduce((sum, row) => sum + toMajorCurrencyAmount(row.amount || 0, "minor"), 0);
+  const totalExpenses = expenseRows.reduce((sum, row) => sum + toMajorCurrencyAmount(row.amount || 0, "minor"), 0);
   const netCashFlow = totalIncome - totalExpenses;
   const title = allTime ? "Cash Flow Report: All Time" : `Cash Flow Report: ${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`;
   const companyInfo = await getCompanyInfo();
@@ -520,7 +531,7 @@ export const aiRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const prompt = `As a financial analyst, provide insights on the following financial data. Focus on ${input.metricType}:\n\n${input.dataDescription}\n\nProvide 3-5 actionable insights.`;
+        const prompt = `As a financial analyst, provide insights on the following financial data. All monetary values supplied by the user are in major currency units, not minor units; preserve the stated values and do not multiply or divide amounts by 100. Focus on ${input.metricType}:\n\n${input.dataDescription}\n\nProvide 3-5 actionable insights.`;
         
         const { text: insights, tokensUsed } = await groqChat(
           [{ role: "user", content: prompt }],
@@ -598,11 +609,11 @@ export const aiRouter = router({
           console.warn("[AI Analytics] Supplier count unavailable because its table or organization column is missing");
         }
 
-        const invoiced = invoiceRows.filter((row) => row.status !== "cancelled").reduce((sum, row) => sum + Number(row.total || 0), 0);
+        const invoiced = invoiceRows.filter((row) => row.status !== "cancelled").reduce((sum, row) => sum + toMajorCurrencyAmount(row.total || 0, "minor"), 0);
         const completedPayments = paymentRows.filter((row) => row.status === "completed");
-        const revenue = completedPayments.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+        const revenue = completedPayments.reduce((sum, row) => sum + toMajorCurrencyAmount(row.amount || 0, "minor"), 0);
         const collected = revenue;
-        const expenseTotal = expenseRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+        const expenseTotal = expenseRows.reduce((sum, row) => sum + toMajorCurrencyAmount(row.amount || 0, "minor"), 0);
         const net = revenue - expenseTotal;
         const activeProjects = projectRows.filter((row) => !["completed", "cancelled", "closed"].includes(String(row.status || "").toLowerCase())).length;
         const activeEmployees = employeeRows.filter((row) => row.isActive !== 0 && String(row.status || "").toLowerCase() !== "inactive").length;
@@ -627,9 +638,9 @@ export const aiRouter = router({
 
         const fallbackSummary = [
           `Performance summary for ${targetYear}:`,
-          `- Cash revenue: ${revenue.toLocaleString()} from ${completedPayments.length} completed payments; ${invoiced.toLocaleString()} invoiced.`,
-          `- Expenses: ${expenseTotal.toLocaleString()} with a net result of ${net.toLocaleString()}.`,
-          `- Cash collection: ${collected.toLocaleString()} (${collectionRate.toFixed(1)}% collection rate).`,
+          `- Cash revenue: ${revenue.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} from ${completedPayments.length} completed payments; ${invoiced.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} invoiced.`,
+          `- Expenses: ${expenseTotal.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} with a net result of ${net.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`,
+          `- Cash collection: ${collected.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${collectionRate.toFixed(1)}% collection rate).`,
           `- Operations: ${activeProjects} active projects and ${activeEmployees} active employees.`,
           ...(supplierCountAvailable ? [] : ["- Supplier count unavailable because supplier schema is incomplete." ]),
           `- Recommendation: focus on collections, project delivery, and spend discipline to improve margin.`
@@ -654,7 +665,7 @@ export const aiRouter = router({
           };
         }
 
-        const aiPrompt = `You are a senior business analyst. Review the following operating data and answer the user's request. Be specific, practical, and concise.\n\nUser request: ${input.prompt}\n\nBusiness data:\n${JSON.stringify(structuredData, null, 2)}\n\nReturn a board-ready report using the following format:\n1. Executive summary\n2. Key findings\n3. Risks or gaps\n4. Recommended actions\n5. KPI snapshot\nKeep the tone highly professional and actionable.`;
+        const aiPrompt = `You are a senior business analyst. Review the following operating data and answer the user's request. Monetary values are already normalized to major units of the organization's configured currency; do not scale them. Be specific, practical, and concise.\n\nUser request: ${input.prompt}\n\nBusiness data:\n${JSON.stringify(structuredData, null, 2)}\n\nReturn a board-ready report using the following format:\n1. Executive summary\n2. Key findings\n3. Risks or gaps\n4. Recommended actions\n5. KPI snapshot\nKeep the tone highly professional and actionable.`;
 
         const { text: aiSummary, tokensUsed } = await groqChat(
           [{ role: "user", content: aiPrompt }],

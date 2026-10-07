@@ -398,6 +398,8 @@ export const invoices = mysqlTable("invoices", {
     notes: text(),
     terms: text(),
     createdBy: varchar({ length: 64 }),
+    approvedBy: varchar({ length: 64 }),
+    approvedAt: datetime({ mode: 'string' }),
     createdAt: timestamp({ mode: 'string' }),
     updatedAt: timestamp({ mode: 'string' }),
     paymentPlanId: varchar({ length: 64 }),
@@ -1059,6 +1061,8 @@ export const payrollCostCenters = mysqlTable("payrollCostCenters", {
   id: varchar({ length: 64 }).primaryKey(),
   organizationId: varchar({ length: 64 }),
   departmentId: varchar({ length: 64 }),
+  expenseAccountId: varchar({ length: 64 }),
+  payrollLiabilityAccountId: varchar({ length: 64 }),
   code: varchar({ length: 50 }).notNull(),
   name: varchar({ length: 100 }).notNull(),
   type: mysqlEnum(["COGS", "R&D", "S&M", "G&A", "PROGRAMMATIC"]).notNull(),
@@ -1998,6 +2002,7 @@ export const fileFolders = mysqlTable("fileFolders", {
   id: varchar({ length: 64 }).primaryKey(),
   organizationId: varchar({ length: 64 }),
   parentId: varchar({ length: 64 }),
+  linkedClientId: varchar({ length: 64 }),
   name: varchar({ length: 255 }).notNull(),
   createdBy: varchar({ length: 64 }).notNull(),
   createdAt: timestamp({ mode: 'string' }).defaultNow(),
@@ -2005,6 +2010,7 @@ export const fileFolders = mysqlTable("fileFolders", {
 }, (table) => [
   index("idx_file_folder_org").on(table.organizationId),
   index("idx_file_folder_parent").on(table.parentId),
+  index("idx_file_folder_client").on(table.linkedClientId),
 ]);
 
 export type FileFolder = typeof fileFolders.$inferSelect;
@@ -3423,6 +3429,7 @@ export const assets = mysqlTable("assets", {
   location: varchar({ length: 200 }).notNull(),
   value: int().default(0).notNull(),
   assignedTo: varchar({ length: 200 }),
+  supplier: varchar({ length: 200 }),
   serialNumber: varchar({ length: 100 }),
   purchaseDate: varchar({ length: 30 }),
   status: mysqlEnum(["active", "inactive", "maintenance", "disposed"]).default("active").notNull(),
@@ -3437,6 +3444,25 @@ export const assets = mysqlTable("assets", {
 
 export type Asset = typeof assets.$inferSelect;
 export type InsertAsset = typeof assets.$inferInsert;
+
+export const assetMovements = mysqlTable("assetMovements", {
+  id: varchar({ length: 64 }).primaryKey(),
+  assetId: varchar({ length: 64 }).notNull(),
+  fromLocation: varchar({ length: 200 }).notNull(),
+  toLocation: varchar({ length: 200 }).notNull(),
+  fromAssignedTo: varchar({ length: 200 }),
+  toAssignedTo: varchar({ length: 200 }),
+  movedAt: varchar({ length: 30 }).notNull(),
+  reason: varchar({ length: 500 }).notNull(),
+  notes: text(),
+  movedBy: varchar({ length: 64 }).notNull(),
+  createdAt: timestamp({ mode: "string" }).defaultNow(),
+}, (table) => [
+  index("idx_asset_movements_asset_date").on(table.assetId, table.movedAt),
+]);
+
+export type AssetMovement = typeof assetMovements.$inferSelect;
+export type InsertAssetMovement = typeof assetMovements.$inferInsert;
 
 // ==================== CONTRACTS ====================
 export const contracts = mysqlTable("contracts", {

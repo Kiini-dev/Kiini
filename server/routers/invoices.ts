@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb, logActivity, createNotification, createReceiptFromInvoice } from "../db";
 import { invoices, invoiceItems, activityLog, clients, receipts, clientSubscriptions, payments } from "../../drizzle/schema";
 import { invoicePayments } from "../../drizzle/schema-extended";
-import { eq, desc, lt, ne, and, inArray, sql, asc, between, or, like, gte, lte } from "drizzle-orm";
+import { eq, desc, lt, ne, and, inArray, sql, asc, between, or, like, gte, lte, isNull } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { generateInvoicePDF } from "../utils/pdf-generator";
 import { triggerEventNotification } from "./emailNotifications";
@@ -1625,19 +1625,35 @@ export const invoicesRouter = router({
       }))
       .query(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) return { payments: [], summary: {} };
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
         try {
-          const startDate = new Date(`${input.startDate}T00:00:00`);
-          const endDate = new Date(`${input.endDate}T23:59:59.999`);
-          if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+          const isCalendarDate = (value: string) => {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+            const parsed = new Date(`${value}T00:00:00.000Z`);
+            return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+          };
+          if (
+            !isCalendarDate(input.startDate) ||
+            !isCalendarDate(input.endDate) ||
+            input.startDate > input.endDate
+          ) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid payment report date range" });
           }
-          const start = startDate.toISOString().replace('T', ' ').substring(0, 19);
-          const end = endDate.toISOString().replace('T', ' ').substring(0, 19);
+          const start = `${input.startDate} 00:00:00`;
+          const end = `${input.endDate} 23:59:59`;
+          const tenantFilter = ctx.user.organizationId
+            ? eq(invoices.organizationId, ctx.user.organizationId)
+            : isNull(invoices.organizationId);
+          const conditions = [
+            gte(invoicePayments.paymentDate, start),
+            lte(invoicePayments.paymentDate, end),
+            tenantFilter,
+          ];
+          if (input.paymentMethod) conditions.push(eq(invoicePayments.paymentMethod, input.paymentMethod));
+          if (input.clientId) conditions.push(eq(invoices.clientId, input.clientId));
 
-          // Get all payments in date range
-          let paymentsQuery = db
+          const enriched = await db
             .select({
               paymentId: invoicePayments.id,
               invoiceId: invoicePayments.invoiceId,
@@ -1646,50 +1662,13 @@ export const invoicesRouter = router({
               paymentMethod: invoicePayments.paymentMethod,
               reference: invoicePayments.reference,
               receiptId: invoicePayments.receiptId,
+              invoiceNumber: invoices.invoiceNumber,
+              clientId: invoices.clientId,
+              invoiceTotal: invoices.total,
             })
-            .from(invoicePayments);
-
-          // Add date filter
-          const { gte, lte } = require("drizzle-orm");
-          const organizationFilter = ctx.user.organizationId
-            ? require("drizzle-orm").eq(invoices.organizationId, ctx.user.organizationId)
-            : undefined;
-          paymentsQuery = paymentsQuery
+            .from(invoicePayments)
             .leftJoin(invoices, eq(invoicePayments.invoiceId, invoices.id))
-            .where(
-            require("drizzle-orm").and(
-              gte(invoicePayments.paymentDate, start),
-              lte(invoicePayments.paymentDate, end),
-              ...(organizationFilter ? [organizationFilter] : []),
-            )
-          );
-
-          const payments = await paymentsQuery;
-
-          // Filter by payment method if provided
-          let filteredPayments = payments;
-          if (input.paymentMethod) {
-            filteredPayments = payments.filter((p: any) => p.paymentMethod === input.paymentMethod);
-          }
-
-          // Enrich with invoice and client details
-          const enriched = [];
-          for (const payment of filteredPayments) {
-            const invoice = await db.select().from(invoices)
-              .where(eq(invoices.id, payment.invoiceId))
-              .limit(1);
-            
-            if (invoice.length > 0) {
-              if (!input.clientId || invoice[0].clientId === input.clientId) {
-                enriched.push({
-                  ...payment,
-                  invoiceNumber: invoice[0].invoiceNumber,
-                  clientId: invoice[0].clientId,
-                  invoiceTotal: invoice[0].total,
-                });
-              }
-            }
-          }
+            .where(and(...conditions));
 
           // Calculate summary
           const totalPayments = enriched.length;
@@ -1720,7 +1699,12 @@ export const invoicesRouter = router({
           };
         } catch (error) {
           console.error("Error generating payment report:", error);
-          return { payments: [], summary: {} };
+          if (error instanceof TRPCError) throw error;
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Unable to generate payment report",
+            cause: error,
+          });
         }
       }),
 

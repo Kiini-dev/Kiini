@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CountrySelect, CitySelect } from "@/components/LocationSelects";
+import { PhoneInput } from "@/components/PhoneInput";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
@@ -173,11 +174,11 @@ export default function EditContact() {
             </div>
             <div>
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" value={formData.phone} onChange={(e) => update("phone", e.target.value)} />
+              <PhoneInput id="phone" value={formData.phone} onChange={(phone) => update("phone", phone)} />
             </div>
             <div>
               <Label htmlFor="mobile">Mobile</Label>
-              <Input id="mobile" value={formData.mobile} onChange={(e) => update("mobile", e.target.value)} />
+              <PhoneInput id="mobile" value={formData.mobile} onChange={(mobile) => update("mobile", mobile)} />
             </div>
             <div>
               <Label htmlFor="jobTitle">Job Title</Label>

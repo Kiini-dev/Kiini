@@ -1,13 +1,9 @@
 import { trpc } from "./trpc";
-
-const RATE_FROM_KES: Record<string, number> = {
-  KES: 1,
-  USD: 1 / 128,
-  EUR: 1 / 140,
-  GBP: 1 / 163,
-  UGX: 4.7,
-  TZS: 3.3,
-};
+import {
+  formatCurrencyAmount,
+  formatMinorCurrencyAmount,
+  normalizeCurrencyAmount as normalizeAmountValue,
+} from "../../../shared/currency";
 
 /**
  * Hook to get the user-configured currency from Settings → Currency.
@@ -26,9 +22,19 @@ export function useCurrencySettings() {
   const formatAmountLocal = (
     amount: number,
     opts?: { minimumFractionDigits?: number; maximumFractionDigits?: number }
-  ) => formatAmount(amount * (RATE_FROM_KES[code] ?? 1), symbol, position, opts);
+  ) => formatCurrencyAmount(amount, code, { ...opts, symbol, position });
+  const formatMinorAmountLocal = (
+    amount: number,
+    opts?: { minimumFractionDigits?: number; maximumFractionDigits?: number }
+  ) => formatMinorCurrencyAmount(amount, code, { ...opts, symbol, position });
 
-  return { code, symbol, position, formatAmount: formatAmountLocal };
+  return {
+    code,
+    symbol,
+    position,
+    formatAmount: formatAmountLocal,
+    formatMinorAmount: formatMinorAmountLocal,
+  };
 }
 
 /**
@@ -36,8 +42,7 @@ export function useCurrencySettings() {
  * Defaults to KES if no settings provided.
  */
 export function normalizeCurrencyAmount(value: number | string | null | undefined): number {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return normalizeAmountValue(value);
 }
 
 export function formatDisplayCurrency(
@@ -49,13 +54,7 @@ export function formatDisplayCurrency(
     position?: "before" | "after";
   }
 ): string {
-  const amount = normalizeCurrencyAmount(value);
-  const formatted = amount.toLocaleString("en-KE", {
-    minimumFractionDigits: opts?.minimumFractionDigits ?? 0,
-    maximumFractionDigits: opts?.maximumFractionDigits ?? 2,
-  });
-  const position = opts?.position ?? "before";
-  return position === "before" ? `${currencyCode} ${formatted}` : `${formatted} ${currencyCode}`;
+  return formatCurrencyAmount(value, currencyCode, opts);
 }
 
 export function formatAmount(
@@ -64,7 +63,9 @@ export function formatAmount(
   position: "before" | "after" = "before",
   opts?: { minimumFractionDigits?: number; maximumFractionDigits?: number }
 ): string {
-  return formatDisplayCurrency(amount, symbol, {
+  const code = /^[A-Z]{3}$/.test(symbol) ? symbol : "KES";
+  return formatCurrencyAmount(amount, code, {
+    symbol,
     minimumFractionDigits: opts?.minimumFractionDigits,
     maximumFractionDigits: opts?.maximumFractionDigits,
     position,

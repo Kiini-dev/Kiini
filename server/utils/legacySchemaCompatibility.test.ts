@@ -39,6 +39,21 @@ describe('legacy schema compatibility', () => {
     ]);
   });
 
+  it('repairs legacy invoice approval columns required by policy compliance checks', () => {
+    expect(getMissingColumnsForTable('invoices', ['id', 'invoiceNumber', 'status'])).toContainEqual({
+      name: 'approvedBy',
+      definition: 'varchar(64) NULL',
+    });
+    expect(getMissingColumnsForTable('invoices', ['id', 'invoiceNumber', 'status'])).toContainEqual({
+      name: 'approvedAt',
+      definition: 'datetime NULL',
+    });
+    const invoiceColumns = new Set(getTableConfig(schema.invoices).columns.map((column) => column.name));
+    expect(invoiceColumns.has('approvedBy')).toBe(true);
+    expect(invoiceColumns.has('approvedAt')).toBe(true);
+    expect(getRuntimeSchemaCheckTargets()).toContain('invoices');
+  });
+
   it('detects missing organizationId for multi-tenant tables', () => {
     const multiTenantTables = ['payments', 'receipts', 'estimates', 'contacts', 'products', 'services', 'leaveRequests', 'attendance'];
     for (const table of multiTenantTables) {

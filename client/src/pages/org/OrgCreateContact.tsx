@@ -14,6 +14,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus } from "lucide-react";
 import { CountrySelect, CitySelect } from "@/components/LocationSelects";
+import { PhoneInput } from "@/components/PhoneInput";
 
 export default function CreateContact() {
   const [, setLocation] = useLocation();
@@ -129,11 +130,11 @@ export default function CreateContact() {
             </div>
             <div>
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" value={formData.phone} onChange={(e) => update("phone", e.target.value)} />
+              <PhoneInput id="phone" value={formData.phone} onChange={(phone) => update("phone", phone)} />
             </div>
             <div>
               <Label htmlFor="mobile">Mobile</Label>
-              <Input id="mobile" value={formData.mobile} onChange={(e) => update("mobile", e.target.value)} />
+              <PhoneInput id="mobile" value={formData.mobile} onChange={(mobile) => update("mobile", mobile)} />
             </div>
             <div>
               <Label htmlFor="jobTitle">Job Title</Label>

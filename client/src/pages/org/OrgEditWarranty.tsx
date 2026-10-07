@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2, ShieldCheck } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Spinner } from "@/components/ui/spinner";
+import { SupplierSelector } from "@/components/SupplierSelector";
 
 export default function EditWarranty() {
   const { id } = useParams<{ id: string }>();
@@ -121,8 +122,7 @@ export default function EditWarranty() {
                   <Input id="product" value={formData.product} onChange={(e) => setFormData({ ...formData, product: e.target.value })} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vendor">Vendor *</Label>
-                  <Input id="vendor" value={formData.vendor} onChange={(e) => setFormData({ ...formData, vendor: e.target.value })} required />
+                  <SupplierSelector label="Vendor" value={formData.vendor} onChange={(vendor) => setFormData({ ...formData, vendor })} required />
                 </div>
               </div>
 

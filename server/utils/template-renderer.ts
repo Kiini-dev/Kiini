@@ -9,6 +9,7 @@ import { invoices, invoiceItems, clients, settings, receipts, lineItems, estimat
 import { eq, and } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { formatMinorCurrencyAmount, toMajorCurrencyAmount } from '../../shared/currency';
 
 // Map document type to template type name in documentTemplates table
 const TYPE_MAP: Record<string, string> = {
@@ -279,8 +280,8 @@ function buildLineItemsTable(items: any[], currency: string): string {
 
   return items.map((item, index) => {
     const qty = item.quantity ?? 1;
-    const unitPrice = (item.unitPrice ?? item.rate ?? 0) / 100;
-    const total = (item.total ?? item.amount ?? 0) / 100;
+    const unitPrice = toMajorCurrencyAmount(item.unitPrice ?? item.rate ?? 0, 'minor');
+    const total = toMajorCurrencyAmount(item.total ?? item.amount ?? 0, 'minor');
     const desc = item.description || item.itemType || `Item ${index + 1}`;
     return `<tr>
       <td style="padding: 10px 12px; border-bottom: 1px solid #dfe6e9;">${desc}</td>
@@ -326,10 +327,10 @@ function buildItemTokenVariables(items: any[], currency: string): Record<string,
   items.forEach((item, index) => {
     const itemNum = index + 1;
     const qty = item.quantity ?? 1;
-    const rate = (item.unitPrice ?? item.rate ?? 0) / 100;
-    const amount = (item.total ?? item.amount ?? 0) / 100;
+    const rate = toMajorCurrencyAmount(item.unitPrice ?? item.rate ?? 0, 'minor');
+    const amount = toMajorCurrencyAmount(item.total ?? item.amount ?? 0, 'minor');
     const taxRate = item.taxRate ?? 0;
-    const taxAmount = (item.taxAmount ?? 0) / 100;
+    const taxAmount = toMajorCurrencyAmount(item.taxAmount ?? 0, 'minor');
     const desc = item.description || item.itemType || `Item ${itemNum}`;
     const lineNumber = item.lineNumber ?? itemNum;
 
@@ -407,7 +408,7 @@ export async function renderInvoiceTemplate(invoiceId: string, organizationId?: 
   };
 
   const formatAmount = (amt: any) => {
-    const n = (Number(amt) || 0) / 100;
+    const n = toMajorCurrencyAmount(amt, 'minor');
     return `${currency} ${n.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
   };
 
@@ -426,10 +427,10 @@ export async function renderInvoiceTemplate(invoiceId: string, organizationId?: 
   </table>`;
 
   // Build totals section
-  const subtotal = (Number(invoice.subtotal) || 0) / 100;
-  const taxAmount = (Number(invoice.taxAmount) || 0) / 100;
-  const discountAmount = (Number(invoice.discountAmount) || 0) / 100;
-  const total = (Number(invoice.total) || 0) / 100;
+  const subtotal = toMajorCurrencyAmount(invoice.subtotal, 'minor');
+  const taxAmount = toMajorCurrencyAmount(invoice.taxAmount, 'minor');
+  const discountAmount = toMajorCurrencyAmount(invoice.discountAmount, 'minor');
+  const total = toMajorCurrencyAmount(invoice.total, 'minor');
 
   const totalsHtml = `
     <div style="margin-top: 16px; text-align: right;">
@@ -585,16 +586,16 @@ export async function renderReceiptTemplate(receiptId: string, organizationId?: 
     try { return new Date(d).toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' }); } catch { return String(d); }
   };
 
-  const amount = (Number(receipt.amount) || 0) / 100;
+  const amount = toMajorCurrencyAmount(receipt.amount, 'minor');
   const formatAmount = (amt: any) => {
-    const n = (Number(amt) || 0) / 100;
+    const n = toMajorCurrencyAmount(amt, 'minor');
     return `${currency} ${n.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
   };
 
   const itemsTableRows = items.length ? items.map((item: any, index: number) => {
     const qty = item.quantity ?? 1;
-    const rate = (item.unitPrice ?? item.rate ?? 0) / 100;
-    const total = (item.total ?? item.amount ?? 0) / 100;
+    const rate = toMajorCurrencyAmount(item.unitPrice ?? item.rate ?? 0, 'minor');
+    const total = toMajorCurrencyAmount(item.total ?? item.amount ?? 0, 'minor');
     return `<tr>
       <td style="padding: 10px 12px; border-bottom: 1px solid #dfe6e9;">${item.description || `Item ${index + 1}`}</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #dfe6e9; text-align: center;">${qty}</td>
@@ -716,7 +717,7 @@ export async function renderEstimateTemplate(estimateId: string, organizationId?
   };
 
   const formatAmount = (amt: any) => {
-    const n = (Number(amt) || 0) / 100;
+    const n = toMajorCurrencyAmount(amt, 'minor');
     return `${currency} ${n.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
   };
 
@@ -735,10 +736,10 @@ export async function renderEstimateTemplate(estimateId: string, organizationId?
   </table>`;
 
   // Build totals section
-  const subtotal = (Number(estimate.subtotal) || 0) / 100;
-  const taxAmount = (Number(estimate.taxAmount) || 0) / 100;
-  const discountAmount = (Number(estimate.discountAmount) || 0) / 100;
-  const total = (Number(estimate.total) || 0) / 100;
+  const subtotal = toMajorCurrencyAmount(estimate.subtotal, 'minor');
+  const taxAmount = toMajorCurrencyAmount(estimate.taxAmount, 'minor');
+  const discountAmount = toMajorCurrencyAmount(estimate.discountAmount, 'minor');
+  const total = toMajorCurrencyAmount(estimate.total, 'minor');
 
   const totalsHtml = `
     <div style="margin-top: 16px; text-align: right;">
@@ -1118,7 +1119,8 @@ function formatTemplateDate(value: unknown): string {
 }
 
 function formatTemplateAmount(value: unknown, currency: string): string {
-  return `${currency} ${((Number(value) || 0) / 100).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
+  const code = /^[A-Z]{3}$/.test(currency) ? currency : 'KES';
+  return formatMinorCurrencyAmount(Number(value) || 0, code, { symbol: currency });
 }
 
 /**

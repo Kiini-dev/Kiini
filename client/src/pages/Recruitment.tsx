@@ -13,6 +13,7 @@ import { StatsCard } from "@/components/ui/stats-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Briefcase, Plus, Pencil, Trash2, Users, CheckCircle, Clock, UserPlus } from "lucide-react";
+import { PhoneInput } from "@/components/PhoneInput";
 
 const JOB_STATUSES = [
   { value: "draft", label: "Draft" },
@@ -279,7 +280,7 @@ export default function RecruitmentPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-sm font-medium">Email</label><Input type="email" className="mt-1" value={appForm.email} onChange={(e) => setAppForm({ ...appForm, email: e.target.value })} /></div>
-                <div><label className="text-sm font-medium">Phone</label><Input className="mt-1" value={appForm.phone} onChange={(e) => setAppForm({ ...appForm, phone: e.target.value })} /></div>
+                <div><label className="text-sm font-medium">Phone</label><PhoneInput className="mt-1" value={appForm.phone} onChange={(phone) => setAppForm({ ...appForm, phone })} /></div>
               </div>
               <div>
                 <label className="text-sm font-medium">Stage</label>
@@ -304,4 +305,3 @@ export default function RecruitmentPage() {
     </ModuleLayout>
   );
 }
-

@@ -3,6 +3,8 @@
  * HTML email templates for invoices, receipts, and payment notifications
  */
 
+import { formatCurrencyAmount } from "../../shared/currency";
+
 export interface BillingEmailContext {
   organizationName: string;
   organizationLogo?: string;
@@ -54,6 +56,15 @@ export interface PaymentReminderEmailData extends BillingEmailContext {
   currency: string;
   daysUntilDue: number;
   planName: string;
+}
+
+function formatBillingAmount(value: number, currency: string): string {
+  const code = /^[A-Z]{3}$/.test(currency) ? currency : "KES";
+  return formatCurrencyAmount(value, code, {
+    symbol: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 /**
@@ -115,15 +126,15 @@ export function invoiceEmailTemplate(data: InvoiceEmailData): string {
         </div>
         <div class="detail-row">
           <span class="label">Subtotal:</span>
-          <span class="value">${data.currency} ${(data.amount / 100).toFixed(2)}</span>
+          <span class="value">${formatBillingAmount(data.amount, data.currency)}</span>
         </div>
         <div class="detail-row">
           <span class="label">Tax:</span>
-          <span class="value">${data.currency} ${(data.tax / 100).toFixed(2)}</span>
+          <span class="value">${formatBillingAmount(data.tax, data.currency)}</span>
         </div>
         <div class="detail-row" style="border-bottom: 2px solid #ddd; padding-top: 20px; margin-top: 10px;">
           <span class="label" style="font-size: 16px;">Total Amount:</span>
-          <span class="value amount">${data.currency} ${(data.totalAmount / 100).toFixed(2)}</span>
+          <span class="value amount">${formatBillingAmount(data.totalAmount, data.currency)}</span>
         </div>
       </div>
       
@@ -209,7 +220,7 @@ export function paymentReceiptEmailTemplate(data: PaymentReceiptEmailData): stri
         </div>
         <div class="detail-row" style="border-bottom: 2px solid #ddd; padding-top: 20px; margin-top: 10px;">
           <span class="label" style="font-size: 16px;">Amount Paid:</span>
-          <span class="value amount">${data.currency} ${(data.amount / 100).toFixed(2)}</span>
+          <span class="value amount">${formatBillingAmount(data.amount, data.currency)}</span>
         </div>
       </div>
       
@@ -286,7 +297,7 @@ export function overdueNoticeEmailTemplate(data: OverdueNoticeEmailData): string
         </div>
         <div class="detail-row" style="border-bottom: 2px solid #ddd; padding-top: 20px; margin-top: 10px;">
           <span class="label" style="font-size: 16px;">Amount Due:</span>
-          <span class="value amount">${data.currency} ${(data.amount / 100).toFixed(2)}</span>
+          <span class="value amount">${formatBillingAmount(data.amount, data.currency)}</span>
         </div>
       </div>
       
@@ -370,7 +381,7 @@ export function paymentReminderEmailTemplate(data: PaymentReminderEmailData): st
         </div>
         <div class="detail-row" style="border-bottom: 2px solid #ddd; padding-top: 20px; margin-top: 10px;">
           <span class="label" style="font-size: 16px;">Amount Due:</span>
-          <span class="value amount">${data.currency} ${(data.amount / 100).toFixed(2)}</span>
+          <span class="value amount">${formatBillingAmount(data.amount, data.currency)}</span>
         </div>
       </div>
       

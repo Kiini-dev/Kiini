@@ -1,0 +1,1 @@
+import{j as s}from"./vendor-react-ui-ChrK0KND.js";import{l as i}from"./index-H2I0YSaO.js";import{r as o}from"./lucide-react-Cv6Z0GqF.js";function m({className:r,...a}){return s.jsx(o,{role:"status","aria-label":"Loading",className:i("size-4 animate-spin",r),...a})}export{m as S};

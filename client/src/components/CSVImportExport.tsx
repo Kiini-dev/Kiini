@@ -197,21 +197,9 @@ export default function CSVImportExport() {
     }
   };
 
-  const handleImport = async () => {
-    if (!uploadedFile || !isCurrentFileValidated || !validationResult) {
-      toast.error('Validate this file before importing');
-      return;
-    }
-
-    const readyCount = validationResult.ready || 0;
-    if (readyCount === 0) {
-      toast.error('There are no valid rows to import');
-      return;
-    }
-
+  const executeImport = async (content: string) => {
     setIsImporting(true);
     try {
-      const content = await readImportFile(uploadedFile);
       const result = await importTableMutation.mutateAsync({ table: selectedModule, content, skipDuplicates });
       setImportResult(result);
       toast.success(`Import completed: ${result.imported} records imported`);
@@ -224,10 +212,83 @@ export default function CSVImportExport() {
       setPreviewData([]);
       setValidationResult(null);
       setValidatedFor(null);
+      setShowPreview(false);
     } catch (error) {
-      toast.error(`Import failed: ${error}`);
+      toast.error(`Import failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsImporting(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!uploadedFile || !isCurrentFileValidated || !validationResult) {
+      toast.error('Validate this file before importing');
+      return;
+    }
+
+    const readyCount = validationResult.ready || 0;
+    if (readyCount === 0) {
+      toast.error('There are no valid rows to import');
+      return;
+    }
+
+    try {
+      const content = await readImportFile(uploadedFile);
+      await executeImport(content);
+    } catch (error) {
+      toast.error(`Failed to read import file: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  const handlePreviewProceed = async () => {
+    if (!uploadedFile) {
+      toast.error('Please select a file to import');
+      return;
+    }
+
+    try {
+      const content = await readImportFile(uploadedFile);
+      let currentValidation = validationResult;
+
+      if (!isCurrentFileValidated || !currentValidation) {
+        const rows = parseCSV(content);
+        if (rows.length === 0) {
+          toast.error('CSV file has no data rows');
+          return;
+        }
+
+        setIsValidating(true);
+        try {
+          currentValidation = await importTableMutation.mutateAsync({
+            table: selectedModule,
+            content,
+            skipDuplicates,
+            validateOnly: true,
+          });
+          setValidationResult(currentValidation);
+          setValidatedFor(validationKey);
+
+          if (currentValidation.errors.length > 0) {
+            toast.warning(`Validation found ${currentValidation.errors.length} row errors`);
+          }
+        } catch (error) {
+          setValidationResult(null);
+          setValidatedFor(null);
+          toast.error(`Validation failed: ${error instanceof Error ? error.message : String(error)}`);
+          return;
+        } finally {
+          setIsValidating(false);
+        }
+      }
+
+      if ((currentValidation?.ready || 0) === 0) {
+        toast.error('There are no valid rows to import');
+        return;
+      }
+
+      await executeImport(content);
+    } catch (error) {
+      toast.error(`Failed to read import file: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
@@ -524,12 +585,18 @@ export default function CSVImportExport() {
             ))}
           </div>
 
+          {(!isCurrentFileValidated || !validationResult) && (
+            <p className="text-sm text-muted-foreground">
+              Proceeding will validate the file first, then import valid rows.
+            </p>
+          )}
+
           <DialogFooter>
             <Button onClick={() => setShowPreview(false)} variant="outline">
               Close
             </Button>
-            <Button onClick={handleImport} disabled={isImporting}>
-              {isImporting ? 'Importing...' : 'Proceed with Import'}
+            <Button onClick={handlePreviewProceed} disabled={isImporting || isValidating}>
+              {isImporting ? 'Importing...' : isValidating ? 'Validating...' : 'Proceed with Import'}
             </Button>
           </DialogFooter>
         </DialogContent>

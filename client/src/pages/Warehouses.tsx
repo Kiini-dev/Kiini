@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/PhoneInput";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
@@ -218,7 +219,7 @@ export default function Warehouses() {
             <div><Label>Address</Label><Textarea value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} rows={2} placeholder="Full address" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Contact Person</Label><Input value={form.contactPerson} onChange={e => setForm(p => ({ ...p, contactPerson: e.target.value }))} placeholder="John Doe" /></div>
-              <div><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="+254 700 000 000" /></div>
+              <div><PhoneInput label="Phone" value={form.phone} onChange={phone => setForm(p => ({ ...p, phone }))} placeholder="700 000 000" /></div>
             </div>
             <div>
               <Label>Status</Label>
@@ -243,4 +244,3 @@ export default function Warehouses() {
     </ModuleLayout>
   );
 }
-

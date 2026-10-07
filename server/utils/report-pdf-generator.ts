@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatMinorCurrencyAmount } from '../../shared/currency';
 import { getDb } from '../db';
 import { invoices, expenses } from '../../drizzle/schema';
 import { gte, lte } from 'drizzle-orm';
@@ -184,10 +185,7 @@ export async function generateFinancialReportPDF(config: ReportConfig): Promise<
   doc.text('Financial Summary', 20, contentStartY + 29);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(amount / 100);
+    return formatMinorCurrencyAmount(amount, 'KES');
   };
 
   const summaryData = [
@@ -386,10 +384,7 @@ export async function generateExpenseReportPDF(config: ReportConfig): Promise<Bu
   doc.text('Expense Summary', 20, contentStartY + 29);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(amount / 100);
+    return formatMinorCurrencyAmount(amount, 'KES');
   };
 
   const summaryData = [

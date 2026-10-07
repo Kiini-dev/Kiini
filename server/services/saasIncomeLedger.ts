@@ -1,5 +1,6 @@
 import { getPool } from "../db";
 import { v4 as uuidv4 } from "uuid";
+import { toMajorCurrencyAmount } from "../../shared/currency";
 
 export type SaaSUsageSnapshot = {
   activeSeats: number;
@@ -210,7 +211,7 @@ export async function createSaaSIncomeInvoice(input: {
       return { created: false, invoiceId: duplicateRows[0].invoiceId as string };
     }
 
-    const majorAmount = (charge.totalCents / 100).toFixed(2);
+    const majorAmount = toMajorCurrencyAmount(charge.totalCents, "minor").toFixed(2);
     const note = `Rated from active seats and metered usage. Rate card ${rateCard.id}.`;
     await connection.execute(
       `INSERT INTO billingInvoices

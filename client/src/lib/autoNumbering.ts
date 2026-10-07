@@ -216,18 +216,20 @@ export const AUTO_NUMBER_PRESETS = {
   } as AutoNumberConfig,
 } as const;
 
+import { toMajorCurrencyAmount, toMinorCurrencyAmount } from "../../../shared/currency";
+
 /**
  * Format a number for database storage (multiply by 100 for cents)
  */
 export function formatAmountForStorage(amount: number): number {
-  return Math.round(amount * 100);
+  return toMinorCurrencyAmount(amount);
 }
 
 /**
  * Format a number from database storage (divide by 100)
  */
 export function formatAmountFromStorage(amount: number): number {
-  return Math.round((amount / 100) * 100) / 100;
+  return Math.round(toMajorCurrencyAmount(amount, "minor") * 100) / 100;
 }
 
 /**

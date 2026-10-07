@@ -13,8 +13,9 @@ import {
   estimates,
   lineItems,
   clients,
+  documents,
 } from "../../drizzle/schema";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 export const documentManagementRouter = router({
   /**
@@ -401,20 +402,47 @@ export const documentManagementRouter = router({
       .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return [];
-          // Use clientId from input, or from user's record (client users have clientId in users table)
+        try {
           const clientId = ctx.user?.role === "client"
             ? (ctx.user as any)?.clientId
             : input?.clientId || (ctx.user as any)?.clientId;
           if (!clientId) return [];
-        try {
-          const invoiceDocs = await db.select().from(invoices).where(eq(invoices.clientId, clientId));
-          const receiptDocs = await db.select().from(receipts).where(eq(receipts.clientId, clientId));
-          const estimateDocs = await db.select().from(estimates).where(eq(estimates.clientId, clientId));
+          const organizationId = ctx.user?.organizationId || null;
+          const clientScope = and(
+            eq(clients.id, clientId),
+            organizationId ? eq(clients.organizationId, organizationId) : isNull(clients.organizationId),
+          );
+          const clientRows = await db.select({ id: clients.id }).from(clients).where(clientScope).limit(1);
+          if (!clientRows.length) return [];
+          const invoiceScope = and(
+            eq(invoices.clientId, clientId),
+            organizationId ? eq(invoices.organizationId, organizationId) : isNull(invoices.organizationId),
+          );
+          const receiptScope = and(
+            eq(receipts.clientId, clientId),
+            organizationId ? eq(receipts.organizationId, organizationId) : isNull(receipts.organizationId),
+          );
+          const estimateScope = and(
+            eq(estimates.clientId, clientId),
+            organizationId ? eq(estimates.organizationId, organizationId) : isNull(estimates.organizationId),
+          );
+          const documentScope = and(
+            eq(documents.linkedClientId, clientId),
+            organizationId ? eq(documents.organizationId, organizationId) : isNull(documents.organizationId),
+            eq(documents.status, "active"),
+          );
+          const [invoiceDocs, receiptDocs, estimateDocs, uploadedDocs] = await Promise.all([
+            db.select().from(invoices).where(invoiceScope),
+            db.select().from(receipts).where(receiptScope),
+            db.select().from(estimates).where(estimateScope),
+            db.select().from(documents).where(documentScope),
+          ]);
           // Tag each with a documentType for client consumption
           const tagged = [
             ...invoiceDocs.map((d: any) => ({ ...d, documentType: 'invoice' })),
             ...receiptDocs.map((d: any) => ({ ...d, documentType: 'receipt' })),
             ...estimateDocs.map((d: any) => ({ ...d, documentType: 'estimate' })),
+            ...uploadedDocs.map((d: any) => ({ ...d, documentType: d.documentType || 'other', isUploaded: true })),
           ];
           return tagged;
         } catch (error) {

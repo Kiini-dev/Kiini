@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 import {
   ChevronRight, Download, Eye, Folder, FolderOpen, FolderPlus, Grid2X2, List, Mail, MoreVertical, Search,
   Share2, Star, StarIcon, Trash2, Upload, Users, X,
@@ -13,7 +14,7 @@ import {
 type ViewMode = "grid" | "list";
 type FileKind = "folder" | "pdf" | "doc" | "xls" | "img" | "fig" | "zip";
 type ConfiguredFolderCategory = "file_folders" | "default_folders";
-interface FileItem { id: string; parent: string; name: string; kind: FileKind; size: string; modified: string; starred?: boolean; url?: string; tags?: string[]; configuredCategory?: ConfiguredFolderCategory; }
+interface FileItem { id: string; parent: string; name: string; kind: FileKind; size: string; modified: string; starred?: boolean; url?: string; tags?: string[]; configuredCategory?: ConfiguredFolderCategory; generated?: boolean; targetPath?: string; }
 
 const coreFolders = [
   { id: "root", label: "My Drive", icon: FolderOpen },
@@ -45,6 +46,7 @@ const kindStyle: Record<FileKind, { bg: string; text: string }> = {
 };
 
 export default function FileManager() {
+  const [location, setLocation] = useLocation();
   const [currentFolder, setCurrentFolder] = useState("root");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [query, setQuery] = useState("");
@@ -105,6 +107,7 @@ export default function FileManager() {
   };
 
   const remoteFiles = useMemo<FileItem[]>(() => {
+    const tenantPrefix = location.match(/^\/org\/[^/]+/)?.[0] || "";
     return (documentsQuery.data?.documents || []).map((document: any): FileItem => ({
       id: document.id,
       parent: document.folderId || "root",
@@ -115,8 +118,10 @@ export default function FileManager() {
       url: document.fileUrl,
       tags: Array.isArray(document.tags) ? document.tags : [],
       starred: Array.isArray(document.tags) && document.tags.includes("starred"),
+      generated: Boolean(document.isGenerated),
+      targetPath: document.isGenerated ? `${tenantPrefix}${document.fileUrl}` : undefined,
     }));
-  }, [documentsQuery.data]);
+  }, [documentsQuery.data, location]);
 
   const persistedFolders = useMemo<FileItem[]>(() => (folderQuery.data?.folders || []).map((folder: any) => ({ id: folder.id, parent: folder.parentId || "root", name: folder.name, kind: "folder", size: "-", modified: folder.createdAt ? new Date(folder.createdAt).toLocaleDateString() : "Recently" })), [folderQuery.data]);
   const configuredFolders = useMemo<FileItem[]>(() => [
@@ -162,7 +167,10 @@ export default function FileManager() {
       toast.info("Folders cannot be starred");
     }
   };
-  const openFile = (file: FileItem) => { if (file.kind === "folder") { setCurrentFolder(file.id); setQuery(""); } };
+  const openFile = (file: FileItem) => {
+    if (file.kind === "folder") { setCurrentFolder(file.id); setQuery(""); }
+    else if (file.targetPath) setLocation(file.targetPath);
+  };
   const uploadFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => uploadMutation.mutate({
@@ -241,6 +249,10 @@ export default function FileManager() {
       }
       return;
     }
+    if (file.generated) {
+      if (action === "preview" && file.targetPath) setLocation(file.targetPath);
+      return;
+    }
     if (action === "preview" && file.url) window.open(file.url, "_blank", "noopener,noreferrer");
     if (action === "download" && file.url) { const link = document.createElement("a"); link.href = file.url; link.download = file.name; link.click(); }
     if (action === "delete" && window.confirm(`Delete ${file.name}?`)) deleteDocumentMutation.mutate({ documentId: file.id });
@@ -308,14 +320,15 @@ export default function FileManager() {
                       key={file.id}
                       draggable={file.kind !== "folder"}
                       onDragStart={(event) => {
-                        if (file.kind !== "folder") {
+                        if (file.kind !== "folder" && !file.generated) {
                           event.dataTransfer.setData("text/plain", file.id);
                           event.dataTransfer.effectAllowed = "move";
                         }
                       }}
                       onClick={() => {
                         if (file.kind === "folder") return;
-                        if (file.url) window.open(file.url, "_blank", "noopener,noreferrer");
+                        if (file.targetPath) setLocation(file.targetPath);
+                        else if (file.url) window.open(file.url, "_blank", "noopener,noreferrer");
                         else toast.info("This file is not available for download yet.");
                       }}
                       onDoubleClick={() => openFile(file)}
@@ -333,7 +346,7 @@ export default function FileManager() {
                         <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{file.name}</p>
                         <p className="mt-1 truncate text-xs text-slate-500">{file.size} · {file.modified}</p>
                       </div>
-                      <button
+                      {!file.generated && <button
                         aria-label={file.starred ? "Unstar file" : "Star file"}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -342,9 +355,9 @@ export default function FileManager() {
                         className="absolute right-2 top-2 p-1 text-amber-500 opacity-0 transition group-hover:opacity-100"
                       >
                         {file.starred ? <Star className="h-4 w-4 fill-current" /> : <Star className="h-4 w-4" />}
-                      </button>
+                      </button>}
                       <span className="absolute bottom-2 right-2 flex gap-1 rounded bg-white/90 p-1 opacity-0 shadow-sm transition group-hover:opacity-100 dark:bg-slate-800/90">
-                        {[{ action: "preview", icon: Eye }, { action: "download", icon: Download }, { action: "move", icon: Folder }, { action: "email", icon: Mail }, { action: "delete", icon: Trash2 }].map(({ action, icon: ActionIcon }) => <button key={action} type="button" title={action} onClick={(event) => { event.stopPropagation(); handleFileAction(action, file); }} className="p-1 text-slate-500 hover:text-teal-600"><ActionIcon className="h-3.5 w-3.5" /></button>)}
+                        {(file.generated ? [{ action: "preview", icon: Eye }] : [{ action: "preview", icon: Eye }, { action: "download", icon: Download }, { action: "move", icon: Folder }, { action: "email", icon: Mail }, { action: "delete", icon: Trash2 }]).map(({ action, icon: ActionIcon }) => <button key={action} type="button" title={action} onClick={(event) => { event.stopPropagation(); handleFileAction(action, file); }} className="p-1 text-slate-500 hover:text-teal-600"><ActionIcon className="h-3.5 w-3.5" /></button>)}
                       </span>
                     </button>
                   );

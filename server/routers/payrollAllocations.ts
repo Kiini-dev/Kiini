@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { createHash } from "node:crypto";
 import ExcelJS from "exceljs";
 import { jsPDF } from "jspdf";
-import { departments, employeeCostAllocations, employees, payrollCostCenters, payrollLedgerEntries, reportExportAuditLogs } from "../../drizzle/schema";
+import { accounts, departments, employeeCostAllocations, employees, payrollCostCenters, payrollLedgerEntries, reportExportAuditLogs } from "../../drizzle/schema";
 import { createFeatureRestrictedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { toAllocationBasisPoints } from "../services/payrollCostAllocationService";
@@ -30,6 +30,32 @@ const departmentScopeCondition = (organizationId: string | null) =>
   organizationId === null ? isNull(departments.organizationId) : eq(departments.organizationId, organizationId);
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD dates");
+const expenseAccountTypes = ["expense", "operating expense", "cost of goods sold", "other expense"];
+
+async function validatePayrollAccounts(
+  database: any,
+  organizationId: string | null,
+  expenseAccountId: string,
+  payrollLiabilityAccountId: string,
+) {
+  if (!organizationId) throw new Error("Payroll COA mappings require an organization-specific cost center");
+  const rows = await database.select({
+    id: accounts.id,
+    accountType: accounts.accountType,
+    isActive: accounts.isActive,
+  }).from(accounts).where(and(
+    inArray(accounts.id, [expenseAccountId, payrollLiabilityAccountId]),
+    eq(accounts.organizationId, organizationId),
+  ));
+  const expense = rows.find((account: any) => account.id === expenseAccountId);
+  const liability = rows.find((account: any) => account.id === payrollLiabilityAccountId);
+  if (!expense || expense.isActive !== 1 || !expenseAccountTypes.includes(expense.accountType)) {
+    throw new Error("Select an active expense account from this organization's Chart of Accounts");
+  }
+  if (!liability || liability.isActive !== 1 || liability.accountType !== "liability") {
+    throw new Error("Select an active liability account from this organization's Chart of Accounts");
+  }
+}
 
 export const payrollAllocationsRouter = router({
   listCostCenters: readProcedure
@@ -44,6 +70,8 @@ export const payrollAllocationsRouter = router({
         id: payrollCostCenters.id,
         organizationId: payrollCostCenters.organizationId,
         departmentId: payrollCostCenters.departmentId,
+        expenseAccountId: payrollCostCenters.expenseAccountId,
+        payrollLiabilityAccountId: payrollCostCenters.payrollLiabilityAccountId,
         code: payrollCostCenters.code,
         name: payrollCostCenters.name,
         type: payrollCostCenters.type,
@@ -57,11 +85,19 @@ export const payrollAllocationsRouter = router({
       name: z.string().trim().min(1).max(100),
       type: z.enum(["COGS", "R&D", "S&M", "G&A", "PROGRAMMATIC"]),
       departmentId: z.string().optional(),
+      expenseAccountId: z.string().min(1).optional(),
+      payrollLiabilityAccountId: z.string().min(1).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const database = await getDb();
       if (!database) throw new Error("Database not available");
       const organizationId = requireCostCenterScope(ctx.user);
+      if (organizationId && (!input.expenseAccountId || !input.payrollLiabilityAccountId)) {
+        throw new Error("Organization payroll cost centers must be mapped to an expense account and payroll liability account");
+      }
+      if (organizationId && input.expenseAccountId && input.payrollLiabilityAccountId) {
+        await validatePayrollAccounts(database, organizationId, input.expenseAccountId, input.payrollLiabilityAccountId);
+      }
       if (input.departmentId) {
         const department = await database.select({ id: departments.id })
           .from(departments)
@@ -74,6 +110,8 @@ export const payrollAllocationsRouter = router({
         id,
         organizationId,
         departmentId: input.departmentId ?? null,
+        expenseAccountId: input.expenseAccountId ?? null,
+        payrollLiabilityAccountId: input.payrollLiabilityAccountId ?? null,
         code: input.code,
         name: input.name,
         type: input.type,
@@ -90,12 +128,30 @@ export const payrollAllocationsRouter = router({
       name: z.string().trim().min(1).max(100).optional(),
       type: z.enum(["COGS", "R&D", "S&M", "G&A", "PROGRAMMATIC"]).optional(),
       departmentId: z.string().nullable().optional(),
+      expenseAccountId: z.string().min(1).nullable().optional(),
+      payrollLiabilityAccountId: z.string().min(1).nullable().optional(),
       isActive: z.boolean().optional(),
     }).refine((input) => Object.keys(input).some((key) => key !== "id"), "Provide a field to update"))
     .mutation(async ({ input, ctx }) => {
       const database = await getDb();
       if (!database) throw new Error("Database not available");
       const organizationId = requireCostCenterScope(ctx.user);
+      const [currentCenter] = await database.select({
+        expenseAccountId: payrollCostCenters.expenseAccountId,
+        payrollLiabilityAccountId: payrollCostCenters.payrollLiabilityAccountId,
+      }).from(payrollCostCenters)
+        .where(and(eq(payrollCostCenters.id, input.id), costCenterScopeCondition(organizationId)))
+        .limit(1);
+      if (!currentCenter) throw new Error("Payroll cost center not found in this scope");
+      const expenseAccountId = input.expenseAccountId === undefined
+        ? currentCenter.expenseAccountId
+        : input.expenseAccountId;
+      const payrollLiabilityAccountId = input.payrollLiabilityAccountId === undefined
+        ? currentCenter.payrollLiabilityAccountId
+        : input.payrollLiabilityAccountId;
+      if (expenseAccountId && payrollLiabilityAccountId) {
+        await validatePayrollAccounts(database, organizationId, expenseAccountId, payrollLiabilityAccountId);
+      }
       if (input.departmentId) {
         const department = await database.select({ id: departments.id })
           .from(departments)

@@ -76,7 +76,11 @@ export default function ComprehensiveReportsWorkspace() {
   const enterpriseActive = enterpriseTenants.filter((tenant: any) => tenant.isActive).length;
   const enterpriseUsers = enterpriseTenants.reduce((sum: number, tenant: any) => sum + Number(tenant.userCount || 0), 0);
   const enterpriseCapacity = enterpriseTenants.reduce((sum: number, tenant: any) => sum + (tenant.maxUsers > 0 ? tenant.maxUsers : 0), 0);
-  const loading = [invoicesQ, paymentsQ, expensesQ, clientsQ, projectsQ, employeesQ, departmentsQ, leaveQ, suppliersQ, lpoQ, ordersQ, timeQ].some((query) => query.isLoading);
+  const reportQueries = [invoicesQ, paymentsQ, expensesQ, clientsQ, projectsQ, employeesQ, departmentsQ, leaveQ, suppliersQ, lpoQ, ordersQ, timeQ];
+  const loading = reportQueries.some((query) => query.isLoading);
+  const queryErrors = reportQueries
+    .filter((query) => query.isError)
+    .map((query) => query.error?.message || "Request failed");
   const selectedYear = year === "all" ? null : Number(year);
   const reportPeriod = selectedYear === null ? "All time" : String(selectedYear);
   const inYear = (row: any) => {
@@ -293,6 +297,7 @@ export default function ComprehensiveReportsWorkspace() {
   if (loading) return <div className="flex min-h-[50vh] items-center justify-center"><Spinner className="size-8" /></div>;
   return <ModuleLayout title="Reports & Analytics" description="Comprehensive reporting across finance, CRM, projects, people, procurement, and operations" icon={<BarChart3 className="h-5 w-5" />} breadcrumbs={[{ label: "Dashboard", href: "/crm-home" }, { label: "Reports" }]} actions={<div className="flex gap-2"><Select value={exportFormat} onValueChange={(value: "csv" | "pdf") => setExportFormat(value)}><SelectTrigger className="w-32"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="pdf">PDF</SelectItem><SelectItem value="csv">CSV Data</SelectItem></SelectContent></Select><Button variant="outline" onClick={exportReport}><Download className="mr-2 h-4 w-4" />Export</Button></div>}>
     <div className="kiini-report-shell space-y-5">
+      {queryErrors.length > 0 && <Card role="alert" className="border-destructive"><CardContent className="pt-6 text-sm text-destructive">Some report data could not be loaded: {queryErrors.join("; ")}</CardContent></Card>}
       <div className="kiini-report-toolbar flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Reporting centre</p><p className="text-sm text-muted-foreground">Live operational reporting for {reportPeriod}</p></div><Select value={year} onValueChange={setYear}><SelectTrigger className="w-32"><CalendarDays className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All time</SelectItem>{[0, 1, 2].map((offset) => <SelectItem key={offset} value={String(new Date().getFullYear() - offset)}>{new Date().getFullYear() - offset}</SelectItem>)}</SelectContent></Select></div>
       <Tabs value={tab} onValueChange={setTab}><div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]"><aside className="kiini-report-sidebar h-fit p-2 lg:sticky lg:top-4"><p className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Report views</p><TabsList className="flex h-auto flex-col items-stretch justify-start gap-0 bg-transparent p-0">{TABS.map(([value, label]) => <TabsTrigger key={value} value={value} className="justify-start px-3 py-2 text-left">{label}</TabsTrigger>)}</TabsList><div className="my-2 border-t border-slate-200" /><p className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Report pages</p><nav className="space-y-0.5">{REPORT_PAGES.map(([href, label]) => <a key={href} href={href} className="block rounded-md px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">{label}</a>)}</nav></aside><div className="min-w-0">
         <Card className="mb-5 border-emerald-200 bg-emerald-50/60">

@@ -3,6 +3,8 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/PhoneInput";
+import { CountrySelect } from "@/components/LocationSelects";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -382,14 +384,7 @@ export default function CreateUser() {
                   {/* Phone */}
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="+1 (555) 000-0000"
-                      value={formData.phone}
-                      onChange={handleChange}
-                    />
+                    <PhoneInput id="phone" value={formData.phone} onChange={(phone) => setFormData({ ...formData, phone })} placeholder="700 000 000" />
                   </div>
 
                   {/* Address */}
@@ -421,14 +416,7 @@ export default function CreateUser() {
                   {/* Country */}
                   <div className="space-y-2">
                     <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      name="country"
-                      type="text"
-                      placeholder="Country"
-                      value={formData.country}
-                      onChange={handleChange}
-                    />
+                    <CountrySelect value={formData.country} onChange={(country) => setFormData({ ...formData, country })} />
                   </div>
 
                   {/* Link to Employee */}

@@ -28,11 +28,11 @@ import {
   Loader2,
   FileText,
   Zap,
-  Calendar,
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StatsCard } from "@/components/ui/stats-card";
+import { useCurrencySettings } from "@/lib/currency";
 
 interface PayrollRecord {
   id: string;
@@ -49,6 +49,7 @@ interface PayrollRecord {
 }
 
 export default function Payroll() {
+  const { formatMinorAmount } = useCurrencySettings();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -78,7 +79,7 @@ export default function Payroll() {
   const utils = trpc.useUtils();
 
   // Manual payroll automation triggers
-  const processMonthlyMut = trpc.payroll.processMonthly.useMutation();
+  const processAndPayMut = trpc.payroll.processAndPay.useMutation();
   const dispatchPayslipsMut = trpc.payroll.dispatchPayslips.useMutation();
 
   const [records, setRecords] = useState<PayrollRecord[]>([]);
@@ -293,7 +294,7 @@ export default function Payroll() {
 
   const handleProcessPayroll = () => {
     setIsProcessingPayroll(true);
-    processMonthlyMut.mutate(
+    processAndPayMut.mutate(
       {
         year: selectedYear,
         month: selectedMonth,
@@ -307,7 +308,13 @@ export default function Payroll() {
             if (result.errors.length > 3) toast.error(`${result.errors.length - 3} additional payroll errors`);
           }
           if (result.processed > 0) {
-            toast.success(`Payroll processed for ${result.processed} employees; ${result.skipped} skipped`);
+            toast.success(
+              `Payroll processed for ${result.processed}; ${result.markedPaid} marked paid; ${result.dispatched} payslips sent; ${result.skipped} skipped`
+            );
+          } else if (result.markedPaid > 0 || result.dispatched > 0) {
+            toast.success(
+              `${result.markedPaid} payroll records marked paid; ${result.dispatched} payslips sent`
+            );
           } else if (result.errors.length === 0) {
             toast.info(`No payroll records were created; ${result.skipped} employees were skipped`);
           }
@@ -371,26 +378,72 @@ export default function Payroll() {
       }
     >
       <div className="space-y-6">
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold">Payroll Generator</h2>
+              <p className="text-sm text-muted-foreground">
+                Generate payroll for {new Date(selectedYear, selectedMonth - 1).toLocaleString("en-US", { month: "long" })} {selectedYear}, create and send payslips, and mark payroll paid when a payslip is saved.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(Number(value))}>
+                <SelectTrigger aria-label="Payroll month" className="w-32 bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
+                    <SelectItem key={month} value={month.toString()}>
+                      {new Date(2024, month - 1).toLocaleString("en-US", { month: "long" })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
+                <SelectTrigger aria-label="Payroll year" className="w-24 bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[selectedYear - 1, selectedYear, selectedYear + 1].map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                data-testid="generate-payroll-button"
+                onClick={handleProcessPayroll}
+                disabled={isProcessingPayroll || isDispatchingPayslips}
+                title="Processes the selected period, generates and sends payslips, then marks payroll with a saved payslip as paid."
+                className="gap-2"
+              >
+                {isProcessingPayroll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                {isProcessingPayroll ? "Generating..." : "Generate Payroll & Payslips"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Statistics Cards */}
         <div className="grid gap-4 md:grid-cols-4">
           <StatsCard
             label="Gross Pay"
-            value={<>Ksh {(totalGrossPay / 100).toLocaleString()}</>}
+            value={formatMinorAmount(totalGrossPay, { maximumFractionDigits: 0 })}
             icon={<DollarSign className="h-5 w-5" />}
             color="border-l-blue-500"
           />
 
           <StatsCard
             label="Deductions"
-            value={<>Ksh {(totalDeductions / 100).toLocaleString()}</>}
+            value={formatMinorAmount(totalDeductions, { maximumFractionDigits: 0 })}
             icon={<DollarSign className="h-5 w-5" />}
             color="border-l-red-500"
           />
 
           <StatsCard
             label="Net Pay"
-            value={<>Ksh {(totalNetPay / 100).toLocaleString()}</>}
+            value={formatMinorAmount(totalNetPay, { maximumFractionDigits: 0 })}
             icon={<DollarSign className="h-5 w-5" />}
             color="border-l-green-500"
           />
@@ -406,66 +459,11 @@ export default function Payroll() {
               Payroll Automation
             </CardTitle>
             <CardDescription>
-              Payroll processing on the 21st of each month at 08:00 AM EAT • Payslips are generated and dispatched on the last day of the month at 12:00 AM EAT
+              Payroll processing is scheduled on the 21st of each month at 08:00 AM EAT. Payslips are dispatched on the last day of the month.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Process Payroll Manual Trigger */}
-              <div className="space-y-3 p-3 border rounded-lg bg-white dark:bg-slate-900">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-blue-600" />
-                  <h3 className="font-semibold text-sm">Process Monthly Payroll</h3>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Manually trigger payroll processing for a specific month. All active employees will be included and budget costs will be automatically deducted.
-                </p>
-                <div className="flex items-center gap-2">
-                  <Select value={selectedMonth.toString()} onValueChange={(val) => setSelectedMonth(parseInt(val))}>
-                    <SelectTrigger className="w-24 h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                        <SelectItem key={month} value={month.toString()}>
-                          {new Date(2024, month - 1).toLocaleString("en-US", { month: "short" })}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={selectedYear.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
-                    <SelectTrigger className="w-20 h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[2024, 2025, 2026].map((year) => (
-                        <SelectItem key={year} value={year.toString()}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    onClick={handleProcessPayroll}
-                    disabled={isProcessingPayroll}
-                    size="sm"
-                    className="gap-2 bg-blue-600 hover:bg-blue-700"
-                  >
-                    {isProcessingPayroll ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="h-3 w-3" />
-                        Process Now
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-
+            <div className="grid gap-4">
               {/* Dispatch Payslips Manual Trigger */}
               <div className="space-y-3 p-3 border rounded-lg bg-white dark:bg-slate-900">
                 <div className="flex items-center gap-2">
@@ -476,30 +474,6 @@ export default function Payroll() {
                   Complete any missing payroll processing for this month, then generate payslips and email them to employees.
                 </p>
                 <div className="flex items-center gap-2">
-                  <Select value={selectedMonth.toString()} onValueChange={(val) => setSelectedMonth(parseInt(val))}>
-                    <SelectTrigger className="w-24 h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                        <SelectItem key={month} value={month.toString()}>
-                          {new Date(2024, month - 1).toLocaleString("en-US", { month: "short" })}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={selectedYear.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
-                    <SelectTrigger className="w-20 h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[2024, 2025, 2026].map((year) => (
-                        <SelectItem key={year} value={year.toString()}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                   <Button
                     onClick={handleDispatchPayslips}
                     disabled={isDispatchingPayslips}
@@ -525,7 +499,7 @@ export default function Payroll() {
             <div className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-900/30 rounded text-xs text-muted-foreground">
               <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
               <div>
-                <strong>Note:</strong> Payroll is processed on the 21st of each month at 08:00 AM EAT. On the last day of the month at 12:00 AM EAT, the system completes any missing payroll records before generating and dispatching payslips. Use the buttons above to run either step manually for a selected month.
+                <strong>Note:</strong> The selected month can be processed manually from the Payroll button above. Processing generates and sends payslips, then marks only payroll records with a saved payslip as paid. Scheduled payroll processing and payslip dispatch continue to run automatically each month.
               </div>
             </div>
           </CardContent>
@@ -747,19 +721,19 @@ export default function Payroll() {
                         </div>
                         <div>
                           <span className="text-muted-foreground">Basic Salary:</span>
-                          <div className="font-medium">Ksh {(record.basicSalary / 100).toLocaleString()}</div>
+                          <div className="font-medium">{formatMinorAmount(record.basicSalary, { maximumFractionDigits: 0 })}</div>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Allowances:</span>
-                          <div className="font-medium text-green-600">+Ksh {(record.allowances / 100).toLocaleString()}</div>
+                          <div className="font-medium text-green-600">+{formatMinorAmount(record.allowances, { maximumFractionDigits: 0 })}</div>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Deductions:</span>
-                          <div className="font-medium text-red-600">-Ksh {(record.deductions / 100).toLocaleString()}</div>
+                          <div className="font-medium text-red-600">-{formatMinorAmount(record.deductions, { maximumFractionDigits: 0 })}</div>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Net Salary:</span>
-                          <div className="font-bold text-lg">Ksh {(record.netSalary / 100).toLocaleString()}</div>
+                          <div className="font-bold text-lg">{formatMinorAmount(record.netSalary, { maximumFractionDigits: 0 })}</div>
                         </div>
                       </div>
                       <Badge variant={getStatusVariant(record.status)} className="gap-1">

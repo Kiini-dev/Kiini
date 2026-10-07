@@ -6,12 +6,14 @@ const {
   createNotificationMock,
   getCompanyInfoMock,
   sendEmailImmediatelyMock,
+  recordPayrollCostAllocationMock,
 } = vi.hoisted(() => ({
   getDbMock: vi.fn(),
   getPoolMock: vi.fn(),
   createNotificationMock: vi.fn(),
   getCompanyInfoMock: vi.fn(),
   sendEmailImmediatelyMock: vi.fn(),
+  recordPayrollCostAllocationMock: vi.fn(),
 }));
 
 vi.mock("../db", () => ({
@@ -21,9 +23,12 @@ vi.mock("../db", () => ({
 }));
 vi.mock("../utils/company-info", () => ({ getCompanyInfo: getCompanyInfoMock }));
 vi.mock("../services/emailService", () => ({ sendEmailImmediately: sendEmailImmediatelyMock }));
+vi.mock("../services/payrollCostAllocationService", () => ({
+  recordPayrollCostAllocation: recordPayrollCostAllocationMock,
+}));
 
 import { employees, payroll, users } from "../../drizzle/schema";
-import { dispatchPayslips } from "./payrollJobs";
+import { dispatchPayslips, processAndPayPayroll, processMonthlyPayroll } from "./payrollJobs";
 
 describe("dispatchPayslips", () => {
   afterEach(() => vi.clearAllMocks());
@@ -95,5 +100,84 @@ describe("dispatchPayslips", () => {
     const retry = await dispatchPayslips(2026, 6);
     expect(retry.dispatched).toBe(0);
     expect(sendEmailImmediatelyMock).toHaveBeenCalledOnce();
+  });
+
+  it("marks only payroll records with a generated payslip as paid, scoped to the organization", async () => {
+    const pool = {
+      query: vi.fn(async () => [{ affectedRows: 3 }, []]),
+    };
+    getDbMock.mockResolvedValue(null);
+    getPoolMock.mockReturnValue(pool);
+
+    const result = await processAndPayPayroll(2026, 6, "user-1", "org-1");
+
+    expect(result).toEqual({
+      processed: 0,
+      skipped: 0,
+      dispatched: 0,
+      markedPaid: 3,
+      errors: ["Payroll: Database not available", "Database not available"],
+    });
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining("INNER JOIN payslips s ON CONVERT(s.payrollId USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(p.id USING utf8mb4) COLLATE utf8mb4_unicode_ci AND s.payPeriod = ?"),
+      [
+        "2026-06",
+        expect.any(String),
+        expect.any(String),
+        new Date(2026, 5, 1).toISOString().replace("T", " ").slice(0, 19),
+        "org-1",
+      ],
+    );
+    expect(pool.query.mock.calls[0][0]).toContain("CONVERT(e.id USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(p.employeeId USING utf8mb4) COLLATE utf8mb4_unicode_ci");
+    expect(pool.query.mock.calls[0][0]).toContain("e.organizationId = ?");
+  });
+
+  describe("processMonthlyPayroll", () => {
+    afterEach(() => vi.clearAllMocks());
+
+    it("uses cost-center allocations when an employee's legacy department has no match", async () => {
+      const employee = {
+        id: "employee-1",
+        organizationId: "org-1",
+        firstName: "Joshua",
+        lastName: "Fidel",
+        department: "Legacy department label",
+        salary: 50000,
+        status: "active",
+      };
+      const dbRows = (table: unknown) => table === employees ? [employee] : [];
+      const db = {
+        select: vi.fn(() => ({
+          from: vi.fn((table: unknown) => ({
+            where: vi.fn(() => {
+              const rows = dbRows(table);
+              return {
+                limit: async () => table === payroll ? [] : rows,
+                then: (resolve: (value: unknown[]) => unknown) => Promise.resolve(rows).then(resolve),
+              };
+            }),
+          })),
+        })),
+        transaction: vi.fn(async (callback: (transaction: any) => Promise<unknown>) => callback({
+          insert: vi.fn(() => ({ values: vi.fn(async () => undefined) })),
+        })),
+      };
+      getDbMock.mockResolvedValue(db);
+      getPoolMock.mockReturnValue({ query: vi.fn(async () => [[], []]) });
+      recordPayrollCostAllocationMock.mockResolvedValue({ budgetSplits: [] });
+
+      const result = await processMonthlyPayroll(2026, 6, "user-1", "org-1");
+
+      expect(result).toMatchObject({ processed: 1, skipped: 0, errors: [] });
+      expect(recordPayrollCostAllocationMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          organizationId: "org-1",
+          employeeId: "employee-1",
+          employeeDepartmentId: null,
+        }),
+      );
+      expect(db.transaction).toHaveBeenCalledOnce();
+    });
   });
 });

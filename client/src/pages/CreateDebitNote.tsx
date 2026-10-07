@@ -19,6 +19,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { FileMinus, Plus, Trash2 } from "lucide-react";
+import { SupplierSelector } from "@/components/SupplierSelector";
 
 interface LineItem {
   id: string;
@@ -122,8 +123,10 @@ export default function CreateDebitNote() {
               <Input id="issueDate" type="date" value={formData.issueDate} onChange={(e) => update("issueDate", e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="supplierName">Supplier Name *</Label>
-              <Input id="supplierName" value={formData.supplierName} onChange={(e) => update("supplierName", e.target.value)} required />
+              <SupplierSelector label="Supplier Name" value={formData.supplierName} onChange={(supplierName, supplierId) => {
+                update("supplierName", supplierName);
+                update("supplierId", supplierId || "unknown");
+              }} required />
             </div>
             <div>
               <Label htmlFor="reason">Reason *</Label>

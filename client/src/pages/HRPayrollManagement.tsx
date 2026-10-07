@@ -33,6 +33,7 @@ import {
   Upload,
   Eye,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { StatsCard } from "@/components/ui/stats-card";
 import { useCurrencySettings } from "@/lib/currency";
@@ -70,6 +71,7 @@ export default function HRPayrollManagement() {
   const deleteDeductionMutation = trpc.payroll.deductions.delete.useMutation();
   const deleteBenefitMutation = trpc.payroll.benefits.delete.useMutation();
   const processPayrollMutation = trpc.payroll.processMonthly.useMutation();
+  const generatePayrollMutation = trpc.payroll.processAndPay.useMutation();
 
   const handleProcessPayroll = async () => {
     const [year, month] = payrollPeriod.split("-").map(Number);
@@ -85,6 +87,25 @@ export default function HRPayrollManagement() {
       }
     } catch (error: any) {
       toast.error(`Payroll processing failed: ${error?.message || "Unknown error"}`);
+    }
+  };
+
+  const handleGeneratePayroll = async () => {
+    const [year, month] = payrollPeriod.split("-").map(Number);
+    try {
+      const result = await generatePayrollMutation.mutateAsync({ year, month });
+      await utils.payroll.list.invalidate();
+      result.errors.slice(0, 3).forEach((message) => toast.error(message));
+      if (result.errors.length > 3) toast.error(`${result.errors.length - 3} additional payroll errors`);
+      if (result.processed > 0 || result.dispatched > 0 || result.markedPaid > 0) {
+        toast.success(
+          `Generated payroll for ${result.processed} employees; sent ${result.dispatched} payslips; marked ${result.markedPaid} paid; ${result.skipped} skipped`
+        );
+      } else if (result.errors.length === 0) {
+        toast.info(`No payroll records were generated; ${result.skipped} employees were skipped`);
+      }
+    } catch (error: any) {
+      toast.error(`Payroll generation failed: ${error?.message || "Unknown error"}`);
     }
   };
 
@@ -593,6 +614,17 @@ export default function HRPayrollManagement() {
                     >
                       <Zap className="mr-2 h-4 w-4" />
                       {processPayrollMutation.isPending ? "Processing..." : "Process Payroll"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => void handleGeneratePayroll()}
+                      disabled={!payrollPeriod || generatePayrollMutation.isPending || processPayrollMutation.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {generatePayrollMutation.isPending
+                        ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        : <Plus className="mr-2 h-4 w-4" />}
+                      {generatePayrollMutation.isPending ? "Generating..." : "Generate Payroll"}
                     </Button>
                   </div>
                   <div className="flex gap-2">

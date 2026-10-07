@@ -3,12 +3,13 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ModuleLayout } from "@/components/ModuleLayout";
+import { ReportNavigation } from "@/components/ReportNavigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
-import { ArrowDownLeft, ArrowUpRight, BookOpen, Calculator, Loader2, Plus, RotateCcw, Save, ShieldCheck } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, BookOpen, Calculator, Download, Loader2, Plus, RotateCcw, Save, ShieldCheck } from "lucide-react";
 
 const rateMetricOptions = [
   ["projectsCount", "Projects"],
@@ -49,12 +50,21 @@ export default function IncomeLedger() {
   const isPlatformAdmin = user?.role === "super_admin" && !user?.organizationId;
   const initialScope = orgWorkspace || user?.organizationId ? "tenant_income" : "company_income";
   const [scope, setScope] = useState<"tenant_income" | "company_income" | "saas_revenue">(initialScope);
+  const effectiveRole = user?.effectiveRole || user?.role || "";
+  const canOffsetIncomeEntries = isPlatformAdmin || (
+    scope === "tenant_income"
+    && (
+      ["admin", "accountant"].includes(effectiveRole)
+      || user?.effectivePermissions?.some(permission => ["accounting:edit", "accounting:*"].includes(permission))
+    )
+  );
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [showRateCards, setShowRateCards] = useState(false);
   const [selectedRateCardId, setSelectedRateCardId] = useState("");
   const [isCreatingRateCard, setIsCreatingRateCard] = useState(false);
   const [rateCardDraft, setRateCardDraft] = useState(defaultRateCard);
+  const utils = trpc.useUtils();
 
   useEffect(() => {
     if (!orgWorkspace && user?.organizationId && user.organizationSlug) {
@@ -87,6 +97,13 @@ export default function IncomeLedger() {
   const offsetEntry = trpc.incomeLedger.offsetSaaSCharge.useMutation({
     onSuccess: async result => {
       toast.success(result.created ? `Offset ${result.entryNumber} posted.` : `This charge already has offset ${result.entryNumber}.`);
+      await ledgerQuery.refetch();
+    },
+    onError: error => toast.error(`Could not post offset: ${error.message}`),
+  });
+  const offsetJournalEntry = trpc.incomeLedger.offsetJournalEntry.useMutation({
+    onSuccess: async result => {
+      toast.success(result.created ? `Offset ${result.entryNumber} posted.` : `This entry already has offset ${result.entryNumber}.`);
       await ledgerQuery.refetch();
     },
     onError: error => toast.error(`Could not post offset: ${error.message}`),
@@ -181,10 +198,82 @@ export default function IncomeLedger() {
     offsetEntry.mutate({ entryId: entry.id, reason });
   }
 
+  function requestJournalOffset(entry: any) {
+    const reason = window.prompt(`Reason for offsetting ${entry.entryNumber} (at least 5 characters):`);
+    if (reason == null) return;
+    if (scope === "saas_revenue") return;
+    offsetJournalEntry.mutate({ scope, entryId: entry.id, reason });
+  }
+
   function formatSaaSTotals(kind: "debitCents" | "creditCents") {
     const currencyTotals = (totals?.totalsByCurrency || []) as Array<{ currency: string; debitCents: number; creditCents: number }>;
     if (currencyTotals.length === 0) return amount(0, entryCurrency);
     return currencyTotals.map(item => amount(item[kind], item.currency)).join(" · ");
+  }
+
+  async function exportLedger() {
+    try {
+      const exportedEntries: any[] = [];
+      const pageSize = 200;
+      let offset = 0;
+      let total = Number(totals?.total || 0);
+      do {
+        const page = await utils.incomeLedger.list.fetch({
+          scope,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          limit: pageSize,
+          offset,
+        });
+        exportedEntries.push(...page.entries);
+        total = page.total;
+        offset += page.entries.length;
+        if (page.entries.length === 0) break;
+      } while (offset < total);
+
+      const columns = [
+        "Date", "Entry number", "Entry ID", "Source", "Reference", "Description",
+        "Organization ID", "Status", "Account code", "Account name",
+        "Debit (minor units)", "Credit (minor units)", "Currency", "Offset posted",
+      ];
+      const csvCell = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+      const records = exportedEntries.flatMap(entry => {
+        const lines = entry.lines?.length ? entry.lines : [{
+          accountCode: "",
+          accountName: "No ledger lines",
+          debit: 0,
+          credit: 0,
+          debitCents: 0,
+          creditCents: 0,
+        }];
+        return lines.map((line: any) => [
+          dateOnly(entry.entryDate),
+          entry.entryNumber,
+          entry.id,
+          entry.entrySource === "invoice_payment" ? "Invoice payment (payment record)" : entry.referenceType || entry.sourceType || entry.entrySource,
+          entry.reference || entry.referenceId,
+          entry.description,
+          entry.organizationId,
+          entry.status,
+          line.accountCode,
+          line.accountName,
+          line.debitCents ?? line.debit ?? 0,
+          line.creditCents ?? line.credit ?? 0,
+          entry.currency || "KES",
+          entry.hasOffset ? "Yes" : "No",
+        ].map(csvCell).join(","));
+      });
+      const blob = new Blob([[columns.map(csvCell).join(","), ...records].join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `income-ledger-${scope}-${startDate || "all"}-to-${endDate || "all"}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${exportedEntries.length} ledger entries.`);
+    } catch (error) {
+      toast.error(`Could not export income ledger: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
   }
 
   return (
@@ -198,7 +287,9 @@ export default function IncomeLedger() {
         { label: "Income Ledger" },
       ]}
     >
-      <div className="space-y-6">
+      <div className="kiini-report-shell grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <ReportNavigation active="/income-ledger" />
+      <div className="min-w-0 space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Ledger scope</p>
@@ -218,6 +309,14 @@ export default function IncomeLedger() {
             </div>
           </div>
           <div className="flex flex-wrap items-end gap-2">
+            <Button variant="outline" onClick={exportLedger} disabled={ledgerQuery.isFetching}>
+              <Download className="mr-2 h-4 w-4" />Export CSV
+            </Button>
+            <Button variant="outline" onClick={() => navigate(orgWorkspace
+              ? `/org/${user?.organizationSlug || ""}/finance/reports`
+              : "/finance/reports")}>
+              View Profit &amp; Loss
+            </Button>
             <label className="grid gap-1 text-xs text-muted-foreground">From<Input type="date" value={startDate} onChange={event => setStartDate(event.target.value)} /></label>
             <label className="grid gap-1 text-xs text-muted-foreground">To<Input type="date" value={endDate} onChange={event => setEndDate(event.target.value)} /></label>
             {isPlatformAdmin && scope === "saas_revenue" && (
@@ -252,7 +351,7 @@ export default function IncomeLedger() {
                   <thead><tr className="border-b text-left text-muted-foreground">
                     <th className="p-3">Date</th><th className="p-3">Reference</th><th className="p-3">Description</th>
                     {scope === "saas_revenue" && <th className="p-3">Workspace</th>}
-                    <th className="p-3 text-right">Debit</th><th className="p-3 text-right">Credit</th><th className="p-3">Details</th>
+                    <th className="p-3 text-right">Debit</th><th className="p-3 text-right">Credit</th><th className="p-3">Double-entry</th><th className="p-3">Actions</th><th className="p-3">Details</th>
                   </tr></thead>
                   <tbody>
                     {entries.map((entry: any) => {
@@ -271,12 +370,29 @@ export default function IncomeLedger() {
                           {scope === "saas_revenue" && <td className="p-3">{entry.organizationName || entry.organizationId || "—"}</td>}
                           <td className="whitespace-nowrap p-3 text-right">{amount(debitCents, currency)}</td>
                           <td className="whitespace-nowrap p-3 text-right">{amount(creditCents, currency)}</td>
+                          <td className="max-w-sm p-3 text-xs">
+                            {entry.lines?.length ? (
+                              <div className="space-y-1">
+                                <p><span className="font-medium">Debit:</span> {entry.lines.filter((line: any) => Number(line.debitCents ?? line.debit ?? 0) > 0).map((line: any) => `${line.accountCode || line.accountId || "—"} ${line.accountName ? `· ${line.accountName}` : ""} (${amount(line.debitCents ?? line.debit, currency)})`).join("; ") || "—"}</p>
+                                <p><span className="font-medium">Credit:</span> {entry.lines.filter((line: any) => Number(line.creditCents ?? line.credit ?? 0) > 0).map((line: any) => `${line.accountCode || line.accountId || "—"} ${line.accountName ? `· ${line.accountName}` : ""} (${amount(line.creditCents ?? line.credit, currency)})`).join("; ") || "—"}</p>
+                              </div>
+                            ) : <span className="text-muted-foreground">No posted journal lines</span>}
+                            {entry.entrySource === "invoice_payment" && <p className="mt-2 text-amber-700">Derived from payment record; not posted to the journal.</p>}
+                          </td>
                           <td className="p-3">
-                            {scope === "saas_revenue" && isPlatformAdmin && entry.entryType === "charge" && !entry.hasOffset && (
-                              <Button variant="outline" size="sm" className="mb-2" disabled={offsetEntry.isPending} onClick={() => requestOffset(entry)}>
+                            {scope === "saas_revenue" && isPlatformAdmin && entry.entryType === "charge" && !entry.hasOffset ? (
+                              <Button variant="outline" size="sm" className="mb-2" disabled={offsetEntry.isPending || offsetJournalEntry.isPending} onClick={() => requestOffset(entry)}>
                                 <RotateCcw className="mr-2 h-3.5 w-3.5" />Post offset
                               </Button>
-                            )}
+                            ) : null}
+                            {scope !== "saas_revenue" && canOffsetIncomeEntries && entry.entrySource === "journal"
+                              && entry.referenceType !== "income_ledger_reversal" && !entry.hasOffset ? (
+                              <Button variant="outline" size="sm" className="mb-2" disabled={offsetJournalEntry.isPending} onClick={() => requestJournalOffset(entry)}>
+                                <RotateCcw className="mr-2 h-3.5 w-3.5" />Reverse with offset
+                              </Button>
+                            ) : null}
+                          </td>
+                          <td className="p-3">
                             <details>
                               <summary className="cursor-pointer text-primary">Lines</summary>
                               <div className="mt-2 min-w-64 space-y-2">
@@ -367,6 +483,7 @@ export default function IncomeLedger() {
             </CardContent>
           </Card>
         )}
+      </div>
       </div>
     </ModuleLayout>
   );

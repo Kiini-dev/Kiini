@@ -27,6 +27,7 @@ import { trpc } from "@/lib/trpc";
 import { SummaryStatCards } from "@/components/list-page/SummaryStatCards";
 import { TableColumnSettings, useColumnVisibility, type ColumnConfig } from "@/components/list-page/TableColumnSettings";
 import { PaginationControls, usePagination } from "@/components/ui/data-table-controls";
+import { SupplierSelector } from "@/components/SupplierSelector";
 
 const emptyForm = { grnNo: "", supplier: "", invNo: "", receivedDate: "", items: "", value: "", status: "pending" as const, notes: "" };
 
@@ -36,7 +37,7 @@ function GRNFormFields({ form, setForm }: { form: GRNFormData; setForm: React.Di
   return (
     <div className="grid gap-4 py-2">
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1"><Label>Supplier *</Label><Input value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))} placeholder="Supplier name" /></div>
+        <SupplierSelector value={form.supplier} onChange={supplier => setForm(f => ({ ...f, supplier }))} required />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1"><Label>Invoice Number</Label><Input value={form.invNo} onChange={e => setForm(f => ({ ...f, invNo: e.target.value }))} placeholder="INV-001" /></div>

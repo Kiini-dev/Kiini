@@ -1,3 +1,4 @@
+import { formatCurrencyAmount } from "../../shared/currency";
 type Database = any;
 
 // Supported currencies with their properties
@@ -157,14 +158,11 @@ export class CurrencyService {
     currency: CurrencyCode,
     locale: string = 'en-US'
   ): string {
-    const formatter = new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currency,
+    return formatCurrencyAmount(amount, currency, {
+      locale,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-
-    return formatter.format(amount);
   }
 
   /**

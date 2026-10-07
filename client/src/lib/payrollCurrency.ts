@@ -1,4 +1,8 @@
+import { toMajorCurrencyAmount } from "../../../shared/currency";
+
 export function payrollCentsToCurrency(value: unknown): number {
-  const amount = Number(value ?? 0);
-  return Number.isFinite(amount) ? amount / 100 : 0;
+  if (typeof value !== "number" && typeof value !== "string" && value !== null && value !== undefined) {
+    return 0;
+  }
+  return toMajorCurrencyAmount(value, "minor");
 }

@@ -4,6 +4,7 @@ import { getDb } from '../db';
 import { estimates, estimateItems, clients } from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { addCompanyLogo, getCompanyInfo } from './company-info';
+import { formatMinorCurrencyAmount } from '../../shared/currency';
 
 /**
  * Generate an estimate PDF buffer
@@ -107,10 +108,10 @@ export async function generateEstimatePDF(estimateId: string): Promise<Buffer> {
   const tableData = items.map((item) => [
     item.description || '',
     item.quantity.toString(),
-    `KES ${(item.unitPrice / 100).toFixed(2)}`,
+    formatMinorCurrencyAmount(item.unitPrice, 'KES', { symbol: 'KES', minimumFractionDigits: 2 }),
     `${item.taxRate || 0}%`,
     `${item.discountPercent || 0}%`,
-    `KES ${(item.total / 100).toFixed(2)}`,
+    formatMinorCurrencyAmount(item.total, 'KES', { symbol: 'KES', minimumFractionDigits: 2 }),
   ]);
 
   autoTable(doc, {
@@ -146,16 +147,16 @@ export async function generateEstimatePDF(estimateId: string): Promise<Buffer> {
   doc.setTextColor(60, 60, 60);
 
   doc.text('Subtotal:', 130, totalsStartY);
-  doc.text(`KES ${(estimate.subtotal / 100).toFixed(2)}`, 170, totalsStartY, { align: 'right' });
+  doc.text(formatMinorCurrencyAmount(estimate.subtotal, 'KES', { symbol: 'KES', minimumFractionDigits: 2 }), 170, totalsStartY, { align: 'right' });
 
   if (estimate.taxAmount && estimate.taxAmount > 0) {
     doc.text('Tax:', 130, totalsStartY + 7);
-    doc.text(`KES ${(estimate.taxAmount / 100).toFixed(2)}`, 170, totalsStartY + 7, { align: 'right' });
+    doc.text(formatMinorCurrencyAmount(estimate.taxAmount, 'KES', { symbol: 'KES', minimumFractionDigits: 2 }), 170, totalsStartY + 7, { align: 'right' });
   }
 
   if (estimate.discountAmount && estimate.discountAmount > 0) {
     doc.text('Discount:', 130, totalsStartY + 14);
-    doc.text(`-KES ${(estimate.discountAmount / 100).toFixed(2)}`, 170, totalsStartY + 14, { align: 'right' });
+    doc.text(`-${formatMinorCurrencyAmount(estimate.discountAmount, 'KES', { symbol: 'KES', minimumFractionDigits: 2 })}`, 170, totalsStartY + 14, { align: 'right' });
   }
 
   // Total line
@@ -164,7 +165,7 @@ export async function generateEstimatePDF(estimateId: string): Promise<Buffer> {
   doc.setFont('helvetica', 'bold');
   const totalY = estimate.taxAmount || estimate.discountAmount ? totalsStartY + 21 : totalsStartY + 7;
   doc.text('Total:', 130, totalY);
-  doc.text(`KES ${(estimate.total / 100).toFixed(2)}`, 170, totalY, { align: 'right' });
+  doc.text(formatMinorCurrencyAmount(estimate.total, 'KES', { symbol: 'KES', minimumFractionDigits: 2 }), 170, totalY, { align: 'right' });
 
   // Add notes if available
   if (estimate.notes) {

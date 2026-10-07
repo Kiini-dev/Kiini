@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { toMajorCurrencyAmount } from '../../shared/currency';
 
 /**
  * Interface for KRA P9 Form data
@@ -234,34 +235,34 @@ export function generateP9Form(data: P9FormData): string {
           </tr>
           <tr>
             <td>Gross Salary</td>
-            <td class="amount">${(data.grossSalary / 100).toLocaleString('en-KE', {minimumFractionDigits: 2})}</td>
+            <td class="amount">${toMajorCurrencyAmount(data.grossSalary, 'minor').toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
           </tr>
           <tr style="background: #f9f9f9;">
             <td colspan="2" style="font-weight: bold;">Statutory Deductions:</td>
           </tr>
           <tr>
             <td>PAYE (Income Tax)</td>
-            <td class="amount">${(data.paye / 100).toLocaleString('en-KE', {minimumFractionDigits: 2})}</td>
+            <td class="amount">${toMajorCurrencyAmount(data.paye, 'minor').toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
           </tr>
           <tr>
             <td>NSSF Contribution</td>
-            <td class="amount">${(data.nssf / 100).toLocaleString('en-KE', {minimumFractionDigits: 2})}</td>
+            <td class="amount">${toMajorCurrencyAmount(data.nssf, 'minor').toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
           </tr>
           <tr>
             <td>SHIF/NHIF Contribution</td>
-            <td class="amount">${(data.shif / 100).toLocaleString('en-KE', {minimumFractionDigits: 2})}</td>
+            <td class="amount">${toMajorCurrencyAmount(data.shif, 'minor').toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
           </tr>
           <tr>
             <td>Housing Levy</td>
-            <td class="amount">${(data.housingLevy / 100).toLocaleString('en-KE', {minimumFractionDigits: 2})}</td>
+            <td class="amount">${toMajorCurrencyAmount(data.housingLevy, 'minor').toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
           </tr>
           <tr style="background: #f0f0f0; font-weight: bold;">
             <td>Total Deductions</td>
-            <td class="amount">${(data.totalDeductions / 100).toLocaleString('en-KE', {minimumFractionDigits: 2})}</td>
+            <td class="amount">${toMajorCurrencyAmount(data.totalDeductions, 'minor').toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
           </tr>
           <tr style="background: #e8f5e9; font-weight: bold;">
             <td>NET INCOME TO EMPLOYEE</td>
-            <td class="amount">${(data.netIncome / 100).toLocaleString('en-KE', {minimumFractionDigits: 2})}</td>
+            <td class="amount">${toMajorCurrencyAmount(data.netIncome, 'minor').toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
           </tr>
         </table>
 

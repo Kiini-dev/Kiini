@@ -39,10 +39,12 @@ import {
   DollarSign,
   TrendingUp,
   AlertCircle,
+  Eye,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { StatsCard } from "@/components/ui/stats-card";
+import { useCurrencySettings } from "@/lib/currency";
 
 interface AllowanceRecord {
   id: string;
@@ -58,6 +60,7 @@ interface AllowanceRecord {
 
 export default function AllowancesManagement() {
   const [, navigate] = useLocation();
+  const { formatMinorAmount } = useCurrencySettings();
   const utils = trpc.useUtils();
   const [searchQuery, setSearchQuery] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState("__all__");
@@ -108,6 +111,13 @@ export default function AllowancesManagement() {
     onError: (error: any) => {
       toast.error(`Failed to delete allowance: ${error.message}`);
     },
+  });
+  const statusMutation = trpc.payroll.setCompensationItemActive.useMutation({
+    onSuccess: async () => {
+      await Promise.all([utils.payroll.allowances.list.invalidate(), utils.payroll.employeePackage.invalidate()]);
+      toast.success("Allowance status updated");
+    },
+    onError: (error: any) => toast.error(error.message || "Failed to update allowance status"),
   });
 
   const records: AllowanceRecord[] = allowances.map((a: any) => ({
@@ -168,6 +178,12 @@ export default function AllowancesManagement() {
   };
 
   const totalAmount = filteredRecords.reduce((sum, r) => sum + r.amount, 0);
+  const monthlyEquivalent = records.filter((record) => record.isActive).reduce((sum, record) => {
+    if (record.frequency === "quarterly") return sum + Math.round(record.amount / 3);
+    if (record.frequency === "annual") return sum + Math.round(record.amount / 12);
+    if (record.frequency === "one_time") return sum;
+    return sum + record.amount;
+  }, 0);
   const activeCount = records.filter((r) => r.isActive).length;
   const frequencyBreakdown = {
     monthly: records.filter((r) => r.frequency === "monthly" && r.isActive).length,
@@ -194,9 +210,9 @@ export default function AllowancesManagement() {
         <div className="grid gap-4 md:grid-cols-4">
           <StatsCard label="Active Allowances" value={activeCount} color="border-l-purple-500" />
 
-          <StatsCard label="Total Monthly" value={<>Ksh {(frequencyBreakdown.monthly * 1000).toLocaleString()}</>} color="border-l-green-500" />
+          <StatsCard label="Monthly equivalent" value={formatMinorAmount(monthlyEquivalent)} color="border-l-green-500" />
 
-          <StatsCard label="Filtered Total" value={<>Ksh {totalAmount.toLocaleString()}</>} color="border-l-blue-500" />
+          <StatsCard label="Filtered total" value={formatMinorAmount(totalAmount)} color="border-l-blue-500" />
 
           <Card>
             <CardHeader className="pb-2">
@@ -346,7 +362,7 @@ export default function AllowancesManagement() {
                   <TableRow>
                     <TableHead>Employee</TableHead>
                     <TableHead>Allowance Type</TableHead>
-                    <TableHead>Amount (Ksh)</TableHead>
+                    <TableHead>Amount</TableHead>
                     <TableHead>Frequency</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -364,7 +380,7 @@ export default function AllowancesManagement() {
                       <TableRow key={record.id}>
                         <TableCell className="font-medium">{record.employeeName}</TableCell>
                         <TableCell>{record.allowanceType}</TableCell>
-                        <TableCell>{record.amount.toLocaleString()}</TableCell>
+                        <TableCell>{formatMinorAmount(record.amount)}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="capitalize">
                             {record.frequency.replace("_", " ")}
@@ -377,6 +393,17 @@ export default function AllowancesManagement() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" aria-label="View allowance details" onClick={() => navigate(`/payroll/allowances/${record.id}`)}>
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={statusMutation.isPending}
+                              onClick={() => statusMutation.mutate({ kind: "allowance", id: record.id, isActive: !record.isActive })}
+                            >
+                              {record.isActive ? "Deactivate" : "Activate"}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -478,4 +505,3 @@ export default function AllowancesManagement() {
     </ModuleLayout>
   );
 }
-

@@ -8,8 +8,13 @@ import { settings } from "../../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { getCompanyInfo } from "../utils/company-info";
 import { renderNotificationTemplate } from "../services/notificationRenderer";
+import { formatMinorCurrencyAmount } from "../../shared/currency";
 
 const notificationCreateProcedure = createFeatureRestrictedProcedure("notifications:create");
+
+function formatNotificationAmount(amount: number): string {
+  return formatMinorCurrencyAmount(amount, "KES", { symbol: "Ksh" });
+}
 
 // Map event types to notification preference keys (from Settings → Notifications)
 const EVENT_TO_PREF_KEY: Record<string, string> = {
@@ -169,7 +174,7 @@ export const emailNotificationRouter = router({
         <h2>New Invoice Created</h2>
         <p>Invoice <strong>${input.invoiceNumber}</strong> has been created for <strong>${input.clientName}</strong>.</p>
         <ul>
-          <li><strong>Amount:</strong> Ksh ${(input.amount / 100).toLocaleString("en-KE")}</li>
+          <li><strong>Amount:</strong> ${formatNotificationAmount(input.amount)}</li>
           <li><strong>Due Date:</strong> ${input.dueDate}</li>
         </ul>
         <p><a href="/invoices/${input.invoiceId}">View Invoice</a></p>
@@ -208,7 +213,7 @@ export const emailNotificationRouter = router({
         <p>Hello ${input.clientName},</p>
         <p>We have sent you invoice <strong>${input.invoiceNumber}</strong>.</p>
         <ul>
-          <li><strong>Amount:</strong> Ksh ${(input.amount / 100).toLocaleString("en-KE")}</li>
+          <li><strong>Amount:</strong> ${formatNotificationAmount(input.amount)}</li>
           <li><strong>Due Date:</strong> ${input.dueDate}</li>
         </ul>
         <p>Please remit payment by the due date to avoid late fees.</p>
@@ -248,14 +253,14 @@ export const emailNotificationRouter = router({
       const clientHtml = `
         <h2>Payment Received</h2>
         <p>Hello ${input.clientName},</p>
-        <p>Thank you! We have received your payment of <strong>Ksh ${(input.amount / 100).toLocaleString("en-KE")}</strong> for invoice <strong>${input.invoiceNumber}</strong>.</p>
+        <p>Thank you! We have received your payment of <strong>${formatNotificationAmount(input.amount)}</strong> for invoice <strong>${input.invoiceNumber}</strong>.</p>
         ${input.referenceNumber ? `<p><strong>Reference Number:</strong> ${input.referenceNumber}</p>` : ""}
         <p>Your receipt has been generated and is available for download.</p>
       `;
 
       const accountantHtml = `
         <h2>Payment Recorded</h2>
-        <p>Payment of <strong>Ksh ${(input.amount / 100).toLocaleString("en-KE")}</strong> has been recorded for invoice <strong>${input.invoiceNumber}</strong> from ${input.clientName}.</p>
+        <p>Payment of <strong>${formatNotificationAmount(input.amount)}</strong> has been recorded for invoice <strong>${input.invoiceNumber}</strong> from ${input.clientName}.</p>
         ${input.referenceNumber ? `<p><strong>Reference Number:</strong> ${input.referenceNumber}</p>` : ""}
       `;
 
@@ -306,7 +311,7 @@ export const emailNotificationRouter = router({
         <h2>Payment Reminder</h2>
         <p>Hello ${input.clientName},</p>
         <p>Invoice <strong>${input.invoiceNumber}</strong> is now <strong>${input.daysOverdue} days overdue</strong>.</p>
-        <p><strong>Amount Due:</strong> Ksh ${(input.amount / 100).toLocaleString("en-KE")}</p>
+        <p><strong>Amount Due:</strong> ${formatNotificationAmount(input.amount)}</p>
         <p>Please process payment immediately to avoid further action.</p>
         <p>Contact us if you have any questions.</p>
       `;
@@ -314,7 +319,7 @@ export const emailNotificationRouter = router({
       const accountantHtml = `
         <h2>Overdue Invoice Alert</h2>
         <p>Invoice <strong>${input.invoiceNumber}</strong> from ${input.clientName} is <strong>${input.daysOverdue} days overdue</strong>.</p>
-        <p><strong>Amount Due:</strong> Ksh ${(input.amount / 100).toLocaleString("en-KE")}</p>
+        <p><strong>Amount Due:</strong> ${formatNotificationAmount(input.amount)}</p>
         <p>Consider following up with the client.</p>
       `;
 
@@ -365,7 +370,7 @@ export const emailNotificationRouter = router({
         <p>Hello ${input.clientName},</p>
         <p>We have sent you proposal <strong>${input.proposalNumber}</strong> for your consideration.</p>
         <ul>
-          <li><strong>Amount:</strong> Ksh ${(input.amount / 100).toLocaleString("en-KE")}</li>
+          <li><strong>Amount:</strong> ${formatNotificationAmount(input.amount)}</li>
           <li><strong>Valid Until:</strong> ${input.expiryDate}</li>
         </ul>
         <p>Please review and let us know if you have any questions.</p>

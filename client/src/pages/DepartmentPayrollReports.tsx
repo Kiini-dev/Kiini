@@ -42,7 +42,7 @@ import { useCurrencySettings } from "@/lib/currency";
 import { ReportNavigation } from "@/components/ReportNavigation";
 
 export default function DepartmentPayrollReports() {
-  const { code: currencyCode } = useCurrencySettings();
+  const { formatMinorAmount } = useCurrencySettings();
   const search = useSearch();
   const initialDepartmentId = new URLSearchParams(search).get("departmentId");
 
@@ -89,11 +89,7 @@ export default function DepartmentPayrollReports() {
   ];
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-KE", {
-      style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: 0,
-    }).format(value);
+    return formatMinorAmount(value, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   };
 
   // Filter data based on selections
@@ -309,7 +305,7 @@ export default function DepartmentPayrollReports() {
                       <BarChart data={departmentComparison}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="department" angle={-45} textAnchor="end" height={80} />
-                        <YAxis />
+                        <YAxis tickFormatter={formatCurrency} />
                         <Tooltip formatter={(value) => formatCurrency(value as number)} />
                         <Legend />
                         <Bar dataKey="grossSalary" fill="#3b82f6" name="Gross Salary" />

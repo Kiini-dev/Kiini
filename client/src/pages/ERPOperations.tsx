@@ -28,8 +28,11 @@ export default function ERPOperations() {
   const utils = trpc.useUtils();
   const warehouseQuery = trpc.warehouses.list.useQuery();
   const anomalies = trpc.erpOperations.enterprise.listAnomalies.useQuery();
+  const reportErrors = [warehouseQuery, anomalies]
+    .filter((query) => query.isError)
+    .map((query) => query.error?.message || "Request failed");
   const policy = trpc.erpOperations.distribution.setInventoryPolicy.useMutation({ onSuccess: () => toast.success("Inventory policy saved"), onError: (e) => toast.error(e.message) });
-  const createBin = trpc.erpOperations.distribution.createBin.useMutation({ onSuccess: () => toast.success("Bin created"), onError: (e) => toast.error(e.message) });
+  const createBin = trpc.erpOperations.distribution.createBin.useMutation({ onSuccess: () => { toast.success("Bin created"); utils.warehouses.list.invalidate(); }, onError: (e) => toast.error(e.message) });
   const createRequisition = trpc.erpOperations.distribution.createRequisition.useMutation({ onSuccess: () => { toast.success("Requisition created"); setRequisitionNumber(""); }, onError: (e) => toast.error(e.message) });
   const createRfq = trpc.erpOperations.procurement.createRfq.useMutation({ onSuccess: () => { toast.success("RFQ created"); setRfqNumber(""); }, onError: (e) => toast.error(e.message) });
   const createMrp = trpc.erpOperations.planning.runMrp.useMutation({ onSuccess: () => toast.success("MRP run completed"), onError: (e) => toast.error(e.message) });
@@ -40,6 +43,7 @@ export default function ERPOperations() {
 
   return <ModuleLayout title="ERP Operations" description="Inventory, procurement, fulfilment, planning and integration controls" icon={<Boxes className="h-5 w-5" />} breadcrumbs={[{ label: "Dashboard", href: "/crm-home" }, { label: "Operations" }, { label: "ERP Operations" }]}>
     <div className="space-y-5">
+      {reportErrors.length > 0 && <Card role="alert" className="border-destructive"><CardContent className="pt-6 text-sm text-destructive">Some operations data could not be loaded: {reportErrors.join("; ")}</CardContent></Card>}
       <Tabs defaultValue="inventory">
         <TabsList className="flex h-auto flex-wrap justify-start gap-1"><TabsTrigger value="inventory"><Boxes className="mr-2 h-4 w-4" />Inventory</TabsTrigger><TabsTrigger value="procurement"><Truck className="mr-2 h-4 w-4" />Procurement</TabsTrigger><TabsTrigger value="planning"><Factory className="mr-2 h-4 w-4" />Planning</TabsTrigger><TabsTrigger value="integrations"><PlugZap className="mr-2 h-4 w-4" />Intelligence</TabsTrigger></TabsList>
         <TabsContent value="inventory" className="grid gap-5 lg:grid-cols-2">

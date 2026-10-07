@@ -5,6 +5,11 @@ import { eq, lt, and, lte, gte } from "drizzle-orm";
 import { triggerEventNotification } from "../routers/emailNotifications";
 import { nanoid } from "nanoid";
 import { applyRecurringLabel, parseRecurringOccurrenceDate } from "../utils/recurringLabels";
+import { formatMinorCurrencyAmount } from "../../shared/currency";
+
+function formatReminderAmount(amount: number): string {
+  return formatMinorCurrencyAmount(amount, "KES", { symbol: "Ksh" });
+}
 
 export function resolveOverdueReminderDays(settings: Record<string, unknown>): number[] {
   return ["overdueDays1", "overdueDays2", "overdueDays3"]
@@ -74,7 +79,7 @@ export async function processInvoiceReminders() {
               <h2>Payment Reminder</h2>
               <p>Invoice <strong>${invoice.invoiceNumber}</strong> is due tomorrow!</p>
               <ul>
-                <li><strong>Amount:</strong> Ksh ${(invoice.total / 100).toLocaleString("en-KE")}</li>
+                <li><strong>Amount:</strong> ${formatReminderAmount(invoice.total)}</li>
                 <li><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</li>
               </ul>
               <p>Please process payment to avoid late fees.</p>
@@ -123,7 +128,7 @@ export async function processInvoiceReminders() {
               <h2>Payment Urgent</h2>
               <p>Invoice <strong>${invoice.invoiceNumber}</strong> is now <strong>${daysOverdue} days overdue</strong>.</p>
               <ul>
-                <li><strong>Amount Due:</strong> Ksh ${((invoice.total - (invoice.paidAmount || 0)) / 100).toLocaleString("en-KE")}</li>
+                <li><strong>Amount Due:</strong> ${formatReminderAmount(invoice.total - (invoice.paidAmount || 0))}</li>
                 <li><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</li>
               </ul>
               <p>Please remit payment immediately. Contact us if you have any questions.</p>
@@ -258,14 +263,14 @@ async function sendWeeklyUnpaidSummary() {
       .slice(0, 10)
       .map(
         (inv) =>
-          `<li>${inv.invoiceNumber} - Ksh ${((inv.total - (inv.paidAmount || 0)) / 100).toLocaleString("en-KE")} (Due: ${new Date(inv.dueDate).toLocaleDateString()})</li>`
+          `<li>${inv.invoiceNumber} - ${formatReminderAmount(inv.total - (inv.paidAmount || 0))} (Due: ${new Date(inv.dueDate).toLocaleDateString()})</li>`
       )
       .join("");
 
     const htmlContent = `
       <h2>Weekly Unpaid Invoices Summary</h2>
       <p>Total unpaid invoices: <strong>${unpaidInvoices.length}</strong></p>
-      <p>Total amount due: <strong>Ksh ${(totalUnpaid / 100).toLocaleString("en-KE")}</strong></p>
+      <p>Total amount due: <strong>${formatReminderAmount(totalUnpaid)}</strong></p>
       <p>Overdue invoices: <strong>${overdueCount}</strong></p>
       
       <h3>Top Unpaid Invoices</h3>
@@ -279,7 +284,7 @@ async function sendWeeklyUnpaidSummary() {
       eventType: "invoice_overdue", // Using same type for consistency
       recipientEmail: "accounting@company.com",
       recipientName: "Accounting Team",
-      subject: `Weekly Summary: ${unpaidInvoices.length} Unpaid Invoices Worth Ksh ${(totalUnpaid / 100).toLocaleString("en-KE")}`,
+      subject: `Weekly Summary: ${unpaidInvoices.length} Unpaid Invoices Worth ${formatReminderAmount(totalUnpaid)}`,
       htmlContent,
       entityType: "invoice",
       entityId: "summary",
@@ -454,7 +459,7 @@ async function processRecurringInvoices() {
             <h2>Recurring Invoice Generated</h2>
             <p>Invoice <strong>${invoiceNumber}</strong> has been auto-generated from recurring template.</p>
             <ul>
-              <li><strong>Amount:</strong> Ksh ${(template[0].total / 100).toLocaleString("en-KE")}</li>
+              <li><strong>Amount:</strong> ${formatReminderAmount(template[0].total)}</li>
               <li><strong>Due Date:</strong> ${nextDueDate.toLocaleDateString()}</li>
               <li><strong>From Template:</strong> ${template[0].invoiceNumber}</li>
             </ul>
@@ -560,7 +565,7 @@ async function processInstallmentReminders() {
             <h2>Payment Plan Installment Due Tomorrow</h2>
             <ul>
               <li><strong>Installment:</strong> ${installment.installmentNumber}</li>
-              <li><strong>Amount:</strong> Ksh ${(installment.amount / 100).toLocaleString("en-KE")}</li>
+              <li><strong>Amount:</strong> ${formatReminderAmount(installment.amount)}</li>
               <li><strong>Due Date:</strong> ${new Date(installment.dueDate).toLocaleDateString()}</li>
             </ul>
             <p>Please process payment to avoid late penalties.</p>
@@ -631,7 +636,7 @@ async function processInstallmentReminders() {
             <p style="color: red;"><strong>Your payment is ${daysOverdue} days overdue</strong></p>
             <ul>
               <li><strong>Installment:</strong> ${installment.installmentNumber}</li>
-              <li><strong>Amount:</strong> Ksh ${(installment.amount / 100).toLocaleString("en-KE")}</li>
+              <li><strong>Amount:</strong> ${formatReminderAmount(installment.amount)}</li>
               <li><strong>Due Date:</strong> ${new Date(installment.dueDate).toLocaleDateString()}</li>
               <li><strong>Days Overdue:</strong> ${daysOverdue}</li>
             </ul>

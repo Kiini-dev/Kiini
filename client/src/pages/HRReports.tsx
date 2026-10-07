@@ -49,10 +49,17 @@ export default function HRReports() {
   const { user } = useAuthWithPersistence();
 
   // Fetch HR data
-  const { data: employees = [] } = trpc.employees.list.useQuery({});
-  const { data: leaves = [] } = trpc.leave.listForApproval.useQuery({ allOrganizations: user?.role === "super_admin" });
-  const { data: payslips = [] } = trpc.payroll.list.useQuery({});
-  const { data: attendance = [] } = trpc.attendance.list.useQuery({});
+  const employeesQuery = trpc.employees.list.useQuery({ limit: 5000, offset: 0 });
+  const { data: employees = [] } = employeesQuery;
+  const leavesQuery = trpc.leave.listForApproval.useQuery({ allOrganizations: user?.role === "super_admin", limit: 500 });
+  const { data: leaves = [] } = leavesQuery;
+  const payslipsQuery = trpc.payroll.list.useQuery({ limit: 5000, offset: 0 });
+  const { data: payslips = [] } = payslipsQuery;
+  const attendanceQuery = trpc.attendance.list.useQuery({ limit: 5000, offset: 0 });
+  const { data: attendance = [] } = attendanceQuery;
+  const reportErrors = [employeesQuery, leavesQuery, payslipsQuery, attendanceQuery]
+    .filter((query) => query.isError)
+    .map((query) => query.error?.message || "Request failed");
 
   const currentYear = new Date().getFullYear();
   const yearOptions = ["all", currentYear, currentYear - 1, currentYear - 2].map(String);
@@ -67,7 +74,7 @@ export default function HRReports() {
   // Filter data by year
   const filteredPayslips = useMemo(() => {
     return payslips.filter((ps: any) => {
-      const date = new Date(ps.payDate || ps.createdAt);
+      const date = new Date(ps.paymentDate || ps.payPeriodStart || ps.payDate || ps.createdAt);
       const inYear = matchesReportingYear(date, yearFilter);
       const afterStart = !startDate || date >= new Date(`${startDate}T00:00:00`);
       const beforeEnd = !endDate || date <= new Date(`${endDate}T23:59:59`);
@@ -181,7 +188,7 @@ export default function HRReports() {
     }
 
     filteredPayslips.forEach((ps: any) => {
-      const date = new Date(ps.payDate || ps.createdAt);
+      const date = new Date(ps.paymentDate || ps.payPeriodStart || ps.payDate || ps.createdAt);
       const month = yearFilter === "all" ? `${monthNames[date.getMonth()]} ${date.getFullYear()}` : monthNames[date.getMonth()];
       monthMap[month] ??= { payroll: 0, sortKey: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}` };
       monthMap[month].payroll += (ps.netSalary || 0);
@@ -200,6 +207,13 @@ export default function HRReports() {
       <div className="kiini-report-shell grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
         <ReportNavigation active="/reports/hr" />
         <div className="min-w-0 max-w-7xl w-full">
+        {reportErrors.length > 0 && (
+          <Card role="alert" className="mb-4 border-destructive">
+            <CardContent className="pt-6 text-sm text-destructive">
+              Some HR report data could not be loaded: {reportErrors.join("; ")}
+            </CardContent>
+          </Card>
+        )}
         {/* Year Filter */}
         <div className="flex gap-4 mb-6 flex-wrap">
           <Select value={yearFilter} onValueChange={setYearFilter}>

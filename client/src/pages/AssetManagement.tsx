@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearch, useLocation } from "wouter";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -31,8 +31,10 @@ import { PaginationControls, usePagination } from "@/components/ui/data-table-co
 import { ListPageToolbar } from "@/components/list-page/ListPageToolbar";
 import { EnhancedBulkActions, bulkExportAction, bulkCopyIdsAction, bulkDeleteAction } from "@/components/list-page/EnhancedBulkActions";
 import { RowActionsMenu, type RowAction } from "@/components/list-page/RowActionsMenu";
+import { SupplierSelector } from "@/components/SupplierSelector";
+import { EmployeeNameSelector } from "@/components/EmployeeNameSelector";
 
-const emptyForm = { name: "", category: "", location: "", value: "", assignedTo: "", serialNumber: "", purchaseDate: "", status: "active" as const, notes: "" };
+const emptyForm = { name: "", category: "", location: "", value: "", assignedTo: "", supplier: "", serialNumber: "", purchaseDate: "", status: "active" as const, notes: "" };
 const ASSET_COLUMNS: ColumnConfig[] = [
   { key: "name", label: "Asset Name" },
   { key: "category", label: "Category" },
@@ -57,7 +59,7 @@ export default function AssetManagement() {
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
   const _search = useSearch();
-  useEffect(() => { if (new URLSearchParams(_search).get("action") === "create") setCreateOpen(true); }, []);
+  const handledAction = useRef<string | null>(null);
 
   const { data: rawData, isLoading: dataLoading } = trpc.assets.list.useQuery({});
   const assets = JSON.parse(JSON.stringify(rawData?.data ?? []));
@@ -84,18 +86,36 @@ export default function AssetManagement() {
   );
   const pagedAssets = paginate(filteredAssets);
 
-  const openEdit = (a: any) => {
+  const openEdit = useCallback((a: any) => {
     setEditingAsset(a);
-    setForm({ name: a.name || "", category: a.category || "", location: a.location || "", value: ((a.value || 0) / 100).toString(), assignedTo: a.assignedTo || "", serialNumber: a.serialNumber || "", purchaseDate: a.purchaseDate || "", status: a.status || "active", notes: a.notes || "" });
-  };
+    setForm({ name: a.name || "", category: a.category || "", location: a.location || "", value: ((a.value || 0) / 100).toString(), assignedTo: a.assignedTo || "", supplier: a.supplier || "", serialNumber: a.serialNumber || "", purchaseDate: a.purchaseDate || "", status: a.status || "active", notes: a.notes || "" });
+  }, []);
+
+  useEffect(() => {
+    if (handledAction.current === _search) return;
+    const params = new URLSearchParams(_search);
+    const action = params.get("action");
+    if (action === "create") {
+      handledAction.current = _search;
+      setCreateOpen(true);
+      setLocation("/assets");
+    } else if (action === "edit" && rawData?.data) {
+      const asset = rawData.data.find((item: any) => item.id === params.get("id"));
+      if (asset) {
+        handledAction.current = _search;
+        openEdit(asset);
+        setLocation("/assets");
+      }
+    }
+  }, [_search, openEdit, rawData, setLocation]);
 
   const handleSubmit = (isEdit: boolean) => {
-    const payload = { name: form.name, category: form.category, location: form.location, value: parseFloat(form.value) || 0, assignedTo: form.assignedTo || undefined, serialNumber: form.serialNumber || undefined, purchaseDate: form.purchaseDate || undefined, status: form.status, notes: form.notes || undefined };
+    const payload = { name: form.name, category: form.category, location: form.location, value: parseFloat(form.value) || 0, assignedTo: form.assignedTo || undefined, supplier: form.supplier || undefined, serialNumber: form.serialNumber || undefined, purchaseDate: form.purchaseDate || undefined, status: form.status, notes: form.notes || undefined };
     if (isEdit && editingAsset) updateMutation.mutate({ id: editingAsset.id, ...payload });
     else createMutation.mutate(payload);
   };
 
-  const AssetForm = () => (
+  const renderAssetForm = () => (
     <div className="grid gap-4 py-2">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1"><Label>Asset Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Dell Laptop" /></div>
@@ -106,9 +126,10 @@ export default function AssetManagement() {
         <div className="space-y-1"><Label>Value (Ksh) *</Label><Input type="number" value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))} placeholder="0" /></div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1"><Label>Assigned To</Label><Input value={form.assignedTo} onChange={e => setForm(f => ({ ...f, assignedTo: e.target.value }))} placeholder="Employee name" /></div>
+        <EmployeeNameSelector label="Assigned To" value={form.assignedTo} onChange={assignedTo => setForm(f => ({ ...f, assignedTo }))} />
         <div className="space-y-1"><Label>Serial Number</Label><Input value={form.serialNumber} onChange={e => setForm(f => ({ ...f, serialNumber: e.target.value }))} placeholder="SN-12345" /></div>
       </div>
+      <SupplierSelector label="Supplier" value={form.supplier} onChange={supplier => setForm(f => ({ ...f, supplier }))} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1"><Label>Purchase Date</Label><Input type="date" value={form.purchaseDate} onChange={e => setForm(f => ({ ...f, purchaseDate: e.target.value }))} /></div>
         <div className="space-y-1"><Label>Status</Label>
@@ -185,7 +206,7 @@ export default function AssetManagement() {
       <Dialog open={createOpen} onOpenChange={v => { setCreateOpen(v); if (!v) setForm({ ...emptyForm }); }}>
         <DialogContent className="max-w-xl">
           <DialogHeader><DialogTitle>Register Asset</DialogTitle></DialogHeader>
-          <AssetForm />
+              {renderAssetForm()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.name || !form.category || !form.location || !form.value}>
@@ -198,7 +219,7 @@ export default function AssetManagement() {
       <Dialog open={!!editingAsset} onOpenChange={v => { if (!v) setEditingAsset(null); }}>
         <DialogContent className="max-w-xl">
           <DialogHeader><DialogTitle>Edit Asset</DialogTitle></DialogHeader>
-          <AssetForm />
+          {renderAssetForm()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingAsset(null)}>Cancel</Button>
             <Button onClick={() => handleSubmit(true)} disabled={updateMutation.isPending}>

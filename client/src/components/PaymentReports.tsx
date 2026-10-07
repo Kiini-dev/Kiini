@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,15 +51,16 @@ export default function PaymentReports() {
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
   const [clientId, setClientId] = useState<string>("");
+  const invalidDateRange = !startDate || !endDate || startDate > endDate;
 
-  const { data: reportData, isLoading, refetch } = trpc.invoices.payments.report.useQuery({
+  const { data: reportData, isLoading, isError, error, refetch } = trpc.invoices.payments.report.useQuery({
     startDate,
     endDate,
-    paymentMethod: paymentMethod as any || undefined,
+    paymentMethod: paymentMethod && paymentMethod !== "all" ? paymentMethod as any : undefined,
     clientId: clientId || undefined,
-  });
+  }, { enabled: !invalidDateRange });
 
-  const { data: clientsData } = trpc.clients.list.useQuery({});
+  const { data: clientsData, error: clientsError } = trpc.clients.list.useQuery({ limit: 500, offset: 0 });
   const { data: company } = trpc.settings.getCompanyInfo.useQuery();
 
   const handleResetFilters = () => {
@@ -217,6 +218,16 @@ export default function PaymentReports() {
           </div>
         </CardContent>
       </Card>
+
+      {(isError || clientsError || invalidDateRange) && (
+        <Card role="alert" className="border-destructive">
+          <CardContent className="pt-6 text-sm text-destructive">
+            {invalidDateRange
+              ? "Choose a valid date range where the start date is on or before the end date."
+              : `Unable to load payment report data: ${isError ? error.message : clientsError?.message}`}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       {!isLoading && (
@@ -412,7 +423,7 @@ export default function PaymentReports() {
               </TableHeader>
               <TableBody>
                 {payments.map((payment: any) => (
-                  <TableRow key={payment.id || payment.paymentDate}>
+                  <TableRow key={payment.paymentId}>
                     <TableCell>
                       {new Date(payment.paymentDate).toLocaleDateString()}
                     </TableCell>

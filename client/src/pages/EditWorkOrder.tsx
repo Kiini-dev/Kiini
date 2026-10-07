@@ -18,6 +18,7 @@ import { useRequireFeature } from "@/lib/permissions";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Pencil } from "lucide-react";
+import { EmployeeNameSelector } from "@/components/EmployeeNameSelector";
 
 interface EditWorkOrderProps {
   params?: { id: string };
@@ -199,13 +200,7 @@ export default function EditWorkOrder({ params }: EditWorkOrderProps) {
               </div>
 
               <div>
-                <Label htmlFor="assignedTo">Assigned To *</Label>
-                <Input
-                  id="assignedTo"
-                  value={formData.assignedTo}
-                  onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                  required
-                />
+                <EmployeeNameSelector label="Assigned To" value={formData.assignedTo} onChange={(assignedTo) => setFormData({ ...formData, assignedTo })} required />
               </div>
 
               <div>

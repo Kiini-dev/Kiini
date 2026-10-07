@@ -228,6 +228,7 @@ const CreateSalaryStructure = React.lazy(() => import("./pages/CreateSalaryStruc
 const CreateAllowance = React.lazy(() => import("./pages/CreateAllowance"));
 const CreateDeduction = React.lazy(() => import("./pages/CreateDeduction"));
 const CreateBenefit = React.lazy(() => import("./pages/CreateBenefit"));
+const CompensationItemDetails = React.lazy(() => import("./pages/CompensationItemDetails"));
 const EditSalaryStructure = React.lazy(() => import("./pages/EditSalaryStructure"));
 const EditAllowance = React.lazy(() => import("./pages/EditAllowance"));
 const EditDeduction = React.lazy(() => import("./pages/EditDeduction"));
@@ -1258,18 +1259,24 @@ function Router() {
       <Route path={"/payroll/salary-structures/:id/edit"} component={EditSalaryStructure} />
       
       {/* Allowances - Full CRUD Routes */}
+      <Route path={"/allowances/:id"} component={CompensationItemDetails} />
+      <Route path={"/payroll/allowances/:id"} component={CompensationItemDetails} />
       <Route path={"/allowances/create"} component={CreateAllowance} />
       <Route path={"/payroll/allowances/create"} component={CreateAllowance} />
       <Route path={"/allowances/:id/edit"} component={EditAllowance} />
       <Route path={"/payroll/allowances/:id/edit"} component={EditAllowance} />
       
       {/* Deductions - Full CRUD Routes */}
+      <Route path={"/deductions/:id"} component={CompensationItemDetails} />
+      <Route path={"/payroll/deductions/:id"} component={CompensationItemDetails} />
       <Route path={"/deductions/create"} component={CreateDeduction} />
       <Route path={"/payroll/deductions/create"} component={CreateDeduction} />
       <Route path={"/deductions/:id/edit"} component={EditDeduction} />
       <Route path={"/payroll/deductions/:id/edit"} component={EditDeduction} />
       
       {/* Benefits - Full CRUD Routes */}
+      <Route path={"/benefits/:id"} component={CompensationItemDetails} />
+      <Route path={"/payroll/benefits/:id"} component={CompensationItemDetails} />
       <Route path={"/benefits/create"} component={CreateBenefit} />
       <Route path={"/payroll/benefits/create"} component={CreateBenefit} />
       <Route path={"/benefits/:id/edit"} component={EditBenefit} />

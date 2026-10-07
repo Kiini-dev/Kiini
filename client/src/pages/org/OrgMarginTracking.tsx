@@ -2,13 +2,16 @@ import { TrendingUp, Loader2 } from "lucide-react";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { trpc } from "@/lib/trpc";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { ReportNavigation } from "@/components/ReportNavigation";
+import { ReportAnalyticsPanel } from "@/components/ReportAnalyticsPanel";
 
 export default function MarginTracking() {
-  const plQuery = trpc.financialReports.profitLoss.useQuery({} as any);
+  const today = new Date().toISOString().slice(0, 10);
+  const plQuery = trpc.financialReports.profitLoss.useQuery({ startDate: `${today.slice(0, 4)}-01-01`, endDate: today });
   const bsQuery = trpc.financialReports.balanceSheet.useQuery({} as any);
 
   const plData = plQuery.data as any;
-  const bsData = bsQuery.data as any;
+  const bsData = bsQuery.data;
 
   const isLoading = plQuery.isLoading || bsQuery.isLoading;
   const error = plQuery.error || bsQuery.error;
@@ -23,6 +26,9 @@ export default function MarginTracking() {
         { label: "Margin Tracking" },
       ]}
     >
+      <div className="kiini-report-shell grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <ReportNavigation active="/finance/reports" />
+      <div className="min-w-0 space-y-4">
       {isLoading && (
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin" />
@@ -35,6 +41,19 @@ export default function MarginTracking() {
 
       {!isLoading && !error && (
         <>
+          <ReportAnalyticsPanel
+            title="Year-to-date margin performance"
+            description={`January 1 through ${today}`}
+            categoryKey="metric"
+            data={[
+              { metric: "Revenue", amount: Number(plData?.revenue || 0) },
+              { metric: "Other income", amount: Number(plData?.otherIncome || 0) },
+              { metric: "Expenses", amount: Number(plData?.expenses || 0) },
+              { metric: "Net profit", amount: Number(plData?.netProfit || 0) },
+            ]}
+            series={[{ dataKey: "amount", label: "Amount", color: "#0f766e" }]}
+            formatValue={(amount) => `Ksh ${(amount / 100).toLocaleString("en-KE")}`}
+          />
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-4">
@@ -91,24 +110,18 @@ export default function MarginTracking() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-600">Total Assets</p>
-                    <p className="text-xl font-bold">{bsData.totalAssets ?? "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Total Liabilities</p>
-                    <p className="text-xl font-bold">{bsData.totalLiabilities ?? "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">Equity</p>
-                    <p className="text-xl font-bold">{bsData.equity ?? bsData.totalEquity ?? "—"}</p>
-                  </div>
+                  {Object.entries(bsData.summary || {}).map(([type, balance]) => <div key={type}><p className="capitalize text-gray-600">{type}</p><p className="text-xl font-bold">Ksh {(Number(balance) / 100).toLocaleString("en-KE")}</p></div>)}
+                </div>
+                <div className="mt-5 overflow-x-auto">
+                  <table className="w-full text-sm"><thead><tr className="border-b text-left"><th className="p-2">Code</th><th className="p-2">Account</th><th className="p-2">Type</th><th className="p-2 text-right">Balance</th></tr></thead><tbody>{(bsData.accounts || []).map((account) => <tr key={account.id} className="border-b"><td className="p-2 font-mono">{account.code}</td><td className="p-2">{account.name}</td><td className="p-2 capitalize">{account.type}</td><td className="p-2 text-right">Ksh {(Number(account.balance) / 100).toLocaleString("en-KE")}</td></tr>)}</tbody></table>
                 </div>
               </CardContent>
             </Card>
           )}
         </>
       )}
+      </div>
+      </div>
     </ModuleLayout>
   );
 }

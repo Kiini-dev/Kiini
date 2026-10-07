@@ -36,6 +36,8 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { StatsCard } from "@/components/ui/stats-card";
+import { useCurrencySettings } from "@/lib/currency";
+import { toMajorCurrencyAmount } from "../../../shared/currency";
 
 interface PayrollAnalyticsData {
   month: string;
@@ -49,11 +51,19 @@ interface PayrollAnalyticsData {
 
 export default function PayrollAnalytics() {
   const [, navigate] = useLocation();
+  const { formatAmount } = useCurrencySettings();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState("all");
 
   const { data: rawPayroll = [] } = trpc.payroll.list.useQuery({});
-  const payrollList = JSON.parse(JSON.stringify(rawPayroll)) as any[];
+  const payrollList = (rawPayroll as any[]).map((record) => ({
+    ...record,
+    basicSalary: toMajorCurrencyAmount(record.basicSalary, "minor"),
+    allowances: toMajorCurrencyAmount(record.allowances, "minor"),
+    deductions: toMajorCurrencyAmount(record.deductions, "minor"),
+    tax: toMajorCurrencyAmount(record.tax, "minor"),
+    netSalary: toMajorCurrencyAmount(record.netSalary, "minor"),
+  }));
   const years = Array.from({ length: 5 }, (_, index) => String(new Date().getFullYear() - index));
 
   // Compute analytics from real payroll data
@@ -201,7 +211,7 @@ export default function PayrollAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <p className="text-2xl font-bold">Ksh {stats.totalPayroll.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatAmount(stats.totalPayroll)}</p>
                 <div className="flex items-center gap-1">
                   {stats.payrollChange >= 0 ? (
                     <>
@@ -221,7 +231,7 @@ export default function PayrollAnalytics() {
 
           <StatsCard
             label="Average Salary"
-            value={<>Ksh {stats.averageSalary.toLocaleString()}</>}
+            value={formatAmount(stats.averageSalary)}
             description="Per employee/month"
             color="border-l-orange-500"
           />
@@ -230,12 +240,12 @@ export default function PayrollAnalytics() {
 
           <StatsCard
             label="Cost Per Day"
-            value={<>Ksh {stats.costPerDay.toLocaleString()}</>}
+            value={formatAmount(stats.costPerDay)}
             description="Average daily cost"
             color="border-l-green-500"
           />
 
-          <StatsCard label="Monthly Budget" value="Ksh 2.8M" description="Remaining: Ksh 350K" color="border-l-blue-500" />
+          <StatsCard label="Monthly Budget" value="Not available" description="Budget totals are not included in this report" color="border-l-blue-500" />
         </div>
 
         {/* Charts */}
@@ -251,8 +261,8 @@ export default function PayrollAnalytics() {
                 <LineChart data={analyticsData.trend}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => `Ksh ${value.toLocaleString()}`} />
+                  <YAxis tickFormatter={(value: number) => formatAmount(value, { maximumFractionDigits: 0 })} />
+                  <Tooltip formatter={(value: number) => formatAmount(value)} />
                   <Legend />
                   <Line
                     type="monotone"
@@ -300,7 +310,7 @@ export default function PayrollAnalytics() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, value }) => `${name}: Ksh ${(value / 1000).toFixed(0)}K`}
+                    label={({ name, value }) => `${name}: ${formatAmount(value)}`}
                     outerRadius={100}
                     fill="#8884d8"
                     dataKey="amount"
@@ -309,7 +319,7 @@ export default function PayrollAnalytics() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => `Ksh ${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value: number) => formatAmount(value)} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -355,11 +365,11 @@ export default function PayrollAnalytics() {
                       />
                       <div>
                         <p className="font-medium">{dept.name}</p>
-                        <p className="text-sm text-gray-500">Avg: Ksh {avgDeptSalary.toLocaleString()}</p>
+                        <p className="text-sm text-gray-500">Avg: {formatAmount(avgDeptSalary)}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">Ksh {dept.amount.toLocaleString()}</p>
+                      <p className="font-bold">{formatAmount(dept.amount)}</p>
                       <Badge variant="outline">{percentage}%</Badge>
                     </div>
                   </div>

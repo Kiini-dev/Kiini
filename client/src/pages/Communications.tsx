@@ -1,7 +1,6 @@
 import { useState, ReactNode } from "react";
 import { useLocation } from "wouter";
 import { ModuleLayout } from "@/components/ModuleLayout";
-import { ModuleAnalyticsStrip } from "@/components/ModuleAnalyticsStrip";
 import { useRequireFeature } from "@/lib/permissions";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -431,7 +430,6 @@ export default function Communications() {
       ]}
     >
       <div className="space-y-6">
-        <ModuleAnalyticsStrip title="Communications at a glance" description="Delivery health across email, SMS, and internal messaging." onOpen={() => navigate("/staff-chat")} metrics={[{ label: "Total", value: stats.total, hint: "messages", tone: "blue" }, { label: "Sent", value: stats.sent, hint: "delivered", tone: "teal", trend: "up" }, { label: "Pending", value: stats.pending, hint: "in queue", tone: "amber" }, { label: "Failed", value: stats.failed, hint: "needs review", tone: "rose", trend: stats.failed ? "down" : "flat" }]} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">

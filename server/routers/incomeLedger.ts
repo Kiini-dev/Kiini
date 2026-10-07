@@ -149,18 +149,64 @@ export const incomeLedgerRouter = router({
       if (input.startDate) { conditions.push("j.entryDate >= ?"); params.push(`${input.startDate} 00:00:00`); }
       if (input.endDate) { conditions.push("j.entryDate < DATE_ADD(?, INTERVAL 1 DAY)"); params.push(input.endDate); }
       const where = conditions.join(" AND ");
+
+      const paymentConditions = [
+        "p.status='completed'",
+        `NOT EXISTS (
+          SELECT 1 FROM journalEntries pj
+          WHERE pj.referenceType='payment' AND pj.referenceId=p.id
+            AND pj.organizationId <=> p.organizationId
+            AND pj.status IN ('posted','reversed')
+            AND EXISTS (
+              SELECT 1 FROM journalEntryLines pjl
+              JOIN accounts pa ON pa.id=pjl.accountId AND pa.organizationId <=> pj.organizationId
+              WHERE pjl.journalEntryId=pj.id AND pa.accountType IN ('revenue','other income')
+            )
+        )`,
+      ];
+      const paymentParams: Array<string | number | null> = [];
+      if (organizationId === null) paymentConditions.push("p.organizationId IS NULL");
+      else { paymentConditions.push("p.organizationId=?"); paymentParams.push(organizationId); }
+      if (input.startDate) { paymentConditions.push("p.paymentDate >= ?"); paymentParams.push(`${input.startDate} 00:00:00`); }
+      if (input.endDate) { paymentConditions.push("p.paymentDate < DATE_ADD(?, INTERVAL 1 DAY)"); paymentParams.push(input.endDate); }
+      const paymentWhere = paymentConditions.join(" AND ");
+
       const [rows] = await pool.execute<any[]>(
-        `SELECT j.id, j.organizationId, j.entryNumber, j.entryDate, j.reference, j.description,
-                j.referenceType, j.referenceId, j.status, j.createdBy, j.createdAt,
-                COALESCE(SUM(CASE WHEN a.accountType IN ('revenue','other income') THEN l.debit ELSE 0 END),0) AS incomeDebitCents,
-                COALESCE(SUM(CASE WHEN a.accountType IN ('revenue','other income') THEN l.credit ELSE 0 END),0) AS incomeCreditCents
-         FROM journalEntries j
-         JOIN journalEntryLines l ON l.journalEntryId=j.id
-         LEFT JOIN accounts a ON a.id=l.accountId AND a.organizationId <=> j.organizationId
-         WHERE ${where}
-         GROUP BY j.id
-         ORDER BY j.entryDate DESC, j.entryNumber DESC LIMIT ? OFFSET ?`,
-        [...params, input.limit, input.offset],
+        `SELECT * FROM (
+           SELECT j.id, j.organizationId, j.entryNumber, j.entryDate, j.reference, j.description,
+                  j.referenceType, j.referenceId, j.status, j.createdBy, j.createdAt,
+                  COALESCE(SUM(CASE WHEN a.accountType IN ('revenue','other income') THEN l.debit ELSE 0 END),0) AS incomeDebitCents,
+                  COALESCE(SUM(CASE WHEN a.accountType IN ('revenue','other income') THEN l.credit ELSE 0 END),0) AS incomeCreditCents,
+                  EXISTS (
+                    SELECT 1 FROM journalEntries r
+                    WHERE r.referenceType='income_ledger_reversal'
+                      AND r.referenceId=j.id AND r.organizationId <=> j.organizationId
+                      AND r.status IN ('posted','reversed')
+                  ) AS hasOffset,
+                  'journal' AS entrySource, NULL AS paymentAccountCode, NULL AS paymentAccountName
+           FROM journalEntries j
+           JOIN journalEntryLines l ON l.journalEntryId=j.id
+           LEFT JOIN accounts a ON a.id=l.accountId AND a.organizationId <=> j.organizationId
+           WHERE ${where}
+           GROUP BY j.id
+           UNION ALL
+           SELECT CONCAT('payment:', p.id) AS id, p.organizationId,
+                  COALESCE(NULLIF(p.referenceNumber,''), CONCAT('PAY-', p.id)) AS entryNumber,
+                  p.paymentDate AS entryDate, p.referenceNumber AS reference,
+                  CONCAT('Invoice payment received - ', COALESCE(NULLIF(i.invoiceNumber,''), p.invoiceId)) AS description,
+                  'payment' AS referenceType, p.id AS referenceId, 'posted' AS status,
+                  p.createdBy, p.createdAt, 0 AS incomeDebitCents,
+                  p.amount AS incomeCreditCents, 0 AS hasOffset,
+                  'invoice_payment' AS entrySource,
+                  pca.accountCode AS paymentAccountCode, pca.accountName AS paymentAccountName
+           FROM payments p
+           LEFT JOIN invoices i ON i.id=p.invoiceId AND i.organizationId <=> p.organizationId
+           LEFT JOIN accounts pca ON pca.id=COALESCE(p.chartOfAccountId,p.accountId)
+             AND pca.organizationId <=> p.organizationId
+           WHERE ${paymentWhere}
+         ) AS income_entries
+         ORDER BY entryDate DESC, entryNumber DESC LIMIT ? OFFSET ?`,
+        [...params, ...paymentParams, input.limit, input.offset],
       );
       const [countRows] = await pool.execute<any[]>(
         `SELECT COUNT(*) AS total,
@@ -178,13 +224,164 @@ export const incomeLedgerRouter = router({
          ) income_totals`,
         params,
       );
+      const [paymentTotals] = await pool.execute<any[]>(
+        `SELECT COUNT(*) AS total, COALESCE(SUM(p.amount),0) AS totalIncomeCreditCents
+         FROM payments p
+         WHERE ${paymentWhere}`,
+        paymentParams,
+      );
+      const pageEntries = await attachJournalLines(pool, rows);
+      const entries = pageEntries.map((entry: any) => entry.entrySource === "invoice_payment"
+        ? {
+            ...entry,
+            currency: entry.currency || "KES",
+            lines: [
+              {
+                id: `payment-cash-line:${entry.referenceId}`,
+                accountCode: entry.paymentAccountCode || "UNASSIGNED",
+                accountName: entry.paymentAccountName || "Unassigned cash / bank account",
+                debitCents: Number(entry.incomeCreditCents || 0),
+                creditCents: 0,
+                description: "Payment source (derived from payment record; not a posted journal)",
+              },
+              {
+                id: `payment-ar-line:${entry.referenceId}`,
+                accountCode: "AR-CLEARING",
+                accountName: "Accounts receivable clearing (derived; not a posted journal)",
+                debitCents: 0,
+                creditCents: Number(entry.incomeCreditCents || 0),
+                description: entry.description,
+              },
+            ],
+          }
+        : entry);
       return {
         scope: input.scope,
-        entries: await attachJournalLines(pool, rows),
-        total: Number(countRows[0]?.total || 0),
+        entries,
+        total: Number(countRows[0]?.total || 0) + Number(paymentTotals[0]?.total || 0),
         totalIncomeDebitCents: Number(countRows[0]?.totalIncomeDebitCents || 0),
-        totalIncomeCreditCents: Number(countRows[0]?.totalIncomeCreditCents || 0),
+        totalIncomeCreditCents: Number(countRows[0]?.totalIncomeCreditCents || 0) + Number(paymentTotals[0]?.totalIncomeCreditCents || 0),
       };
+    }),
+
+  offsetJournalEntry: incomeEditProcedure
+    .input(z.object({
+      scope: z.enum(["tenant_income", "company_income"]),
+      entryId: z.string().min(1),
+      reason: z.string().trim().min(5).max(500),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const organizationId = input.scope === "tenant_income"
+        ? requireTenantScope(ctx)
+        : (requirePlatformAdmin(ctx), null);
+      const pool = getPool();
+      if (!pool) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable." });
+      const connection = await pool.getConnection();
+
+      try {
+        await connection.beginTransaction();
+        const [entryRows] = await connection.execute<any[]>(
+          `SELECT id, organizationId, entryNumber, entryDate, status, referenceType
+           FROM journalEntries
+           WHERE id=? AND organizationId <=> ?
+           LIMIT 1 FOR UPDATE`,
+          [input.entryId, organizationId],
+        );
+        const original = entryRows[0];
+        if (!original) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Income journal entry not found in this ledger scope." });
+        }
+        if (original.status !== "posted" || original.referenceType === "income_ledger_reversal") {
+          throw new TRPCError({ code: "CONFLICT", message: "Only posted, original journal entries can be offset." });
+        }
+
+        const [existingRows] = await connection.execute<any[]>(
+          `SELECT id, entryNumber FROM journalEntries
+           WHERE referenceType='income_ledger_reversal' AND referenceId=?
+             AND organizationId <=> ? AND status IN ('posted','reversed')
+           LIMIT 1`,
+          [input.entryId, organizationId],
+        );
+        if (existingRows[0]) {
+          await connection.commit();
+          return { created: false, entryId: String(existingRows[0].id), entryNumber: String(existingRows[0].entryNumber) };
+        }
+
+        const [lineRows] = await connection.execute<any[]>(
+          `SELECT l.accountId, l.debit, l.credit, l.description, a.accountType
+           FROM journalEntryLines l
+           LEFT JOIN accounts a ON a.id=l.accountId AND a.organizationId <=> ?
+           WHERE l.journalEntryId=?
+           ORDER BY l.lineNumber`,
+          [organizationId, input.entryId],
+        );
+        const debitTotal = lineRows.reduce((sum, line) => sum + Number(line.debit || 0), 0);
+        const creditTotal = lineRows.reduce((sum, line) => sum + Number(line.credit || 0), 0);
+        const hasIncomeLine = lineRows.some(line =>
+          ["revenue", "other income"].includes(line.accountType)
+          && (Number(line.debit || 0) > 0 || Number(line.credit || 0) > 0),
+        );
+        if (
+          lineRows.length < 2
+          || lineRows.some(line => !line.accountType)
+          || debitTotal <= 0
+          || debitTotal !== creditTotal
+          || !hasIncomeLine
+        ) {
+          throw new TRPCError({ code: "CONFLICT", message: "This journal entry is not a balanced income posting and cannot be offset from the income ledger." });
+        }
+
+        const reversalId = uuidv4();
+        const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+        const reversalNumber = `IR-${now.slice(0, 10).replaceAll("-", "")}-${reversalId.slice(0, 8).toUpperCase()}`;
+        await connection.execute(
+          `INSERT INTO journalEntries
+           (id, organizationId, entryNumber, entryDate, entryMonth, reference, description, totalAmount,
+            referenceType, referenceId, status, postedAt, notes, createdBy, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'income_ledger_reversal', ?, 'posted', ?, ?, ?, ?, ?)`,
+          [
+            reversalId,
+            organizationId,
+            reversalNumber,
+            now,
+            now.slice(0, 7),
+            original.entryNumber,
+            `Offset of ${original.entryNumber}: ${input.reason}`.slice(0, 500),
+            debitTotal / 100,
+            input.entryId,
+            now,
+            input.reason,
+            ctx.user.id,
+            now,
+            now,
+          ],
+        );
+        for (const [index, line] of lineRows.entries()) {
+          await connection.execute(
+            `INSERT INTO journalEntryLines
+             (id, journalEntryId, accountId, debit, credit, description, lineNumber, createdBy, createdAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              uuidv4(),
+              reversalId,
+              line.accountId,
+              Number(line.credit || 0),
+              Number(line.debit || 0),
+              `Offset: ${line.description || input.reason}`.slice(0, 500),
+              index + 1,
+              ctx.user.id,
+              now,
+            ],
+          );
+        }
+        await connection.commit();
+        return { created: true, entryId: reversalId, entryNumber: reversalNumber };
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
     }),
 
   offsetSaaSCharge: incomeEditProcedure

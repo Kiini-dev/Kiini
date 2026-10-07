@@ -50,4 +50,22 @@ describe("tax compliance reports", () => {
       expect(params).toEqual(["2026-01", "2026-10", "org-1"]);
     }
   });
+
+  it("applies the selected employee to statutory report queries", async () => {
+    const query = vi.fn().mockResolvedValue([[], []]);
+    getPoolMock.mockReturnValue({ query });
+    const caller = taxComplianceRouter.createCaller({
+      user: { id: "hr-1", role: "super_admin", organizationId: "org-1" },
+    } as any);
+
+    await caller.getPAYEReport({
+      from: new Date("2026-01-01T00:00:00.000Z"),
+      to: new Date("2026-12-31T23:59:59.999Z"),
+      employeeId: "employee-1",
+    });
+
+    expect(query).toHaveBeenCalledOnce();
+    expect(query.mock.calls[0][0]).toContain("p.employeeId = ?");
+    expect(query.mock.calls[0][1]).toEqual(["2026-01", "2026-12", "org-1", "employee-1"]);
+  });
 });

@@ -1,8 +1,9 @@
 import { router, protectedProcedure, createFeatureRestrictedProcedure } from "../_core/trpc";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { invoices, payments, clients, expenses, accounts } from "../../drizzle/schema";
-import { eq, and, gte, lte, isNull } from "drizzle-orm";
+import { eq, and, gte, lte, isNull, ne } from "drizzle-orm";
 
 const organizationFilter = (column: any, organizationId?: string | null) =>
   organizationId ? eq(column, organizationId) : isNull(column);
@@ -16,7 +17,9 @@ export const reportsRouter = router({
     }))
     .query(async ({ input, ctx }) => {
       const database = await getDb();
-      if (!database) return null;
+      if (!database) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      }
 
       // Get revenue accounts
       const revenueAccounts = await database
@@ -368,16 +371,45 @@ export const reportsRouter = router({
 
   // Customer Analysis Report
   customerAnalysis: createFeatureRestrictedProcedure("reporting:view")
-    .query(async ({ ctx }) => {
+    .input(z.object({
+      startDate: z.coerce.date().optional(),
+      endDate: z.coerce.date().optional(),
+    }).optional())
+    .query(async ({ ctx, input }) => {
       const database = await getDb();
-      if (!database) return null;
+      if (!database) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      }
+
+      if (input?.startDate && input?.endDate && input.startDate > input.endDate) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Report start date must be on or before the end date",
+        });
+      }
 
       const clientsData = await database.select().from(clients)
         .where(organizationFilter(clients.organizationId, ctx.user.organizationId));
-      const invoiceData = await database.select().from(invoices)
-        .where(organizationFilter(invoices.organizationId, ctx.user.organizationId));
-      const paymentData = await database.select().from(payments)
-        .where(organizationFilter(payments.organizationId, ctx.user.organizationId));
+      const invoiceConditions = [
+        organizationFilter(invoices.organizationId, ctx.user.organizationId),
+        ne(invoices.status, "draft"),
+        ne(invoices.status, "cancelled"),
+      ];
+      const paymentConditions = [
+        organizationFilter(payments.organizationId, ctx.user.organizationId),
+        eq(payments.status, "completed"),
+      ];
+      const dateString = (value: Date) => value.toISOString().replace("T", " ").slice(0, 19);
+      if (input?.startDate) {
+        invoiceConditions.push(gte(invoices.issueDate, dateString(input.startDate)));
+        paymentConditions.push(gte(payments.paymentDate, dateString(input.startDate)));
+      }
+      if (input?.endDate) {
+        invoiceConditions.push(lte(invoices.issueDate, dateString(input.endDate)));
+        paymentConditions.push(lte(payments.paymentDate, dateString(input.endDate)));
+      }
+      const invoiceData = await database.select().from(invoices).where(and(...invoiceConditions));
+      const paymentData = await database.select().from(payments).where(and(...paymentConditions));
 
       const customerMetrics = clientsData.map(client => {
         const clientInvoices = invoiceData.filter(i => i.clientId === client.id);
@@ -392,8 +424,10 @@ export const reportsRouter = router({
           clientId: client.id,
           clientName: client.companyName,
           contactPerson: client.contactPerson,
+          email: client.email,
           invoiceCount: clientInvoices.length,
           totalRevenue,
+          totalInvoiced: totalRevenue,
           totalPaid,
           outstanding,
           avgInvoiceValue,
@@ -408,6 +442,11 @@ export const reportsRouter = router({
       const topCustomers = customerMetrics.slice(0, 10);
       const totalCustomerRevenue = customerMetrics.reduce((sum, c) => sum + c.totalRevenue, 0);
       const avgCustomerValue = customerMetrics.length > 0 ? totalCustomerRevenue / customerMetrics.length : 0;
+      const clientsByStatus = customerMetrics.reduce<Record<string, number>>((counts, client) => {
+        const status = client.status || "unknown";
+        counts[status] = (counts[status] || 0) + 1;
+        return counts;
+      }, {});
 
       return {
         summary: {
@@ -418,6 +457,10 @@ export const reportsRouter = router({
         },
         topCustomers,
         allCustomers: customerMetrics,
+        clientsByStatus: Object.entries(clientsByStatus).map(([status, count]) => ({
+          status,
+          count,
+        })),
       };
     }),
 

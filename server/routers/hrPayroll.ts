@@ -777,6 +777,7 @@ export const hrPayrollRouter = router({
             organizationId: batch.organizationId,
             payrollId: detail.id,
             employeeId: detail.employeeId,
+            createdBy: ctx.user.id,
             payrollPeriodStart: periodStart,
             payrollPeriodEnd: periodEnd,
             employeeDepartmentId: departmentId,

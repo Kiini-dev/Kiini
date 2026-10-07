@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuthWithPersistence } from "@/_core/hooks/useAuthWithPersistence";
 import { ModuleLayout } from "@/components/ModuleLayout";
+import { ReportNavigation } from "@/components/ReportNavigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -171,7 +172,9 @@ export default function NonSalesInflows() {
         { label: "Non-sales inflows", href: "/finance/non-sales-inflows" },
       ]}
     >
-      <div className="space-y-6">
+      <div className="kiini-report-shell grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <ReportNavigation active="/finance/non-sales-inflows" />
+      <div className="min-w-0 space-y-6">
         {(configurationQuery.error || inflowsQuery.error || accountsQuery.error || bankAccountsQuery.error || depositsQuery.error) && (
           <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
             {configurationQuery.error?.message || inflowsQuery.error?.message || accountsQuery.error?.message || bankAccountsQuery.error?.message || depositsQuery.error?.message}
@@ -320,6 +323,7 @@ export default function NonSalesInflows() {
             </div>
           </CardContent>
         </Card>
+      </div>
       </div>
     </ModuleLayout>
   );

@@ -54,9 +54,9 @@ export default function JobGroupDetails() {
 
   const parsePayrollItems = (value: string | null | undefined, amountRequired = true): JobGroupPayrollItem[] => {
     if (!value) return [];
-    try { return JSON.parse(value).map((item: any) => ({ type: item.type || "", amount: amountRequired && item.amount ? (item.amount / 100).toString() : "", frequency: item.frequency || "monthly" })); } catch { return []; }
+    try { return JSON.parse(value).map((item: any) => ({ type: item.type || "", amount: amountRequired && item.amount ? (item.amount / 100).toString() : "", percentage: item.percentage !== undefined ? String(item.percentage) : "", frequency: item.frequency || "monthly" })); } catch { return []; }
   };
-  const serializePayrollItems = (items: JobGroupPayrollItem[], amountRequired = true) => items.filter((item) => item.type.trim()).map((item) => ({ type: item.type.trim(), amount: amountRequired ? Math.round(parseFloat(item.amount || "0") * 100) : (item.amount ? Math.round(parseFloat(item.amount) * 100) : 0), frequency: item.frequency || "monthly" as const }));
+  const serializePayrollItems = (items: JobGroupPayrollItem[], amountRequired = true) => items.filter((item) => item.type.trim()).map((item) => ({ type: item.type.trim(), ...(item.percentage?.trim() ? { percentage: Number(item.percentage) } : { amount: amountRequired ? Math.round(parseFloat(item.amount || "0") * 100) : (item.amount ? Math.round(parseFloat(item.amount) * 100) : 0) }), frequency: item.frequency || "monthly" as const }));
 
   const { data: jobGroup, isLoading } = trpc.jobGroups.getById.useQuery(id || "");
   const { data: employeesData = [] } = trpc.employees.byJobGroup.useQuery(
@@ -567,4 +567,3 @@ export default function JobGroupDetails() {
     </ModuleLayout>
   );
 }
-

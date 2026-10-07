@@ -10,6 +10,11 @@ import { v4 as uuidv4 } from "uuid";
 import { generatePassword, hashPassword } from "../lib/passwordUtils";
 import { enforceOrganizationIsolation, combineOrgFilters } from "../middleware/organizationIsolationEnforcer";
 import { startEmployeeOffboarding, startEmployeeOnboarding } from "../services/employeeAutomation";
+import {
+  applyJobGroupCompensationDefaults,
+  resolveJobGroupPayrollAmount,
+  toPayrollStorageAmount,
+} from "../services/jobGroupPayrollDefaults";
 
 export function normalizeEmployeePayload<T extends Record<string, any>>(payload: T) {
   const normalized: Record<string, any> = { ...payload };
@@ -61,66 +66,12 @@ export function normalizeEmployeePayload<T extends Record<string, any>>(payload:
   return normalized as T;
 }
 
-type JobGroupPayrollDefault = { type: string; amount?: number; percentage?: number; frequency?: "monthly" | "quarterly" | "annual" | "one_time" };
-
-export function resolveJobGroupPayrollAmount(item: Pick<JobGroupPayrollDefault, "amount" | "percentage">, basicSalaryUnits: number | null | undefined) {
-  if (Number.isFinite(item.percentage)) {
-    return Math.round(Number(basicSalaryUnits || 0) * Number(item.percentage) / 100 * 100);
-  }
-  return Math.round(Number(item.amount || 0));
-}
-
-function parseJobGroupDefaults(value: string | null | undefined): JobGroupPayrollDefault[] {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed)
-      ? parsed.filter((item) => item && typeof item.type === "string" && (Number.isFinite(item.amount) || Number.isFinite(item.percentage)))
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-export function toPayrollStorageAmount(value: number | null | undefined) {
-  return value == null ? null : Math.round(Number(value) * 100);
-}
+export { resolveJobGroupPayrollAmount, toPayrollStorageAmount };
 
 export async function applyJobGroupPayrollDefaults(db: any, employee: any, jobGroup: any, actorId: string) {
   const now = new Date();
   const effectiveDate = now.toISOString().replace("T", " ").substring(0, 19);
-  const basicSalaryUnits = employee.salary ?? jobGroup.defaultBasicSalary;
-  const basicSalary = toPayrollStorageAmount(basicSalaryUnits);
-  const resolveAmount = (item: JobGroupPayrollDefault) => resolveJobGroupPayrollAmount(item, basicSalaryUnits);
-
-  if (basicSalary != null) {
-    const existingStructure = await db.select({ id: salaryStructures.id }).from(salaryStructures)
-      .where(eq(salaryStructures.employeeId, employee.id)).limit(1);
-    if (!existingStructure.length) {
-      await db.insert(salaryStructures).values({ id: uuidv4(), employeeId: employee.id, effectiveDate: now, basicSalary, allowances: 0, deductions: 0, createdBy: actorId, createdAt: now, updatedAt: now } as any);
-    } else if (employee.salary != null) {
-      await db.update(salaryStructures).set({ basicSalary, updatedAt: now } as any)
-        .where(eq(salaryStructures.id, existingStructure[0].id));
-    }
-  }
-
-  const allowances = parseJobGroupDefaults(jobGroup.defaultAllowances);
-  const deductions = parseJobGroupDefaults(jobGroup.defaultDeductions);
-  const benefits = parseJobGroupDefaults(jobGroup.defaultBenefits);
-  const existingAllowances = await db.select({ allowanceType: salaryAllowances.allowanceType }).from(salaryAllowances).where(eq(salaryAllowances.employeeId, employee.id));
-  const existingDeductions = await db.select({ deductionType: salaryDeductions.deductionType }).from(salaryDeductions).where(eq(salaryDeductions.employeeId, employee.id));
-  const existingBenefits = await db.select({ benefitType: employeeBenefits.benefitType }).from(employeeBenefits).where(eq(employeeBenefits.employeeId, employee.id));
-
-  for (const item of allowances.filter((item) => !existingAllowances.some((row: any) => row.allowanceType === item.type))) {
-    await db.insert(salaryAllowances).values({ id: uuidv4(), employeeId: employee.id, allowanceType: item.type, amount: resolveAmount(item), frequency: item.frequency || "monthly", effectiveDate: now, isActive: true, createdBy: actorId, createdAt: now, updatedAt: now } as any);
-  }
-  for (const item of deductions.filter((item) => !existingDeductions.some((row: any) => row.deductionType === item.type))) {
-    await db.insert(salaryDeductions).values({ id: uuidv4(), employeeId: employee.id, deductionType: item.type, amount: resolveAmount(item), frequency: item.frequency || "monthly", effectiveDate: now, isActive: true, createdBy: actorId, createdAt: now, updatedAt: now } as any);
-  }
-  for (const item of benefits.filter((item) => !existingBenefits.some((row: any) => row.benefitType === item.type))) {
-    const amount = resolveAmount(item);
-    await db.insert(employeeBenefits).values({ id: uuidv4(), employeeId: employee.id, benefitType: item.type, enrollDate: now, isActive: true, cost: amount || null, employerCost: amount || null, createdBy: actorId, createdAt: now, updatedAt: now } as any);
-  }
+  await applyJobGroupCompensationDefaults(db, employee, jobGroup, actorId);
 
   if (employee.organizationId) {
     const fiscalYear = now.getFullYear();
@@ -1360,4 +1311,3 @@ export const employeesRouter = router({
       }
     }),
 });
-

@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { buildCommunicationComposePath } from "@/lib/communications";
 import { CitySelect } from "@/components/LocationSelects";
+import { PhoneInput } from "@/components/PhoneInput";
 import { Plus, Search, Download, Upload, Edit2, Trash2, Eye, Loader2, Star, Truck, Copy, Mail } from "lucide-react";
 import { useLocation } from "wouter";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -68,9 +69,7 @@ export default function SuppliersPage() {
     contactPerson: "",
     email: "",
     phone: "",
-    phoneCountryCode: "+254", // Kenya by default
     alternatePhone: "",
-    alternatePhoneCountryCode: "+254",
     city: "",
     postalCode: "",
     taxId: "",
@@ -366,53 +365,21 @@ export default function SuppliersPage() {
                 {formStep === 2 && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Phone Number</Label>
-                      <div className="flex gap-2">
-                        <Select value={formData.phoneCountryCode} onValueChange={(val) => setFormData({...formData, phoneCountryCode: val})}>
-                          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="+254">🇰🇪 Kenya +254</SelectItem>
-                            <SelectItem value="+256">🇺🇬 Uganda +256</SelectItem>
-                            <SelectItem value="+255">🇹🇿 Tanzania +255</SelectItem>
-                            <SelectItem value="+44">🇬🇧 UK +44</SelectItem>
-                            <SelectItem value="+1">🇺🇸 USA +1</SelectItem>
-                            <SelectItem value="+27">🇿🇦 S. Africa +27</SelectItem>
-                            <SelectItem value="+234">🇳🇬 Nigeria +234</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          placeholder="712 345 678"
-                          className="flex-1"
-                        />
-                      </div>
+                      <PhoneInput
+                        id="phone"
+                        label="Phone Number"
+                        value={formData.phone}
+                        onChange={(phone) => setFormData({ ...formData, phone })}
+                        placeholder="712 345 678"
+                      />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Alternate Phone (Optional)</Label>
-                      <div className="flex gap-2">
-                        <Select value={formData.alternatePhoneCountryCode} onValueChange={(val) => setFormData({...formData, alternatePhoneCountryCode: val})}>
-                          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="+254">🇰🇪 Kenya +254</SelectItem>
-                            <SelectItem value="+256">🇺🇬 Uganda +256</SelectItem>
-                            <SelectItem value="+255">🇹🇿 Tanzania +255</SelectItem>
-                            <SelectItem value="+44">🇬🇧 UK +44</SelectItem>
-                            <SelectItem value="+1">🇺🇸 USA +1</SelectItem>
-                            <SelectItem value="+27">🇿🇦 S. Africa +27</SelectItem>
-                            <SelectItem value="+234">🇳🇬 Nigeria +234</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input
-                          name="alternatePhone"
-                          value={formData.alternatePhone}
-                          onChange={handleInputChange}
-                          placeholder="712 345 679"
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
+                    <PhoneInput
+                      id="alternatePhone"
+                      label="Alternate Phone (Optional)"
+                      value={formData.alternatePhone}
+                      onChange={(alternatePhone) => setFormData({ ...formData, alternatePhone })}
+                      placeholder="712 345 679"
+                    />
                   </div>
                 )}
 

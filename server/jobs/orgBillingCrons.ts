@@ -10,6 +10,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { sendSystemEmail } from "../services/systemEmailService";
 import { dispatchSystemAlert } from "../services/systemReportingService";
 import { createSaaSIncomeInvoice } from "../services/saasIncomeLedger";
+import { toMajorCurrencyAmount } from "../../shared/currency";
 
 const logger = console;
 
@@ -119,7 +120,7 @@ async function processSubscriptionRenewals() {
           .where(eq(subscriptions.id, sub.id));
 
         if (ratedInvoice.created) {
-          const invoiceAmount = (ratedInvoice.amountCents / 100).toFixed(2);
+          const invoiceAmount = toMajorCurrencyAmount(ratedInvoice.amountCents, "minor").toFixed(2);
           if (org[0].billingEmail) {
             await sendSystemEmail("admin/admin_general_notice", {
               recipientEmail: org[0].billingEmail,

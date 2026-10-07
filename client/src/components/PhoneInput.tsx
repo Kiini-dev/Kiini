@@ -16,6 +16,7 @@ interface PhoneInputProps {
   label?: string;
   placeholder?: string;
   required?: boolean;
+  disabled?: boolean;
   className?: string;
   id?: string;
 }
@@ -44,6 +45,7 @@ export function PhoneInput({
   label,
   placeholder = "700 000 000",
   required,
+  disabled,
   className,
   id,
 }: PhoneInputProps) {
@@ -76,8 +78,8 @@ export function PhoneInput({
         </Label>
       )}
       <div className="flex gap-2">
-        <Select value={code} onValueChange={handleCodeChange}>
-          <SelectTrigger className="w-[130px] shrink-0">
+        <Select value={code} onValueChange={handleCodeChange} disabled={disabled}>
+          <SelectTrigger className="w-[130px] shrink-0" disabled={disabled}>
             <SelectValue placeholder="+254" />
           </SelectTrigger>
           <SelectContent>
@@ -94,6 +96,7 @@ export function PhoneInput({
           onChange={(e) => handleNumberChange(e.target.value)}
           placeholder={placeholder}
           className="flex-1"
+          disabled={disabled}
         />
       </div>
     </div>

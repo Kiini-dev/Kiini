@@ -14,6 +14,7 @@ import { Shield } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { SupplierSelector } from "@/components/SupplierSelector";
 
 export default function CreateWarranty() {
   const [, navigate] = useLocation();
@@ -86,8 +87,7 @@ export default function CreateWarranty() {
               <Input id="product" value={formData.product} onChange={(e) => update("product", e.target.value)} required />
             </div>
             <div>
-              <Label htmlFor="vendor">Vendor *</Label>
-              <Input id="vendor" value={formData.vendor} onChange={(e) => update("vendor", e.target.value)} required />
+              <SupplierSelector label="Vendor" value={formData.vendor} onChange={(vendor) => update("vendor", vendor)} required />
             </div>
             <div>
               <Label htmlFor="serialNumber">Serial Number</Label>

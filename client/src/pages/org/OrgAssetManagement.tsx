@@ -83,11 +83,11 @@ export default function AssetManagement() {
 
   const openEdit = (a: any) => {
     setEditingAsset(a);
-    setForm({ name: a.name || "", category: a.category || "", location: a.location || "", value: ((a.value || 0) / 100).toString(), assignedTo: a.assignedTo || "", serialNumber: a.serialNumber || "", purchaseDate: a.purchaseDate || "", status: a.status || "active", notes: a.notes || "" });
+    setForm({ name: a.name || "", category: a.category || "", location: a.location || "", value: ((a.value || 0) / 100).toString(), assignedTo: a.assignedTo || "", supplier: a.supplier || "", serialNumber: a.serialNumber || "", purchaseDate: a.purchaseDate || "", status: a.status || "active", notes: a.notes || "" });
   };
 
   const handleSubmit = (isEdit: boolean) => {
-    const payload = { name: form.name, category: form.category, location: form.location, value: parseFloat(form.value) || 0, assignedTo: form.assignedTo || undefined, serialNumber: form.serialNumber || undefined, purchaseDate: form.purchaseDate || undefined, status: form.status, notes: form.notes || undefined };
+    const payload = { name: form.name, category: form.category, location: form.location, value: parseFloat(form.value) || 0, assignedTo: form.assignedTo || undefined, supplier: form.supplier || undefined, serialNumber: form.serialNumber || undefined, purchaseDate: form.purchaseDate || undefined, status: form.status, notes: form.notes || undefined };
     if (isEdit && editingAsset) updateMutation.mutate({ id: editingAsset.id, ...payload });
     else createMutation.mutate(payload);
   };
@@ -103,9 +103,10 @@ export default function AssetManagement() {
         <div className="space-y-1"><Label>Value (Ksh) *</Label><Input type="number" value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))} placeholder="0" /></div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1"><Label>Assigned To</Label><Input value={form.assignedTo} onChange={e => setForm(f => ({ ...f, assignedTo: e.target.value }))} placeholder="Employee name" /></div>
+        <EmployeeNameSelector label="Assigned To" value={form.assignedTo} onChange={assignedTo => setForm(f => ({ ...f, assignedTo }))} />
         <div className="space-y-1"><Label>Serial Number</Label><Input value={form.serialNumber} onChange={e => setForm(f => ({ ...f, serialNumber: e.target.value }))} placeholder="SN-12345" /></div>
       </div>
+      <SupplierSelector label="Supplier" value={form.supplier} onChange={supplier => setForm(f => ({ ...f, supplier }))} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1"><Label>Purchase Date</Label><Input type="date" value={form.purchaseDate} onChange={e => setForm(f => ({ ...f, purchaseDate: e.target.value }))} /></div>
         <div className="space-y-1"><Label>Status</Label>

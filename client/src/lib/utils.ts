@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { formatMinorCurrencyAmount } from "../../../shared/currency";
 
 export function cn(...inputs: ClassValue[]) {
   for (let i = 0; i < inputs.length; i++) {
@@ -31,10 +32,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, currencyCode: string = "KES"): string {
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: currencyCode,
-  }).format(amount / 100);
+  return formatMinorCurrencyAmount(amount, currencyCode);
 }
 
 export function formatDate(date: string | Date): string {

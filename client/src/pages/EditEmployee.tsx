@@ -433,6 +433,20 @@ export default function EditEmployee() {
                     placeholder="700 000 000"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Select value={formData.country} onValueChange={(country) => setFormData({ ...formData, country })}>
+                    <SelectTrigger id="country"><SelectValue placeholder="Select country" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="KE">Kenya</SelectItem>
+                      <SelectItem value="UG">Uganda</SelectItem>
+                      <SelectItem value="TZ">Tanzania</SelectItem>
+                      <SelectItem value="RW">Rwanda</SelectItem>
+                      <SelectItem value="BW">Botswana</SelectItem>
+                      <SelectItem value="ZA">South Africa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
@@ -729,12 +743,7 @@ export default function EditEmployee() {
                 <div className="grid gap-4 md:grid-cols-2 mt-4">
                   <div className="space-y-2">
                     <Label htmlFor="emergencyContactPhone">Emergency Phone</Label>
-                    <Input
-                      id="emergencyContactPhone"
-                      value={formData.emergencyContactPhone}
-                      onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
-                      placeholder="+254 700 000 000"
-                    />
+                    <PhoneInput id="emergencyContactPhone" value={formData.emergencyContactPhone} onChange={(emergencyContactPhone) => setFormData({ ...formData, emergencyContactPhone })} placeholder="700 000 000" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="emergencyContact">Emergency Notes</Label>
@@ -921,4 +930,3 @@ export default function EditEmployee() {
     </ModuleLayout>
   );
 }
-

@@ -1,10 +1,14 @@
-import { and, desc, eq, lte } from "drizzle-orm";
+import { and, desc, eq, inArray, lte } from "drizzle-orm";
 import {
+  accounts,
   employeeCostAllocations,
+  journalEntries,
+  journalEntryLines,
   payrollCostCenters,
   payrollLedgerEntries,
 } from "../../drizzle/schema";
 import { v4 as uuidv4 } from "uuid";
+import { adjustChartOfAccountBalance } from "../utils/chartOfAccountBalance";
 
 export interface CostAllocationInput {
   costCenterId: string;
@@ -57,6 +61,7 @@ export async function recordPayrollCostAllocation(
     organizationId: string;
     payrollId: string;
     employeeId: string;
+    createdBy?: string | null;
     payrollPeriodStart: string;
     payrollPeriodEnd: string;
     employeeDepartmentId?: string | null;
@@ -110,6 +115,10 @@ export async function recordPayrollCostAllocation(
   const costCenters = await database.select({
     id: payrollCostCenters.id,
     departmentId: payrollCostCenters.departmentId,
+    code: payrollCostCenters.code,
+    name: payrollCostCenters.name,
+    expenseAccountId: payrollCostCenters.expenseAccountId,
+    payrollLiabilityAccountId: payrollCostCenters.payrollLiabilityAccountId,
   })
     .from(payrollCostCenters)
     .where(and(
@@ -119,6 +128,36 @@ export async function recordPayrollCostAllocation(
   const centerById = new Map(costCenters.map((center: any) => [center.id, center]));
   if (allocations.some((allocation: any) => !centerById.has(allocation.costCenterId))) {
     throw new Error("The effective cost allocation references an inactive or unavailable cost center");
+  }
+  const allocatedCenters = allocations.map((allocation: any) => centerById.get(allocation.costCenterId));
+  const accountIds = [...new Set(allocatedCenters.flatMap((center: any) =>
+    [center.expenseAccountId, center.payrollLiabilityAccountId].filter(Boolean)
+  ))];
+  if (allocatedCenters.some((center: any) => !center.expenseAccountId || !center.payrollLiabilityAccountId)) {
+    throw new Error("Every allocated payroll cost center must be mapped to an expense account and payroll liability account in the Chart of Accounts");
+  }
+  const mappedAccounts = await database.select({
+    id: accounts.id,
+    organizationId: accounts.organizationId,
+    accountCode: accounts.accountCode,
+    accountName: accounts.accountName,
+    accountType: accounts.accountType,
+    isActive: accounts.isActive,
+  }).from(accounts).where(and(
+    inArray(accounts.id, accountIds),
+    eq(accounts.organizationId, input.organizationId),
+  ));
+  const accountById = new Map(mappedAccounts.map((account: any) => [account.id, account]));
+  for (const center of allocatedCenters as any[]) {
+    const expenseAccount = accountById.get(center.expenseAccountId) as any;
+    const liabilityAccount = accountById.get(center.payrollLiabilityAccountId) as any;
+    if (!expenseAccount || expenseAccount.isActive !== 1 ||
+      !["expense", "operating expense", "cost of goods sold", "other expense"].includes(expenseAccount.accountType)) {
+      throw new Error(`Cost center ${center.code} must map to an active expense account in this organization`);
+    }
+    if (!liabilityAccount || liabilityAccount.isActive !== 1 || liabilityAccount.accountType !== "liability") {
+      throw new Error(`Cost center ${center.code} must map to an active liability account in this organization`);
+    }
   }
 
   const amountFields = {
@@ -151,6 +190,59 @@ export async function recordPayrollCostAllocation(
     ])),
   }));
   await database.insert(payrollLedgerEntries).values(ledgerEntries);
+  const processedAt = new Date().toISOString().replace("T", " ").substring(0, 19);
+  for (const allocation of allocations as any[]) {
+    const center = centerById.get(allocation.costCenterId) as any;
+    const expenseAccount = accountById.get(center.expenseAccountId) as any;
+    const liabilityAccount = accountById.get(center.payrollLiabilityAccountId) as any;
+    const amount = splitFields.fullyBurdenedCostCents.get(allocation.costCenterId) ?? 0;
+    if (amount === 0) continue;
+    const journalEntryId = uuidv4();
+    const payPeriod = input.payrollPeriodStart.slice(0, 7);
+    await database.insert(journalEntries).values({
+      id: journalEntryId,
+      organizationId: input.organizationId,
+      entryNumber: `JE-PAYROLL-${payPeriod}-${journalEntryId}`,
+      entryDate: input.payrollPeriodEnd,
+      entryMonth: payPeriod,
+      reference: input.payrollId,
+      description: `Payroll accrual: ${center.code} ${center.name}`,
+      totalAmount: amount,
+      referenceType: "payroll",
+      referenceId: input.payrollId,
+      status: "posted",
+      createdBy: input.createdBy ?? null,
+      postedAt: processedAt,
+      createdAt: processedAt,
+      updatedAt: processedAt,
+    } as any);
+    await database.insert(journalEntryLines).values([
+      {
+        id: uuidv4(),
+        journalEntryId,
+        accountId: center.expenseAccountId,
+        debit: amount,
+        credit: 0,
+        description: `Fully burdened payroll expense — ${center.code}`,
+        lineNumber: 1,
+        createdBy: input.createdBy ?? null,
+        createdAt: processedAt,
+      },
+      {
+        id: uuidv4(),
+        journalEntryId,
+        accountId: center.payrollLiabilityAccountId,
+        debit: 0,
+        credit: amount,
+        description: `Payroll payable — ${center.code}`,
+        lineNumber: 2,
+        createdBy: input.createdBy ?? null,
+        createdAt: processedAt,
+      },
+    ] as any);
+    await adjustChartOfAccountBalance(database, expenseAccount.id, amount, input.organizationId);
+    await adjustChartOfAccountBalance(database, liabilityAccount.id, -amount, input.organizationId);
+  }
   return {
     inserted: true,
     entries: allocations.length,

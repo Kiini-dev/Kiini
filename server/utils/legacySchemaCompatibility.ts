@@ -47,6 +47,8 @@ const legacyColumnCatalog: Record<string, LegacyColumnDefinition[]> = {
     { name: 'organizationId', definition: 'varchar(64) NULL' },
     { name: 'projectId', definition: 'varchar(64) NULL' },
     { name: 'category', definition: 'varchar(100) NULL' },
+    { name: 'approvedBy', definition: 'varchar(64) NULL' },
+    { name: 'approvedAt', definition: 'datetime NULL' },
     { name: 'accountManagerId', definition: 'varchar(64) NULL' },
     { name: 'paymentPlanId', definition: 'varchar(64) NULL' },
     { name: 'isAutoRecurring', definition: 'tinyint NULL DEFAULT 0' },

@@ -265,6 +265,7 @@ __export(schema_exports, {
   approvalNotifications: () => approvalNotifications,
   approvalRequests: () => approvalRequests,
   approvalWorkflows: () => approvalWorkflows2,
+  assetMovements: () => assetMovements,
   assets: () => assets,
   attendance: () => attendance,
   auditLogs: () => auditLogs,
@@ -510,7 +511,7 @@ __export(schema_exports, {
 });
 import { mysqlTable as mysqlTable2, index as index2, uniqueIndex as uniqueIndex2, varchar as varchar2, mysqlEnum, int as int2, text as text2, longtext, timestamp as timestamp2, datetime, date, tinyint, json as json2, decimal, bigint, boolean as boolean2 } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
-var accounts, activityLog, auditLogs, bankAccounts, bankTransactions, clients, communicationLogs, jobGroups, employees, estimateItems, estimates, proposals, expenses, recurringExpenses, guestClients, inventoryTransactions, invoiceItems, invoices, recurringInvoices, journalEntries, journalEntryLines, leaveRequests, opportunities, paymentPlans, paymentPlanInstallments, payroll, products, projectTasks, projects, projectMilestones, timeEntries, reminders, scheduledReminders, services, settings, organizationSettings, stockAlerts, systemSettings, templates, documentNumberFormats, defaultSettings, permissions, customRoles, userRoles, rolePermissions, receipts, creditNotes, debitNotes, departments, payrollCostCenters, employeeCostAllocations, payrollLedgerEntries, reportExportAuditLogs, nonSalesInflows, budgets, attendance, userProjectAssignments, projectComments, staffTasks, userPermissions, users, savedFilters, notifications, notificationSettings, notificationPreferences, smsQueue, smsCustomerPreferences, smsTemplates, smsAutomationRules, smsDeliveryEvents, userFavorites, aiDocuments, emailGenerationHistory, financialAnalytics, aiChatSessions, aiChatMessages, lineItems, workflows, workflowTriggers, workflowActions, workflowExecutions, permissionMetadata, dashboardLayouts, dashboardWidgets, dashboardWidgetData, permissionAuditLog, projectMetrics, clientHealthScores, performanceReviews, performanceContracts, skillsMatrix, schedules, vacationRequests, documents, fileFolders, documentVersions, documentAccess, notificationRules, usageMetrics, expenseCategories, expenseReports, reimbursements, currencies, exchangeRates, taxRates, forecastModels, forecastResults, apiKeys, webhooks, integrationLogs, emailQueue, emailLog, invoiceReminders, pricingPlans, subscriptions, organizationSubscriptions, billingInvoices, payments, paymentMethods, billingUsageMetrics, saasBillingRateCards, saasBillingRateTiers, incomeLedgerEntries, incomeLedgerLines, billingNotifications, dunningPolicies, paymentRetries, dunningEvents, userDeletions, notificationTemplates, notificationBroadcasts, messages, conversations, organizations, organizationFeatures, organizationUsers, tenantMessages, pricingTierFeatures, conversationMembers, messageReadReceipts, tickets, ticketResponses, recurringInvoiceTemplates, automatedReceipts, emailCampaigns, emailMarketingSubscribers, emailLogs, workOrders, eSignatureRequests, workOrderMaterials, serviceInvoices, serviceInvoiceItems, contacts, quotations, grnRecords, deliveryNotes, assets, contracts, warranties, notes, customReports, organizationAccountingPolicies, globalAccountingPolicies, imprests, imprestSurrenders, purchaseOrders, purchaseOrderItems, goodsReceiptNotes, leads, bankReconciliationStatements, bankReconciliationDetails, reconciliationRules, reconciliationMatchAllocations, reconciliationAuditEvents, automationConfigs, workflowAutomationLogs, smartWorkflows, exportJobs, securityEvents, aiConfigurations, apiPricingConfigs, etlJobs, containerDeployments, customDashboards, webhookConfigs, emailCalendarSync, securityIncidents, globalConfigs, registeredDevices, mobileAppConfigs, partnerDeals, partnerProfiles, partnerReferrals, partnerCommissions, partnerPayouts, perfConfigs, backupSchedules, backupHistory, integrationConfigs, designConfigs, aiInsights, analyticsMetrics, cohortAnalyses, executiveReports, collaborationSessions, complianceRecords, staffChatChannels, staffChatMessages, cannedResponses, kbCategories, kbArticles, warehouses, stockMovements, clientSubscriptions, systemHealth, systemLogs, activeSessions, departmentHierarchies, employeePromotions, employeeTransfers, timesheets, payrollBatches, payrollDetails, scheduledJobs, jobExecutionLogs, jobAlertRules, jobAlertHistory, jobHeartbeat, customFields, fieldValidations, fieldValues, stripeCustomers, stripePaymentIntents, mpesaTransactions, stripeWebhookEvents, lpos, orders, payslips, leaveBalances, leaveApprovals, taxCompliance, holidays, trainingCourses, trainingPrograms, trainingEnrollments, onboardingChecklists, onboardingTasks, onboardingTemplates, employeeSkills, hrSettings, approvalWorkflows2, permissionAuditLogs, permissionDelegations, paymentTriggers;
+var accounts, activityLog, auditLogs, bankAccounts, bankTransactions, clients, communicationLogs, jobGroups, employees, estimateItems, estimates, proposals, expenses, recurringExpenses, guestClients, inventoryTransactions, invoiceItems, invoices, recurringInvoices, journalEntries, journalEntryLines, leaveRequests, opportunities, paymentPlans, paymentPlanInstallments, payroll, products, projectTasks, projects, projectMilestones, timeEntries, reminders, scheduledReminders, services, settings, organizationSettings, stockAlerts, systemSettings, templates, documentNumberFormats, defaultSettings, permissions, customRoles, userRoles, rolePermissions, receipts, creditNotes, debitNotes, departments, payrollCostCenters, employeeCostAllocations, payrollLedgerEntries, reportExportAuditLogs, nonSalesInflows, budgets, attendance, userProjectAssignments, projectComments, staffTasks, userPermissions, users, savedFilters, notifications, notificationSettings, notificationPreferences, smsQueue, smsCustomerPreferences, smsTemplates, smsAutomationRules, smsDeliveryEvents, userFavorites, aiDocuments, emailGenerationHistory, financialAnalytics, aiChatSessions, aiChatMessages, lineItems, workflows, workflowTriggers, workflowActions, workflowExecutions, permissionMetadata, dashboardLayouts, dashboardWidgets, dashboardWidgetData, permissionAuditLog, projectMetrics, clientHealthScores, performanceReviews, performanceContracts, skillsMatrix, schedules, vacationRequests, documents, fileFolders, documentVersions, documentAccess, notificationRules, usageMetrics, expenseCategories, expenseReports, reimbursements, currencies, exchangeRates, taxRates, forecastModels, forecastResults, apiKeys, webhooks, integrationLogs, emailQueue, emailLog, invoiceReminders, pricingPlans, subscriptions, organizationSubscriptions, billingInvoices, payments, paymentMethods, billingUsageMetrics, saasBillingRateCards, saasBillingRateTiers, incomeLedgerEntries, incomeLedgerLines, billingNotifications, dunningPolicies, paymentRetries, dunningEvents, userDeletions, notificationTemplates, notificationBroadcasts, messages, conversations, organizations, organizationFeatures, organizationUsers, tenantMessages, pricingTierFeatures, conversationMembers, messageReadReceipts, tickets, ticketResponses, recurringInvoiceTemplates, automatedReceipts, emailCampaigns, emailMarketingSubscribers, emailLogs, workOrders, eSignatureRequests, workOrderMaterials, serviceInvoices, serviceInvoiceItems, contacts, quotations, grnRecords, deliveryNotes, assets, assetMovements, contracts, warranties, notes, customReports, organizationAccountingPolicies, globalAccountingPolicies, imprests, imprestSurrenders, purchaseOrders, purchaseOrderItems, goodsReceiptNotes, leads, bankReconciliationStatements, bankReconciliationDetails, reconciliationRules, reconciliationMatchAllocations, reconciliationAuditEvents, automationConfigs, workflowAutomationLogs, smartWorkflows, exportJobs, securityEvents, aiConfigurations, apiPricingConfigs, etlJobs, containerDeployments, customDashboards, webhookConfigs, emailCalendarSync, securityIncidents, globalConfigs, registeredDevices, mobileAppConfigs, partnerDeals, partnerProfiles, partnerReferrals, partnerCommissions, partnerPayouts, perfConfigs, backupSchedules, backupHistory, integrationConfigs, designConfigs, aiInsights, analyticsMetrics, cohortAnalyses, executiveReports, collaborationSessions, complianceRecords, staffChatChannels, staffChatMessages, cannedResponses, kbCategories, kbArticles, warehouses, stockMovements, clientSubscriptions, systemHealth, systemLogs, activeSessions, departmentHierarchies, employeePromotions, employeeTransfers, timesheets, payrollBatches, payrollDetails, scheduledJobs, jobExecutionLogs, jobAlertRules, jobAlertHistory, jobHeartbeat, customFields, fieldValidations, fieldValues, stripeCustomers, stripePaymentIntents, mpesaTransactions, stripeWebhookEvents, lpos, orders, payslips, leaveBalances, leaveApprovals, taxCompliance, holidays, trainingCourses, trainingPrograms, trainingEnrollments, onboardingChecklists, onboardingTasks, onboardingTemplates, employeeSkills, hrSettings, approvalWorkflows2, permissionAuditLogs, permissionDelegations, paymentTriggers;
 var init_schema = __esm({
   "drizzle/schema.ts"() {
     init_approvalSchema();
@@ -933,6 +934,8 @@ var init_schema = __esm({
         notes: text2(),
         terms: text2(),
         createdBy: varchar2({ length: 64 }),
+        approvedBy: varchar2({ length: 64 }),
+        approvedAt: datetime({ mode: "string" }),
         createdAt: timestamp2({ mode: "string" }),
         updatedAt: timestamp2({ mode: "string" }),
         paymentPlanId: varchar2({ length: 64 }),
@@ -1619,6 +1622,8 @@ var init_schema = __esm({
       id: varchar2({ length: 64 }).primaryKey(),
       organizationId: varchar2({ length: 64 }),
       departmentId: varchar2({ length: 64 }),
+      expenseAccountId: varchar2({ length: 64 }),
+      payrollLiabilityAccountId: varchar2({ length: 64 }),
       code: varchar2({ length: 50 }).notNull(),
       name: varchar2({ length: 100 }).notNull(),
       type: mysqlEnum(["COGS", "R&D", "S&M", "G&A", "PROGRAMMATIC"]).notNull(),
@@ -2465,13 +2470,15 @@ var init_schema = __esm({
       id: varchar2({ length: 64 }).primaryKey(),
       organizationId: varchar2({ length: 64 }),
       parentId: varchar2({ length: 64 }),
+      linkedClientId: varchar2({ length: 64 }),
       name: varchar2({ length: 255 }).notNull(),
       createdBy: varchar2({ length: 64 }).notNull(),
       createdAt: timestamp2({ mode: "string" }).defaultNow(),
       updatedAt: timestamp2({ mode: "string" }).defaultNow().onUpdateNow()
     }, (table) => [
       index2("idx_file_folder_org").on(table.organizationId),
-      index2("idx_file_folder_parent").on(table.parentId)
+      index2("idx_file_folder_parent").on(table.parentId),
+      index2("idx_file_folder_client").on(table.linkedClientId)
     ]);
     documentVersions = mysqlTable2("documentVersions", {
       id: varchar2({ length: 64 }).primaryKey(),
@@ -3586,6 +3593,7 @@ var init_schema = __esm({
       location: varchar2({ length: 200 }).notNull(),
       value: int2().default(0).notNull(),
       assignedTo: varchar2({ length: 200 }),
+      supplier: varchar2({ length: 200 }),
       serialNumber: varchar2({ length: 100 }),
       purchaseDate: varchar2({ length: 30 }),
       status: mysqlEnum(["active", "inactive", "maintenance", "disposed"]).default("active").notNull(),
@@ -3596,6 +3604,21 @@ var init_schema = __esm({
     }, (table) => [
       index2("idx_assets_status").on(table.status),
       index2("idx_assets_category").on(table.category)
+    ]);
+    assetMovements = mysqlTable2("assetMovements", {
+      id: varchar2({ length: 64 }).primaryKey(),
+      assetId: varchar2({ length: 64 }).notNull(),
+      fromLocation: varchar2({ length: 200 }).notNull(),
+      toLocation: varchar2({ length: 200 }).notNull(),
+      fromAssignedTo: varchar2({ length: 200 }),
+      toAssignedTo: varchar2({ length: 200 }),
+      movedAt: varchar2({ length: 30 }).notNull(),
+      reason: varchar2({ length: 500 }).notNull(),
+      notes: text2(),
+      movedBy: varchar2({ length: 64 }).notNull(),
+      createdAt: timestamp2({ mode: "string" }).defaultNow()
+    }, (table) => [
+      index2("idx_asset_movements_asset_date").on(table.assetId, table.movedAt)
     ]);
     contracts = mysqlTable2("contracts", {
       id: varchar2({ length: 64 }).primaryKey(),
@@ -6882,6 +6905,8 @@ var init_legacySchemaCompatibility = __esm({
         { name: "organizationId", definition: "varchar(64) NULL" },
         { name: "projectId", definition: "varchar(64) NULL" },
         { name: "category", definition: "varchar(100) NULL" },
+        { name: "approvedBy", definition: "varchar(64) NULL" },
+        { name: "approvedAt", definition: "datetime NULL" },
         { name: "accountManagerId", definition: "varchar(64) NULL" },
         { name: "paymentPlanId", definition: "varchar(64) NULL" },
         { name: "isAutoRecurring", definition: "tinyint NULL DEFAULT 0" },
@@ -9424,7 +9449,7 @@ async function generateP9Form(input, generatedBy) {
 init_db();
 init_schema();
 import { CronJob } from "cron";
-import { eq as eq10, and as and9, inArray as inArray3 } from "drizzle-orm";
+import { eq as eq11, and as and10, inArray as inArray4 } from "drizzle-orm";
 import { v4 as uuidv44 } from "uuid";
 
 // server/utils/kenyan-payroll-calculator.ts
@@ -9544,9 +9569,55 @@ function calculateKenyanPayroll(payrollInfo) {
   };
 }
 
+// shared/currency.ts
+var LEGACY_MINOR_UNITS_PER_MAJOR = 100;
+function normalizeCurrencyAmount(value) {
+  const amount = Number(value ?? 0);
+  return Number.isFinite(amount) ? amount : 0;
+}
+function toMajorCurrencyAmount(value, unit = "major") {
+  const amount = normalizeCurrencyAmount(value);
+  return unit === "minor" ? amount / LEGACY_MINOR_UNITS_PER_MAJOR : amount;
+}
+function formatCurrencyAmount(value, currencyCode = "KES", options = {}) {
+  const {
+    unit = "major",
+    locale = "en-KE",
+    symbol = currencyCode,
+    position = "before"
+  } = options;
+  const amount = toMajorCurrencyAmount(value, unit);
+  const defaults = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currencyCode
+  }).resolvedOptions();
+  if (options.symbol === void 0 && options.position === void 0) {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currencyCode,
+      minimumFractionDigits: options.minimumFractionDigits ?? defaults.minimumFractionDigits,
+      maximumFractionDigits: options.maximumFractionDigits ?? defaults.maximumFractionDigits
+    }).format(amount);
+  }
+  const maximumFractionDigits = options.maximumFractionDigits ?? Math.max(2, defaults.maximumFractionDigits);
+  const minimumFractionDigits = options.minimumFractionDigits ?? 0;
+  const numeric = new Intl.NumberFormat(locale, {
+    minimumFractionDigits,
+    maximumFractionDigits
+  }).format(amount);
+  return position === "before" ? `${symbol} ${numeric}` : `${numeric} ${symbol}`;
+}
+function formatMinorCurrencyAmount(value, currencyCode = "KES", options = {}) {
+  return formatCurrencyAmount(value, currencyCode, { ...options, unit: "minor" });
+}
+
 // server/utils/payslip-template.ts
 function ksh(cents) {
-  return `KES ${(cents / 100).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatMinorCurrencyAmount(cents, "KES", {
+    symbol: "KES",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 }
 function monthLabel(period) {
   try {
@@ -9818,8 +9889,8 @@ async function getCompanyInfo() {
 }
 
 // server/utils/budgetEnforcer.ts
-init_schema();
 import { TRPCError as TRPCError3 } from "@trpc/server";
+init_schema();
 import { eq as eq6, and as and5 } from "drizzle-orm";
 async function findActiveBudget(database, orgId, departmentId, fiscalYear) {
   try {
@@ -9874,7 +9945,7 @@ async function checkBudget(database, amountCents, orgId, options) {
         budgetName: budget.budgetName,
         requested: amountCents,
         remaining: budget.remaining,
-        message: `Budget "${budget.budgetName}" is insufficient${label}. Requested: Ksh ${(amountCents / 100).toLocaleString("en-KE")}, Available: Ksh ${(budget.remaining / 100).toLocaleString("en-KE")}.`
+        message: `Budget "${budget.budgetName}" is insufficient${label}. Requested: ${formatMinorCurrencyAmount(amountCents, "KES", { symbol: "Ksh" })}, Available: ${formatMinorCurrencyAmount(budget.remaining, "KES", { symbol: "Ksh" })}.`
       })
     });
   }
@@ -10654,14 +10725,14 @@ var EmailService = class {
         throw new Error("Database connection lost");
       }
       const emailQueue2 = (await Promise.resolve().then(() => (init_schema(), schema_exports))).emailQueue;
-      const { eq: eq11, and: and10, lt, isNull: isNull2, or: or2 } = await import("drizzle-orm");
+      const { eq: eq12, and: and11, lt, isNull: isNull3, or: or2 } = await import("drizzle-orm");
       const nowDate = /* @__PURE__ */ new Date();
       const now2 = nowDate.toISOString().replace("T", " ").substring(0, 19);
       const pendingEmails = await database.select().from(emailQueue2).where(
-        and10(
-          eq11(emailQueue2.status, "pending"),
+        and11(
+          eq12(emailQueue2.status, "pending"),
           or2(
-            isNull2(emailQueue2.nextRetryAt),
+            isNull3(emailQueue2.nextRetryAt),
             lt(emailQueue2.nextRetryAt, now2)
           )
         )
@@ -10670,7 +10741,7 @@ var EmailService = class {
       let failed = 0;
       for (const email of pendingEmails) {
         try {
-          await database.update(emailQueue2).set({ status: "retrying" }).where(eq11(emailQueue2.id, email.id));
+          await database.update(emailQueue2).set({ status: "retrying" }).where(eq12(emailQueue2.id, email.id));
           let subject = email.subject;
           let html = email.htmlContent;
           let text4 = email.textContent;
@@ -10702,7 +10773,7 @@ var EmailService = class {
           await database.update(emailQueue2).set({
             status: "sent",
             sentAt: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").substring(0, 19)
-          }).where(eq11(emailQueue2.id, email.id));
+          }).where(eq12(emailQueue2.id, email.id));
           sent++;
         } catch (error) {
           failed++;
@@ -10717,13 +10788,13 @@ var EmailService = class {
               attempts: attemptCount,
               nextRetryAt: nextRetryStr,
               errorMessage: error instanceof Error ? error.message : String(error)
-            }).where(eq11(emailQueue2.id, email.id));
+            }).where(eq12(emailQueue2.id, email.id));
           } else {
             await database.update(emailQueue2).set({
               status: "failed",
               attempts: attemptCount,
               errorMessage: `Failed after ${maxAttempts} attempts: ${error instanceof Error ? error.message : String(error)}`
-            }).where(eq11(emailQueue2.id, email.id));
+            }).where(eq12(emailQueue2.id, email.id));
           }
         }
       }
@@ -10771,8 +10842,28 @@ var sendEmailImmediately = (input) => emailService.sendEmailImmediately(input);
 
 // server/services/payrollCostAllocationService.ts
 init_schema();
-import { and as and8, desc as desc4, eq as eq9, lte as lte2 } from "drizzle-orm";
+import { and as and9, desc as desc4, eq as eq10, inArray as inArray3, lte as lte2 } from "drizzle-orm";
 import { v4 as uuidv43 } from "uuid";
+
+// server/utils/chartOfAccountBalance.ts
+init_schema();
+import { and as and8, eq as eq9, isNull as isNull2, sql as sql5 } from "drizzle-orm";
+async function adjustChartOfAccountBalance(database, accountId, delta, organizationId, options = {}) {
+  if (!accountId || delta === 0) return false;
+  const accountWhere = organizationId ? and8(eq9(accounts.id, accountId), eq9(accounts.organizationId, organizationId)) : eq9(accounts.id, accountId);
+  const existing = await database.select({ id: accounts.id }).from(accounts).where(accountWhere).limit(1);
+  if (!existing.length) {
+    if (options.allowMissingAccount) return false;
+    throw new Error("Chart of Accounts entry not found");
+  }
+  await database.update(accounts).set({
+    balance: sql5`COALESCE(${accounts.balance}, 0) + ${delta}`,
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").substring(0, 19)
+  }).where(eq9(accounts.id, accountId));
+  return true;
+}
+
+// server/services/payrollCostAllocationService.ts
 function splitCents(totalCents, allocations) {
   if (!Number.isSafeInteger(totalCents) || totalCents < 0) throw new Error("Payroll amounts must be non-negative integer cents");
   const splits = allocations.map((allocation) => {
@@ -10789,7 +10880,7 @@ async function recordPayrollCostAllocation(database, input) {
     costCenterId: payrollLedgerEntries.costCenterId,
     fullyBurdenedCostCents: payrollLedgerEntries.fullyBurdenedCostCents,
     departmentId: payrollCostCenters.departmentId
-  }).from(payrollLedgerEntries).innerJoin(payrollCostCenters, eq9(payrollLedgerEntries.costCenterId, payrollCostCenters.id)).where(eq9(payrollLedgerEntries.payrollId, input.payrollId)).limit(100);
+  }).from(payrollLedgerEntries).innerJoin(payrollCostCenters, eq10(payrollLedgerEntries.costCenterId, payrollCostCenters.id)).where(eq10(payrollLedgerEntries.payrollId, input.payrollId)).limit(100);
   if (prior.length) {
     return {
       inserted: false,
@@ -10801,9 +10892,9 @@ async function recordPayrollCostAllocation(database, input) {
       }))
     };
   }
-  const history = await database.select().from(employeeCostAllocations).where(and8(
-    eq9(employeeCostAllocations.organizationId, input.organizationId),
-    eq9(employeeCostAllocations.employeeId, input.employeeId),
+  const history = await database.select().from(employeeCostAllocations).where(and9(
+    eq10(employeeCostAllocations.organizationId, input.organizationId),
+    eq10(employeeCostAllocations.employeeId, input.employeeId),
     lte2(employeeCostAllocations.effectiveDate, input.payrollPeriodStart.slice(0, 10))
   )).orderBy(desc4(employeeCostAllocations.effectiveDate));
   if (history.length === 0) {
@@ -10816,14 +10907,47 @@ async function recordPayrollCostAllocation(database, input) {
   }
   const costCenters = await database.select({
     id: payrollCostCenters.id,
-    departmentId: payrollCostCenters.departmentId
-  }).from(payrollCostCenters).where(and8(
-    eq9(payrollCostCenters.organizationId, input.organizationId),
-    eq9(payrollCostCenters.isActive, 1)
+    departmentId: payrollCostCenters.departmentId,
+    code: payrollCostCenters.code,
+    name: payrollCostCenters.name,
+    expenseAccountId: payrollCostCenters.expenseAccountId,
+    payrollLiabilityAccountId: payrollCostCenters.payrollLiabilityAccountId
+  }).from(payrollCostCenters).where(and9(
+    eq10(payrollCostCenters.organizationId, input.organizationId),
+    eq10(payrollCostCenters.isActive, 1)
   ));
   const centerById = new Map(costCenters.map((center) => [center.id, center]));
   if (allocations.some((allocation) => !centerById.has(allocation.costCenterId))) {
     throw new Error("The effective cost allocation references an inactive or unavailable cost center");
+  }
+  const allocatedCenters = allocations.map((allocation) => centerById.get(allocation.costCenterId));
+  const accountIds = [...new Set(allocatedCenters.flatMap(
+    (center) => [center.expenseAccountId, center.payrollLiabilityAccountId].filter(Boolean)
+  ))];
+  if (allocatedCenters.some((center) => !center.expenseAccountId || !center.payrollLiabilityAccountId)) {
+    throw new Error("Every allocated payroll cost center must be mapped to an expense account and payroll liability account in the Chart of Accounts");
+  }
+  const mappedAccounts = await database.select({
+    id: accounts.id,
+    organizationId: accounts.organizationId,
+    accountCode: accounts.accountCode,
+    accountName: accounts.accountName,
+    accountType: accounts.accountType,
+    isActive: accounts.isActive
+  }).from(accounts).where(and9(
+    inArray3(accounts.id, accountIds),
+    eq10(accounts.organizationId, input.organizationId)
+  ));
+  const accountById = new Map(mappedAccounts.map((account) => [account.id, account]));
+  for (const center of allocatedCenters) {
+    const expenseAccount = accountById.get(center.expenseAccountId);
+    const liabilityAccount = accountById.get(center.payrollLiabilityAccountId);
+    if (!expenseAccount || expenseAccount.isActive !== 1 || !["expense", "operating expense", "cost of goods sold", "other expense"].includes(expenseAccount.accountType)) {
+      throw new Error(`Cost center ${center.code} must map to an active expense account in this organization`);
+    }
+    if (!liabilityAccount || liabilityAccount.isActive !== 1 || liabilityAccount.accountType !== "liability") {
+      throw new Error(`Cost center ${center.code} must map to an active liability account in this organization`);
+    }
   }
   const amountFields = {
     grossPayCents: input.grossPayCents,
@@ -10854,6 +10978,59 @@ async function recordPayrollCostAllocation(database, input) {
     ]))
   }));
   await database.insert(payrollLedgerEntries).values(ledgerEntries);
+  const processedAt = (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").substring(0, 19);
+  for (const allocation of allocations) {
+    const center = centerById.get(allocation.costCenterId);
+    const expenseAccount = accountById.get(center.expenseAccountId);
+    const liabilityAccount = accountById.get(center.payrollLiabilityAccountId);
+    const amount = splitFields.fullyBurdenedCostCents.get(allocation.costCenterId) ?? 0;
+    if (amount === 0) continue;
+    const journalEntryId = uuidv43();
+    const payPeriod = input.payrollPeriodStart.slice(0, 7);
+    await database.insert(journalEntries).values({
+      id: journalEntryId,
+      organizationId: input.organizationId,
+      entryNumber: `JE-PAYROLL-${payPeriod}-${journalEntryId}`,
+      entryDate: input.payrollPeriodEnd,
+      entryMonth: payPeriod,
+      reference: input.payrollId,
+      description: `Payroll accrual: ${center.code} ${center.name}`,
+      totalAmount: amount,
+      referenceType: "payroll",
+      referenceId: input.payrollId,
+      status: "posted",
+      createdBy: input.createdBy ?? null,
+      postedAt: processedAt,
+      createdAt: processedAt,
+      updatedAt: processedAt
+    });
+    await database.insert(journalEntryLines).values([
+      {
+        id: uuidv43(),
+        journalEntryId,
+        accountId: center.expenseAccountId,
+        debit: amount,
+        credit: 0,
+        description: `Fully burdened payroll expense \u2014 ${center.code}`,
+        lineNumber: 1,
+        createdBy: input.createdBy ?? null,
+        createdAt: processedAt
+      },
+      {
+        id: uuidv43(),
+        journalEntryId,
+        accountId: center.payrollLiabilityAccountId,
+        debit: 0,
+        credit: amount,
+        description: `Payroll payable \u2014 ${center.code}`,
+        lineNumber: 2,
+        createdBy: input.createdBy ?? null,
+        createdAt: processedAt
+      }
+    ]);
+    await adjustChartOfAccountBalance(database, expenseAccount.id, amount, input.organizationId);
+    await adjustChartOfAccountBalance(database, liabilityAccount.id, -amount, input.organizationId);
+  }
   return {
     inserted: true,
     entries: allocations.length,
@@ -10893,7 +11070,7 @@ function lastDay(year, month) {
 }
 async function notifyByRole(db2, orgId, roles, notification) {
   try {
-    const cond = orgId ? and9(eq10(users.organizationId, orgId), inArray3(users.role, roles)) : inArray3(users.role, roles);
+    const cond = orgId ? and10(eq11(users.organizationId, orgId), inArray4(users.role, roles)) : inArray4(users.role, roles);
     const targets = await db2.select({ id: users.id, email: users.email, name: users.name }).from(users).where(cond);
     for (const u of targets) {
       await createNotification({
@@ -10929,16 +11106,16 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
   const payPeriodEnd = fmt(lastDay(year, month));
   const processedAt = fmt(now2);
   console.log(`[PAYROLL-CRON] Processing payroll for ${payPeriodLabel}...`);
-  const employeeConditions = [eq10(employees.status, "active")];
-  if (organizationId) employeeConditions.push(eq10(employees.organizationId, organizationId));
-  const activeEmployees = await db2.select().from(employees).where(and9(...employeeConditions));
+  const employeeConditions = [eq11(employees.status, "active")];
+  if (organizationId) employeeConditions.push(eq11(employees.organizationId, organizationId));
+  const activeEmployees = await db2.select().from(employees).where(and10(...employeeConditions));
   let processed = 0;
   let skipped = 0;
   const errors = [];
   const organizationIds = [...new Set(activeEmployees.map((employee) => employee.organizationId).filter(Boolean))];
   const organizationDepartments = /* @__PURE__ */ new Map();
   if (organizationIds.length > 0) {
-    const departmentRows = await db2.select({ id: departments.id, name: departments.name, organizationId: departments.organizationId }).from(departments).where(inArray3(departments.organizationId, organizationIds));
+    const departmentRows = await db2.select({ id: departments.id, name: departments.name, organizationId: departments.organizationId }).from(departments).where(inArray4(departments.organizationId, organizationIds));
     for (const department of departmentRows) {
       if (!department.organizationId) continue;
       let byName = organizationDepartments.get(department.organizationId);
@@ -10954,9 +11131,9 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
   for (const emp of activeEmployees) {
     try {
       const existing = await db2.select({ id: payroll.id }).from(payroll).where(
-        and9(
-          eq10(payroll.employeeId, emp.id),
-          eq10(payroll.payPeriodStart, payPeriodStart)
+        and10(
+          eq11(payroll.employeeId, emp.id),
+          eq11(payroll.payPeriodStart, payPeriodStart)
         )
       ).limit(1);
       if (existing.length > 0) {
@@ -11011,8 +11188,8 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
       const orgId = emp.organizationId;
       const departmentKey = String(emp.department ?? "").trim().toLowerCase();
       const departmentId = orgId ? organizationDepartments.get(orgId)?.get(departmentKey) : void 0;
-      if (!orgId || !departmentId) {
-        errors.push(`${emp.firstName} ${emp.lastName}: payroll was not created because an organization department could not be resolved`);
+      if (!orgId) {
+        errors.push(`${emp.firstName} ${emp.lastName}: payroll was not created because the employee is not assigned to an organization`);
         skipped++;
         continue;
       }
@@ -11058,9 +11235,12 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
           organizationId: orgId,
           payrollId: id,
           employeeId: emp.id,
+          createdBy: triggeredBy ?? null,
           payrollPeriodStart: payPeriodStart,
           payrollPeriodEnd: payPeriodEnd,
-          employeeDepartmentId: departmentId,
+          // Cost-center allocations are the authoritative accounting split. The
+          // employee's legacy free-text department is only a fallback for budgets.
+          employeeDepartmentId: departmentId ?? null,
           grossPayCents: calc.grossSalary,
           employerStatutoryCents,
           employerBenefitsCents,
@@ -11157,23 +11337,23 @@ async function dispatchPayslips(targetYear, targetMonth, organizationId) {
   const payPeriodEnd = fmt(lastDay(year, month));
   console.log(`[PAYROLL-CRON] Dispatching payslips for ${payPeriodLabel}...`);
   const payrollConditions = [
-    eq10(payroll.payPeriodStart, payPeriodStart),
-    inArray3(payroll.status, ["processed", "paid"])
+    eq11(payroll.payPeriodStart, payPeriodStart),
+    inArray4(payroll.status, ["processed", "paid"])
   ];
   if (organizationId) {
-    const orgEmployees = await db2.select({ id: employees.id }).from(employees).where(eq10(employees.organizationId, organizationId));
+    const orgEmployees = await db2.select({ id: employees.id }).from(employees).where(eq11(employees.organizationId, organizationId));
     if (orgEmployees.length === 0) {
       return { dispatched: 0, errors: ["No employees found in this organization"] };
     }
-    payrollConditions.push(inArray3(payroll.employeeId, orgEmployees.map((employee) => employee.id)));
+    payrollConditions.push(inArray4(payroll.employeeId, orgEmployees.map((employee) => employee.id)));
   }
-  const payrollRecords = await db2.select().from(payroll).where(and9(...payrollConditions));
+  const payrollRecords = await db2.select().from(payroll).where(and10(...payrollConditions));
   if (payrollRecords.length === 0) {
     console.log("[PAYROLL-CRON] No payroll records found for dispatch");
     return { dispatched: 0, errors: ["No payroll records found for this period"] };
   }
   const empIds = payrollRecords.map((r) => r.employeeId);
-  const empData = await db2.select().from(employees).where(inArray3(employees.id, empIds));
+  const empData = await db2.select().from(employees).where(inArray4(employees.id, empIds));
   const empMap = new Map(empData.map((e) => [e.id, e]));
   const companyInfo = await getCompanyInfo();
   const companyName = companyInfo.name;
@@ -11268,11 +11448,11 @@ async function dispatchPayslips(targetYear, targetMonth, organizationId) {
         pay_period: payPeriodLabel,
         pay_date: payslipData.payDate,
         payslip_number: `${payslipData.employee.id}-${payPeriodLabel}`,
-        basic_salary: `KES ${(payslipData.earnings.basicSalary / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`,
-        allowances: `KES ${(payslipData.earnings.allowances.reduce((sum2, item) => sum2 + item.amount, 0) / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`,
-        gross_salary: `KES ${(payslipData.earnings.grossSalary / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`,
-        total_deductions: `KES ${(payslipData.deductions.total / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`,
-        net_salary: `KES ${(payslipData.netSalary / 100).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`
+        basic_salary: formatMinorCurrencyAmount(payslipData.earnings.basicSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        allowances: formatMinorCurrencyAmount(payslipData.earnings.allowances.reduce((sum2, item) => sum2 + item.amount, 0), "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        gross_salary: formatMinorCurrencyAmount(payslipData.earnings.grossSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        total_deductions: formatMinorCurrencyAmount(payslipData.deductions.total, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        net_salary: formatMinorCurrencyAmount(payslipData.netSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 })
       }, emp.organizationId);
       if (pool) {
         const [existing] = await pool.query(
@@ -11356,7 +11536,7 @@ async function dispatchPayslips(targetYear, targetMonth, organizationId) {
           await createNotification({
             userId: empUserId,
             title: `\u{1F4C4} Your Payslip for ${payPeriodLabel} is Ready`,
-            message: `Your payslip for ${payPeriodLabel} has been issued. Net Pay: KES ${(record.netSalary / 100).toLocaleString()}. Click to view.`,
+            message: `Your payslip for ${payPeriodLabel} has been issued. Net Pay: ${formatMinorCurrencyAmount(record.netSalary, "KES", { symbol: "KES" })}. Click to view.`,
             type: "info",
             category: "payslip",
             entityType: "payslip",

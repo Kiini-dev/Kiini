@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/PhoneInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -321,11 +322,10 @@ export default function AccountSettings() {
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input
+                  <PhoneInput
                     id="phone"
-                    name="phone"
                     value={formData.phone}
-                    onChange={handleInputChange}
+                    onChange={(phone) => setFormData({ ...formData, phone })}
                     disabled={!isEditing}
                   />
                 </div>

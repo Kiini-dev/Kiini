@@ -19,6 +19,9 @@ export default function ERPControls() {
   const periods = trpc.erpOperations.periods.list.useQuery();
   const postings = trpc.erpOperations.posting.list.useQuery();
   const aging = trpc.erpOperations.receivables.aging.useQuery();
+  const reportErrors = [periods, postings, aging]
+    .filter((query) => query.isError)
+    .map((query) => query.error?.message || "Request failed");
   const createPeriod = trpc.erpOperations.periods.create.useMutation({
     onSuccess: () => { toast.success("Accounting period created"); setPeriodName(""); setPeriodStart(""); setPeriodEnd(""); utils.erpOperations.periods.list.invalidate(); },
     onError: (error) => toast.error(error.message),
@@ -34,6 +37,7 @@ export default function ERPControls() {
   return (
     <ModuleLayout title="ERP Controls" description="Accounting control, posting, reconciliation and receivables operations" icon={<Scale className="h-5 w-5" />} breadcrumbs={[{ label: "Dashboard", href: "/crm-home" }, { label: "Accounting", href: "/accounting" }, { label: "ERP Controls" }]}>
       <div className="space-y-5">
+        {reportErrors.length > 0 && <Card role="alert" className="border-destructive"><CardContent className="pt-6 text-sm text-destructive">Some ERP control data could not be loaded: {reportErrors.join("; ")}</CardContent></Card>}
         <div className="grid gap-4 md:grid-cols-3">
           <Card><CardHeader className="pb-2"><CardDescription>Open accounting periods</CardDescription><CardTitle>{(periods.data as any[] | undefined)?.filter((row) => row.status === "open").length || 0}</CardTitle></CardHeader></Card>
           <Card><CardHeader className="pb-2"><CardDescription>Posted batches</CardDescription><CardTitle>{(postings.data as any[] | undefined)?.length || 0}</CardTitle></CardHeader></Card>

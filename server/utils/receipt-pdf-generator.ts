@@ -3,6 +3,7 @@ import { getDb } from '../db';
 import { receipts, clients, payments } from '../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { addCompanyLogo, getCompanyInfo } from './company-info';
+import { formatMinorCurrencyAmount } from '../../shared/currency';
 
 /**
  * Generate a receipt PDF buffer
@@ -127,7 +128,7 @@ export async function generateReceiptPDF(receiptId: string): Promise<Buffer> {
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(40, 40, 40);
-  doc.text(`Amount: KES ${(receipt.amount / 100).toFixed(2)}`, 25, boxStartY + 32);
+  doc.text(`Amount: ${formatMinorCurrencyAmount(receipt.amount, 'KES', { symbol: 'KES', minimumFractionDigits: 2 })}`, 25, boxStartY + 32);
 
   // Add notes if available
   if (receipt.notes) {

@@ -18,6 +18,7 @@ import { useRequireFeature } from "@/lib/permissions";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Plus } from "lucide-react";
+import { EmployeeNameSelector } from "@/components/EmployeeNameSelector";
 
 export default function CreateWorkOrder() {
   const [, setLocation] = useLocation();
@@ -49,6 +50,10 @@ export default function CreateWorkOrder() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.assignedTo.trim()) {
+      toast.error("Please select or enter the assigned employee");
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -160,14 +165,7 @@ export default function CreateWorkOrder() {
               </div>
 
               <div>
-                <Label htmlFor="assignedTo">Assigned To *</Label>
-                <Input
-                  id="assignedTo"
-                  value={formData.assignedTo}
-                  onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                  placeholder="Employee name"
-                  required
-                />
+                <EmployeeNameSelector label="Assigned To" value={formData.assignedTo} onChange={(assignedTo) => setFormData({ ...formData, assignedTo })} required />
               </div>
 
               <div>

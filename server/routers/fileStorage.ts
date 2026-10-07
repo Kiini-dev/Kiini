@@ -2,13 +2,14 @@
  * File Storage Router - DB-backed (uses existing documents table)
  * Supports actual file upload via base64 data and local disk storage.
  */
-import { router } from '../_core/trpc';
+import { router, protectedProcedure } from '../_core/trpc';
 import { createFeatureRestrictedProcedure } from '../middleware/enhancedRbac';
 import { z } from 'zod';
 import { getDb, getPool } from '../db';
-import { documents, fileFolders, settings } from '../../drizzle/schema';
+import { clients, documents, estimates, fileFolders, invoices, receipts, settings } from '../../drizzle/schema';
 import { and, eq, desc, like, isNull, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { createHash } from 'node:crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { queueEmail } from './emailQueue';
@@ -77,12 +78,14 @@ function ensureDocumentsTable() {
         id VARCHAR(64) NOT NULL PRIMARY KEY,
         organizationId VARCHAR(64) NULL,
         parentId VARCHAR(64) NULL,
+        linkedClientId VARCHAR(64) NULL,
         name VARCHAR(255) NOT NULL,
         createdBy VARCHAR(64) NOT NULL,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_file_folder_org (organizationId),
-        INDEX idx_file_folder_parent (parentId)
+        INDEX idx_file_folder_parent (parentId),
+        INDEX idx_file_folder_client (linkedClientId)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
       const [columnRows] = await pool.query('SHOW COLUMNS FROM documents');
@@ -98,6 +101,20 @@ function ensureDocumentsTable() {
         if (!existingColumns.has(column.toLowerCase())) {
           await pool.query(`ALTER TABLE documents ADD COLUMN ${column} ${definition}`);
         }
+        const [folderColumnRows] = await pool.query('SHOW COLUMNS FROM fileFolders');
+        const existingFolderColumns = new Set(
+          (Array.isArray(folderColumnRows) ? folderColumnRows : []).map((row: any) => String(row.Field).toLowerCase())
+        );
+        if (!existingFolderColumns.has('linkedclientid')) {
+          await pool.query('ALTER TABLE fileFolders ADD COLUMN linkedClientId VARCHAR(64) NULL');
+        }
+        const [folderIndexRows] = await pool.query('SHOW INDEX FROM fileFolders');
+        const folderIndexes = new Set(
+          (Array.isArray(folderIndexRows) ? folderIndexRows : []).map((row: any) => String(row.Key_name).toLowerCase())
+        );
+        if (!folderIndexes.has('idx_file_folder_client')) {
+          await pool.query('CREATE INDEX idx_file_folder_client ON fileFolders (linkedClientId)');
+        }
       }
     })().catch((error) => {
       documentsTableReady = null;
@@ -109,6 +126,56 @@ function ensureDocumentsTable() {
 
 const docViewProcedure = createFeatureRestrictedProcedure('documents:view');
 const docEditProcedure = createFeatureRestrictedProcedure('documents:edit');
+
+function clientFolderId(organizationId: string | null, clientId: string) {
+  const digest = createHash('sha256').update(`${organizationId || 'global'}:${clientId}`).digest('hex').slice(0, 32);
+  return `client_${digest}`;
+}
+
+function clientsRootFolderId(organizationId: string | null) {
+  const digest = createHash('sha256').update(organizationId || 'global').digest('hex').slice(0, 32);
+  return `clients_${digest}`;
+}
+
+async function ensureClientFolders(database: any, organizationId: string | null, createdBy: string) {
+  const pool = getPool();
+  if (!pool) throw new Error('Database pool not initialized');
+  const clientRows = await database
+    .select({ id: clients.id, companyName: clients.companyName })
+    .from(clients)
+    .where(organizationId ? eq(clients.organizationId, organizationId) : isNull(clients.organizationId));
+  const rootId = clientsRootFolderId(organizationId);
+  await pool.query(
+    'INSERT IGNORE INTO fileFolders (id, organizationId, parentId, linkedClientId, name, createdBy) VALUES (?, ?, NULL, NULL, ?, ?)',
+    [rootId, organizationId, 'Clients', createdBy],
+  );
+  for (const client of clientRows) {
+    await pool.query(
+      'INSERT IGNORE INTO fileFolders (id, organizationId, parentId, linkedClientId, name, createdBy) VALUES (?, ?, ?, ?, ?, ?)',
+      [clientFolderId(organizationId, client.id), organizationId, rootId, client.id, client.companyName, createdBy],
+    );
+  }
+}
+
+async function resolveFolderClientId(database: any, folderId: string, organizationId: string | null) {
+  const folderScope = organizationId
+    ? eq(fileFolders.organizationId, organizationId)
+    : isNull(fileFolders.organizationId);
+  let currentId: string | null = folderId;
+  const visited = new Set<string>();
+  while (currentId && !visited.has(currentId) && visited.size < 32) {
+    visited.add(currentId);
+    const rows = await database.select({
+      id: fileFolders.id,
+      parentId: fileFolders.parentId,
+      linkedClientId: fileFolders.linkedClientId,
+    }).from(fileFolders).where(and(eq(fileFolders.id, currentId), folderScope)).limit(1);
+    if (!rows.length) throw new Error('Folder not found in your organization');
+    if (rows[0].linkedClientId) return String(rows[0].linkedClientId);
+    currentId = rows[0].parentId || null;
+  }
+  return null;
+}
 
 async function readFileManagerSettings(database: any) {
   const rows = await database.select().from(settings).where(inArray(settings.category, ['files_general', 'file_folders', 'default_folders']));
@@ -152,6 +219,7 @@ export const fileStorageRouter = router({
     if (!db) throw new Error('Database not initialized');
     await ensureDocumentsTable();
     const orgId = ctx.user?.organizationId || null;
+    await ensureClientFolders(db, orgId, ctx.user?.id || 'system');
     const rows = orgId
       ? await db.select().from(fileFolders).where(eq(fileFolders.organizationId, orgId)).orderBy(fileFolders.name)
       : await db.select().from(fileFolders).where(isNull(fileFolders.organizationId)).orderBy(fileFolders.name);
@@ -164,6 +232,13 @@ export const fileStorageRouter = router({
       const db = (await getDb()) as any;
       if (!db) throw new Error('Database not initialized');
       await ensureDocumentsTable();
+      if (input.parentId) {
+        const parentRows = await db.select({ id: fileFolders.id }).from(fileFolders).where(and(
+          eq(fileFolders.id, input.parentId),
+          ctx.user?.organizationId ? eq(fileFolders.organizationId, ctx.user.organizationId) : isNull(fileFolders.organizationId),
+        )).limit(1);
+        if (!parentRows.length) throw new Error('Parent folder not found in your organization');
+      }
       const id = `folder_${uuidv4()}`;
       const folder = { id, organizationId: ctx.user?.organizationId || null, parentId: input.parentId || null, name: input.name, createdBy: ctx.user?.id || 'system' };
       await db.insert(fileFolders).values(folder);
@@ -175,8 +250,21 @@ export const fileStorageRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = (await getDb()) as any;
       if (!db) throw new Error('Database not initialized');
+      await ensureDocumentsTable();
       const orgId = ctx.user?.organizationId || null;
       const whereClause = orgId ? and(eq(fileFolders.id, input.folderId), eq(fileFolders.organizationId, orgId)) : and(eq(fileFolders.id, input.folderId), isNull(fileFolders.organizationId));
+      const currentRows = await db.select({ linkedClientId: fileFolders.linkedClientId }).from(fileFolders).where(whereClause).limit(1);
+      if (!currentRows.length) throw new Error('Folder not found in your organization');
+      if (input.parentId !== undefined && (input.folderId.startsWith('clients_') || currentRows[0].linkedClientId)) {
+        throw new Error('Client folders cannot be moved');
+      }
+      if (input.parentId) {
+        const parentRows = await db.select({ id: fileFolders.id }).from(fileFolders).where(and(
+          eq(fileFolders.id, input.parentId),
+          orgId ? eq(fileFolders.organizationId, orgId) : isNull(fileFolders.organizationId),
+        )).limit(1);
+        if (!parentRows.length) throw new Error('Parent folder not found in your organization');
+      }
       const updates: any = {};
       if (input.name !== undefined) updates.name = input.name;
       if (input.parentId !== undefined) updates.parentId = input.parentId;
@@ -189,9 +277,15 @@ export const fileStorageRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = (await getDb()) as any;
       if (!db) throw new Error('Database not initialized');
+      await ensureDocumentsTable();
       const orgId = ctx.user?.organizationId || null;
       const documentScope = orgId ? eq(documents.organizationId, orgId) : isNull(documents.organizationId);
       const folderScope = orgId ? and(eq(fileFolders.id, input.folderId), eq(fileFolders.organizationId, orgId)) : and(eq(fileFolders.id, input.folderId), isNull(fileFolders.organizationId));
+      const folderRows = await db.select({ linkedClientId: fileFolders.linkedClientId }).from(fileFolders).where(folderScope).limit(1);
+      if (!folderRows.length) throw new Error('Folder not found in your organization');
+      if (folderRows[0].linkedClientId || input.folderId.startsWith('clients_')) {
+        throw new Error('Managed client folders cannot be deleted');
+      }
       await db.update(documents).set({ folderId: null }).where(and(documentScope, eq(documents.folderId, input.folderId)));
       await db.update(fileFolders).set({ parentId: null }).where(eq(fileFolders.parentId, input.folderId));
       await db.delete(fileFolders).where(folderScope);
@@ -207,17 +301,52 @@ export const fileStorageRouter = router({
       const orgId = ctx.user?.organizationId || null;
       const conditions = [] as any[];
       if (input.documentType) conditions.push(eq(documents.documentType, input.documentType as any));
-      if (orgId) conditions.push(eq(documents.organizationId, orgId));
+      conditions.push(orgId ? eq(documents.organizationId, orgId) : isNull(documents.organizationId));
       if (input.status) conditions.push(eq(documents.status, input.status as any));
       if (input.search) conditions.push(like(documents.documentName, `%${input.search}%`));
       if (input.folderId !== undefined) conditions.push(input.folderId ? eq(documents.folderId, input.folderId) : isNull(documents.folderId));
 
-      const rows = conditions.length
-        ? await db.select().from(documents).where(and(...conditions)).orderBy(desc(documents.createdAt)).limit(input.limit)
-        : await db.select().from(documents).orderBy(desc(documents.createdAt)).limit(input.limit);
+      const orgCondition = orgId ? eq(documents.organizationId, orgId) : isNull(documents.organizationId);
+      const rows = await db.select().from(documents)
+        .where(and(orgCondition, ...conditions))
+        .orderBy(desc(documents.createdAt))
+        .limit(input.limit);
 
+      let generatedDocuments: any[] = [];
+      if (input.folderId) {
+        const folderRows = await db.select().from(fileFolders).where(and(
+          eq(fileFolders.id, input.folderId),
+          orgId ? eq(fileFolders.organizationId, orgId) : isNull(fileFolders.organizationId),
+        )).limit(1);
+        const clientId = folderRows[0]?.linkedClientId || null;
+        if (clientId) {
+          const ownershipRows = await db.select({ id: clients.id }).from(clients).where(and(
+            eq(clients.id, clientId),
+            orgId ? eq(clients.organizationId, orgId) : isNull(clients.organizationId),
+          )).limit(1);
+          if (ownershipRows.length) {
+            const clientCondition = [eq(invoices.clientId, clientId), orgId ? eq(invoices.organizationId, orgId) : isNull(invoices.organizationId)];
+            const estimateCondition = [eq(estimates.clientId, clientId), orgId ? eq(estimates.organizationId, orgId) : isNull(estimates.organizationId)];
+            const receiptCondition = [eq(receipts.clientId, clientId), orgId ? eq(receipts.organizationId, orgId) : isNull(receipts.organizationId)];
+            const [clientInvoices, clientEstimates, clientReceipts] = await Promise.all([
+              db.select().from(invoices).where(and(...clientCondition)),
+              db.select().from(estimates).where(and(...estimateCondition)),
+              db.select().from(receipts).where(and(...receiptCondition)),
+            ]);
+            generatedDocuments = [
+              ...clientInvoices.map((record: any) => ({ ...record, id: `generated-invoice-${record.id}`, linkedEntityId: record.id, documentType: 'invoice', documentName: `Invoice ${record.invoiceNumber || record.id}`, fileUrl: `/invoices/${record.id}`, fileSize: 0, mimeType: 'application/pdf', folderId: input.folderId, isGenerated: true })),
+              ...clientEstimates.map((record: any) => ({ ...record, id: `generated-estimate-${record.id}`, linkedEntityId: record.id, documentType: 'estimate', documentName: `Estimate ${record.estimateNumber || record.id}`, fileUrl: `/estimates/${record.id}`, fileSize: 0, mimeType: 'application/pdf', folderId: input.folderId, isGenerated: true })),
+              ...clientReceipts.map((record: any) => ({ ...record, id: `generated-receipt-${record.id}`, linkedEntityId: record.id, documentType: 'receipt', documentName: `Receipt ${record.receiptNumber || record.id}`, fileUrl: `/receipts/${record.id}`, fileSize: 0, mimeType: 'application/pdf', folderId: input.folderId, isGenerated: true })),
+            ];
+          }
+        }
+      }
       const totalSize = rows.reduce((sum: number, r: any) => sum + (r.fileSize || 0), 0);
-      return { documents: rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] })), total: rows.length, totalSize };
+      const combinedDocuments = [
+        ...rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] })),
+        ...generatedDocuments,
+      ].filter((document: any) => !input.documentType || document.documentType === input.documentType).slice(0, input.limit);
+      return { documents: combinedDocuments, total: combinedDocuments.length, totalSize };
     }),
 
   uploadDocument: docEditProcedure
@@ -239,6 +368,7 @@ export const fileStorageRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = (await getDb()) as any;
       if (!db) throw new Error('Database not initialized');
+      await ensureDocumentsTable();
       const id = uuidv4();
       let fileUrl = input.fileUrl;
       let fileSize = input.size;
@@ -248,6 +378,26 @@ export const fileStorageRouter = router({
       const fileExtension = path.extname(input.name).slice(1).toLowerCase();
       if (!allowedTypes.includes(fileExtension)) {
         throw new Error(`File type .${fileExtension || '(none)'} is not allowed`);
+      }
+      let linkedClientId = input.linkedClientId || null;
+      if (input.folderId) {
+        const folderRows = await db.select({ id: fileFolders.id }).from(fileFolders).where(and(
+          eq(fileFolders.id, input.folderId),
+          ctx.user?.organizationId ? eq(fileFolders.organizationId, ctx.user.organizationId) : isNull(fileFolders.organizationId),
+        )).limit(1);
+        if (folderRows.length) {
+          linkedClientId = await resolveFolderClientId(db, input.folderId, ctx.user?.organizationId || null) || linkedClientId;
+        } else {
+          const virtualFolders = [...(fileSettings.fileFolders || []), ...(fileSettings.defaultFolders || [])];
+          if (!virtualFolders.some((folder) => folder.id === input.folderId)) throw new Error('Folder not found in your organization');
+        }
+      }
+      if (linkedClientId) {
+        const clientRows = await db.select({ id: clients.id }).from(clients).where(and(
+          eq(clients.id, linkedClientId),
+          ctx.user?.organizationId ? eq(clients.organizationId, ctx.user.organizationId) : isNull(clients.organizationId),
+        )).limit(1);
+        if (!clientRows.length) throw new Error('Client not found in your organization');
       }
 
       // If file data is provided, write to disk
@@ -289,7 +439,7 @@ export const fileStorageRouter = router({
         tags: JSON.stringify(input.tags || []),
         currentVersion: 1,
         uploadedBy: ctx.user?.id || 'system',
-        linkedClientId: input.linkedClientId || null,
+        linkedClientId,
         linkedProjectId: input.linkedProjectId || null,
         linkedInvoiceId: input.linkedInvoiceId || null,
         linkedEntityType: input.linkedEntityType || null,
@@ -297,6 +447,71 @@ export const fileStorageRouter = router({
         folderId: input.folderId || null,
       });
       return { success: true, documentId: id, name: input.name, size: fileSize, fileUrl, version: 1, uploadedAt: new Date().toISOString().replace('T', ' ').substring(0, 19) };
+    }),
+
+  uploadClientDocument: protectedProcedure
+    .input(z.object({
+      name: z.string().min(1).max(255),
+      mimeType: z.string(),
+      size: z.number().nonnegative(),
+      fileData: z.string().min(1),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user?.role !== 'client' || !(ctx.user as any).clientId) {
+        throw new Error('Only authenticated client accounts can upload client documents');
+      }
+      const db = (await getDb()) as any;
+      const pool = getPool();
+      if (!db || !pool) throw new Error('Database not initialized');
+      await ensureDocumentsTable();
+      const orgId = ctx.user.organizationId || null;
+      const clientId = String((ctx.user as any).clientId);
+      const clientRows = await db.select({ id: clients.id, companyName: clients.companyName }).from(clients).where(and(
+        eq(clients.id, clientId),
+        orgId ? eq(clients.organizationId, orgId) : isNull(clients.organizationId),
+      )).limit(1);
+      if (!clientRows.length) throw new Error('Client account is not linked to a client record');
+
+      const fileSettings = await readFileManagerSettings(db);
+      const extension = path.extname(input.name).slice(1).toLowerCase();
+      const allowedTypes = fileSettings.filesGeneral.allowedTypes.split(',').map((type) => type.trim().toLowerCase().replace(/^\./, '')).filter(Boolean);
+      if (!allowedTypes.includes(extension)) throw new Error(`File type .${extension || '(none)'} is not allowed`);
+      if (!ALLOWED_MIME_TYPES.has(input.mimeType)) throw new Error(`File type "${input.mimeType}" is not allowed`);
+
+      const data = input.fileData.replace(/^data:[^;]+;base64,/, '');
+      const buffer = Buffer.from(data, 'base64');
+      const maxSize = Math.min(Math.max(1, Number(fileSettings.filesGeneral.maxSizeMb) || 10) * 1024 * 1024, MAX_FILE_SIZE);
+      if (!buffer.length || buffer.length > maxSize) throw new Error('The selected file is empty or exceeds the upload limit');
+      const rootId = clientsRootFolderId(orgId);
+      const folderId = clientFolderId(orgId, clientId);
+      const id = uuidv4();
+      const safeName = input.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.{2,}/g, '.');
+      const filePath = path.join(UPLOAD_DIR, `${id}${path.extname(safeName) || mimeToExt(input.mimeType)}`);
+      ensureUploadDir();
+      fs.writeFileSync(filePath, buffer);
+      const fileUrl = `/uploads/${path.basename(filePath)}`;
+      await pool.query(
+        'INSERT IGNORE INTO fileFolders (id, organizationId, parentId, linkedClientId, name, createdBy) VALUES (?, ?, NULL, NULL, ?, ?)',
+        [rootId, orgId, 'Clients', ctx.user.id],
+      );
+      await pool.query(
+        'INSERT IGNORE INTO fileFolders (id, organizationId, parentId, linkedClientId, name, createdBy) VALUES (?, ?, ?, ?, ?, ?)',
+        [folderId, orgId, rootId, clientId, clientRows[0].companyName || 'Client documents', ctx.user.id],
+      );
+      await db.insert(documents).values({
+        id,
+        organizationId: orgId,
+        documentName: input.name,
+        documentType: 'other',
+        fileUrl,
+        fileSize: buffer.length,
+        mimeType: input.mimeType,
+        linkedClientId: clientId,
+        folderId,
+        uploadedBy: ctx.user.id,
+        tags: JSON.stringify(['client-upload']),
+      });
+      return { success: true, documentId: id, name: input.name };
     }),
 
   /** Download a document - returns the file URL for client to fetch */
@@ -308,7 +523,7 @@ export const fileStorageRouter = router({
       const orgId = ctx.user?.organizationId || null;
       const whereClause = orgId
         ? and(eq(documents.id, input.documentId), eq(documents.organizationId, orgId))
-        : eq(documents.id, input.documentId);
+        : and(eq(documents.id, input.documentId), isNull(documents.organizationId));
       const rows = await db.select().from(documents).where(whereClause);
       const doc = rows[0];
       if (!doc) throw new Error('Document not found');
@@ -335,7 +550,8 @@ export const fileStorageRouter = router({
       if (!db) throw new Error('Database not initialized');
       const orgId = ctx.user?.organizationId || null;
       const whereClause = orgId ? and(eq(documents.id, input.documentId), eq(documents.organizationId, orgId)) : and(eq(documents.id, input.documentId), isNull(documents.organizationId));
-      await db.update(documents).set({ folderId: input.folderId }).where(whereClause);
+      const linkedClientId = input.folderId ? await resolveFolderClientId(db, input.folderId, orgId) : null;
+      await db.update(documents).set({ folderId: input.folderId, linkedClientId }).where(whereClause);
       return { success: true, documentId: input.documentId, folderId: input.folderId };
     }),
 
@@ -384,7 +600,7 @@ export const fileStorageRouter = router({
       const orgId = ctx.user?.organizationId || null;
       const whereClause = orgId
         ? and(eq(documents.id, input.documentId), eq(documents.organizationId, orgId))
-        : eq(documents.id, input.documentId);
+        : and(eq(documents.id, input.documentId), isNull(documents.organizationId));
       const updates: any = {};
       if (input.name) updates.documentName = input.name;
       if (input.documentType) updates.documentType = input.documentType;
@@ -403,7 +619,7 @@ export const fileStorageRouter = router({
       const orgId = ctx.user?.organizationId || null;
       const whereClause = orgId
         ? and(eq(documents.id, input.documentId), eq(documents.organizationId, orgId))
-        : eq(documents.id, input.documentId);
+        : and(eq(documents.id, input.documentId), isNull(documents.organizationId));
       const rows = await db.select().from(documents).where(whereClause);
       const doc = rows[0];
       if (!doc) return { documentId: input.documentId, versions: [], total: 0 };
@@ -424,7 +640,7 @@ export const fileStorageRouter = router({
       const orgId = ctx.user?.organizationId || null;
       const whereClause = orgId
         ? and(eq(documents.id, input.documentId), eq(documents.organizationId, orgId))
-        : eq(documents.id, input.documentId);
+        : and(eq(documents.id, input.documentId), isNull(documents.organizationId));
 
       // Get file info before deleting to clean up disk
       const rows = await db.select().from(documents).where(whereClause);

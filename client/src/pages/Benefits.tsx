@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { RichTextDisplay, RichTextEditor } from "@/components/RichTextEditor";
 import { trpc } from "@/lib/trpc";
@@ -29,7 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Heart } from "lucide-react";
+import { Plus, Edit2, Trash2, Heart, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { StatsCard } from "@/components/ui/stats-card";
 import { formatCurrency } from "@/utils/format";
@@ -46,6 +47,7 @@ interface Benefit {
 }
 
 export default function Benefits() {
+  const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -67,6 +69,7 @@ export default function Benefits() {
   const createMut = trpc.payroll.benefits.create.useMutation();
   const updateMut = trpc.payroll.benefits.update.useMutation();
   const deleteMut = trpc.payroll.benefits.delete.useMutation();
+  const statusMut = trpc.payroll.setCompensationItemActive.useMutation();
   const utils = trpc.useUtils();
 
   const normalizedBenefits = benefits.map((benefit: any) => ({
@@ -158,11 +161,11 @@ export default function Benefits() {
   };
 
   const totalEmployeeCost = filteredBenefits.reduce(
-    (sum: number, b: any) => sum + (b.employeeCost || 0),
+    (sum: number, b: any) => sum + (b.isActive ? b.employeeCost || 0 : 0),
     0
   );
   const totalEmployerCost = filteredBenefits.reduce(
-    (sum: number, b: any) => sum + (b.employerCost || 0),
+    (sum: number, b: any) => sum + (b.isActive ? b.employerCost || 0 : 0),
     0
   );
 
@@ -182,7 +185,7 @@ export default function Benefits() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatsCard
             title="Total Benefits"
-            value={filteredBenefits.length}
+            value={filteredBenefits.filter((benefit: any) => benefit.isActive).length}
             icon={<Heart className="h-5 w-5" />}
           />
           <StatsCard
@@ -327,6 +330,7 @@ export default function Benefits() {
                       <TableHead className="hidden md:table-cell">Coverage</TableHead>
                       <TableHead className="text-right">Employee Cost</TableHead>
                       <TableHead className="text-right">Employer Cost</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -346,8 +350,35 @@ export default function Benefits() {
                         <TableCell className="text-right font-mono">
                           {formatCurrency(benefit.employerCost)}
                         </TableCell>
+                        <TableCell>
+                          <Badge variant={benefit.isActive ? "default" : "secondary"}>
+                            {benefit.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="ghost" aria-label="View benefit details" onClick={() => navigate(`/payroll/benefits/${benefit.id}`)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={statusMut.isPending}
+                              onClick={async () => {
+                                try {
+                                  await statusMut.mutateAsync({ kind: "benefit", id: benefit.id, isActive: !benefit.isActive });
+                                  toast.success("Benefit status updated");
+                                  await Promise.all([
+                                    utils.payroll.benefits.list.invalidate(),
+                                    utils.payroll.employeePackage.invalidate(),
+                                  ]);
+                                } catch (error: any) {
+                                  toast.error(error?.message || "Failed to update benefit status");
+                                }
+                              }}
+                            >
+                              {benefit.isActive ? "Deactivate" : "Activate"}
+                            </Button>
                             <Button size="sm" variant="ghost" onClick={() => handleEdit(benefit)}>
                               <Edit2 className="h-4 w-4" />
                             </Button>

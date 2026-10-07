@@ -6,6 +6,7 @@ import { getDb } from '../db';
 import { invoices, expenses } from '../../drizzle/schema';
 import { gte, lte } from 'drizzle-orm';
 import { getCompanyInfo } from './company-info';
+import { formatMinorCurrencyAmount } from '../../shared/currency';
 
 interface ReportConfig {
   title: string;
@@ -78,10 +79,7 @@ export async function fetchFinancialData(config: ReportConfig): Promise<Financia
 }
 
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-KE', {
-    style: 'currency',
-    currency: 'KES',
-  }).format(amount / 100);
+  return formatMinorCurrencyAmount(amount, 'KES');
 };
 
 /**

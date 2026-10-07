@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { CitySelect } from "@/components/LocationSelects";
+import { CountrySelect, CitySelect } from "@/components/LocationSelects";
+import { PhoneInput } from "@/components/PhoneInput";
 import { ArrowLeft, Loader2, Star, Save, Edit, Mail, Phone, MapPin, Globe, Truck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useFavorite } from "@/hooks/useFavorite";
@@ -329,21 +330,11 @@ export default function SupplierDetailsPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone">Phone</Label>
-                        <Input
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                        />
+                        <PhoneInput id="phone" value={formData.phone} onChange={(phone) => setFormData({ ...formData, phone })} />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="alternatePhone">Alternate Phone</Label>
-                        <Input
-                          id="alternatePhone"
-                          name="alternatePhone"
-                          value={formData.alternatePhone}
-                          onChange={handleInputChange}
-                        />
+                        <PhoneInput id="alternatePhone" value={formData.alternatePhone} onChange={(alternatePhone) => setFormData({ ...formData, alternatePhone })} />
                       </div>
                       <div className="space-y-2 col-span-2">
                         <Label htmlFor="address">Address</Label>
@@ -359,6 +350,14 @@ export default function SupplierDetailsPage() {
                         <CitySelect
                           value={formData.city || ""}
                           onChange={(value) => setFormData((prev) => ({ ...prev, city: value }))}
+                          label=""
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="country">Country</Label>
+                        <CountrySelect
+                          value={formData.country || ""}
+                          onChange={(value) => setFormData((prev) => ({ ...prev, country: value }))}
                           label=""
                         />
                       </div>

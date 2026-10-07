@@ -77,10 +77,10 @@ export default function PayslipDetails() {
           <Card><CardHeader><CardTitle>Payroll Values</CardTitle></CardHeader><CardContent className="space-y-3">
             {rows.map(([label, value]) => <div key={label} className="flex justify-between border-b pb-2"><span>{label}</span><span className="font-semibold">{formatStoredAmount(value)}</span></div>)}
           </CardContent></Card>
-            <BreakdownCard title="Earnings & Allowances" items={[{ name: "Basic Salary", amount: payslip.basicSalary }, ...allowances]} total={Number(payslip.grossPay || payslip.grossSalary || 0)} tone="text-green-700" />
-            <BreakdownCard title="Deductions & Statutory" items={deductions} total={Number(payslip.totalDeductions || 0)} tone="text-red-700" />
-            <BreakdownCard title="Statutory Calculation Detail" items={statutoryDetail} total={statutoryDetail.reduce((sum, item) => sum + Number(item.amount ?? item.cost ?? 0), 0)} tone="text-orange-700" />
-            <BreakdownCard title="Benefits" items={benefits} total={benefits.reduce((sum, item) => sum + Number(item.amount ?? item.cost ?? 0), 0)} tone="text-emerald-700" />
+            <BreakdownCard title="Earnings & Allowances" items={[{ name: "Basic Salary", amount: payslip.basicSalary }, ...allowances]} total={Number(payslip.grossPay || payslip.grossSalary || 0)} tone="text-green-700" formatAmount={formatStoredAmount} />
+            <BreakdownCard title="Deductions & Statutory" items={deductions} total={Number(payslip.totalDeductions || 0)} tone="text-red-700" formatAmount={formatStoredAmount} />
+            <BreakdownCard title="Statutory Calculation Detail" items={statutoryDetail} total={statutoryDetail.reduce((sum, item) => sum + Number(item.amount ?? item.cost ?? 0), 0)} tone="text-orange-700" formatAmount={formatStoredAmount} />
+            <BreakdownCard title="Benefits" items={benefits} total={benefits.reduce((sum, item) => sum + Number(item.amount ?? item.cost ?? 0), 0)} tone="text-emerald-700" formatAmount={formatStoredAmount} />
         </div>
         {payslip.htmlContent && <Card className="lg:sticky lg:top-4"><CardHeader><CardTitle>Rendered Payslip Template</CardTitle></CardHeader><CardContent><iframe title="Rendered payslip" srcDoc={payslip.htmlContent} className="h-[calc(100vh-10rem)] min-h-[720px] w-full border" /></CardContent></Card>}
       </div>
@@ -88,10 +88,6 @@ export default function PayslipDetails() {
   );
 }
 
-function BreakdownCard({ title, items, total, tone }: { title: string; items: any[]; total: number; tone: string }) {
-  return <Card><CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent className="space-y-2">{items.length ? items.map((item, index) => <div key={`${item.name || item.type || item.component}-${index}`} className={`flex justify-between border-b pb-2 text-sm ${tone}`}><span>{item.name || item.allowanceType || item.allowanceName || item.deductionType || item.benefitType || item.component || "Item"}</span><span>{formatAmountForPayslip(item.amount ?? item.cost)}</span></div>) : <p className="text-sm text-muted-foreground">No items recorded.</p>}<div className="mt-3 flex justify-between border-t pt-3 font-bold"><span>Total</span><span>{formatAmountForPayslip(total)}</span></div></CardContent></Card>;
-}
-
-function formatAmountForPayslip(value: unknown): string {
-  return `KES ${Number(value || 0).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function BreakdownCard({ title, items, total, tone, formatAmount }: { title: string; items: any[]; total: number; tone: string; formatAmount: (value: unknown) => string }) {
+  return <Card><CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent className="space-y-2">{items.length ? items.map((item, index) => <div key={`${item.name || item.type || item.component}-${index}`} className={`flex justify-between border-b pb-2 text-sm ${tone}`}><span>{item.name || item.allowanceType || item.allowanceName || item.deductionType || item.benefitType || item.component || "Item"}</span><span>{formatAmount(item.amount ?? item.cost)}</span></div>) : <p className="text-sm text-muted-foreground">No items recorded.</p>}<div className="mt-3 flex justify-between border-t pt-3 font-bold"><span>Total</span><span>{formatAmount(total)}</span></div></CardContent></Card>;
 }

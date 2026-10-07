@@ -1,3 +1,5 @@
+import { formatCurrencyAmount } from "../../../shared/currency";
+
 /**
  * Get the configured date format from SystemSettingsContext localStorage.
  * Returns a PHP-style format string (e.g. "d-m-Y", "Y-m-d", "m/d/Y").
@@ -103,14 +105,11 @@ export function formatTime(date: Date | string | number): string {
  */
 export function formatCurrency(amount: number, currency: string = "KES"): string {
   try {
-    // Special handling for KES to match app's preferred format
-    if (currency === "KES") {
-      return `Ksh ${amount.toLocaleString("en-KE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-    }
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-    }).format(amount);
+    const symbol = currency === "KES" ? "Ksh" : undefined;
+    return formatCurrencyAmount(amount, currency, {
+      locale: currency === "KES" ? "en-KE" : "en-US",
+      ...(symbol ? { symbol } : {}),
+    });
   } catch {
     return `Ksh ${amount.toFixed(2)}`;
   }

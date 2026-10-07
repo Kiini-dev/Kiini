@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { SupplierSelector } from "@/components/SupplierSelector";
 import { useOrgAccess } from "@/hooks/useOrgAccess";
 import { useOrgPermission } from "@/hooks/useOrgPermission";
 import { toast } from "sonner";
@@ -148,8 +149,7 @@ export default function OrgCreateContract() {
                   <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="bg-white/5 border-white/10 text-white" placeholder="Contract name" required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vendor" className="text-white">Vendor / Party *</Label>
-                  <Input id="vendor" value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} className="bg-white/5 border-white/10 text-white" placeholder="Vendor name" required />
+                  <SupplierSelector label="Vendor / Party" value={form.vendor} onChange={(vendor) => setForm({ ...form, vendor })} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contractType" className="text-white">Contract Type</Label>

@@ -8,11 +8,13 @@ import { getDb } from "../db";
 import { sql } from "drizzle-orm";
 import { auditLogs } from "../../drizzle/schema";
 import { randomUUID } from "node:crypto";
+import { formatMinorCurrencyAmount } from "../../shared/currency";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
 
 function formatCurrency(amount: number, currency: string = "KES"): string {
-  return `${currency} ${(amount / 100).toLocaleString("en-KE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const code = /^[A-Z]{3}$/.test(currency) ? currency : "KES";
+  return formatMinorCurrencyAmount(amount, code, { symbol: currency });
 }
 
 /**

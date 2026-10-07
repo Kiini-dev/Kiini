@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { ArrowLeft, Edit, FileText, Plus } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
 import { formatCurrency } from "@/utils/format";
 
@@ -13,6 +14,7 @@ export default function SalaryStructureDetails() {
   const [, navigate] = useLocation();
   const { data: structures = [], isLoading } = trpc.payroll.salaryStructures.list.useQuery({});
   const structure = structures.find((item: any) => item.id === id) as any;
+  const { data: payrollRows = [] } = trpc.payroll.list.useQuery({ limit: 5000, offset: 0 });
   const employeeId = structure?.employeeId || "";
   const { data: employees = [] } = trpc.employees.list.useQuery({});
   const employee = (employees as any[]).find((item: any) => item.id === employeeId);
@@ -29,6 +31,23 @@ export default function SalaryStructureDetails() {
     ["Total allowances", structure.allowances],
     ["Total deductions", structure.deductions],
   ];
+  const nextStructureStart = (structures as any[])
+    .filter((item: any) => item.employeeId === employeeId && new Date(item.effectiveDate).getTime() > new Date(structure.effectiveDate).getTime())
+    .reduce((soonest: number | null, item: any) => {
+      const time = new Date(item.effectiveDate).getTime();
+      return soonest === null || time < soonest ? time : soonest;
+    }, null);
+  const structurePayroll = (payrollRows as any[]).filter((record: any) => {
+    if (record.employeeId !== employeeId || !record.payPeriodStart) return false;
+    const period = new Date(record.payPeriodStart).getTime();
+    return period >= new Date(structure.effectiveDate).getTime() && (nextStructureStart === null || period < nextStructureStart);
+  });
+  const trackedTotals = structurePayroll.reduce((totals: any, record: any) => ({
+    basicSalary: totals.basicSalary + Number(record.basicSalary || 0),
+    allowances: totals.allowances + Number(record.allowances || 0),
+    deductions: totals.deductions + Number(record.deductions || 0),
+    netSalary: totals.netSalary + Number(record.netSalary || 0),
+  }), { basicSalary: 0, allowances: 0, deductions: 0, netSalary: 0 });
 
   return (
     <ModuleLayout
@@ -53,6 +72,35 @@ export default function SalaryStructureDetails() {
           <CardHeader><CardTitle>Structure Values</CardTitle></CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-3">
             {rows.map(([label, value]) => <div key={label as string} className="rounded-md border p-4"><p className="text-sm text-muted-foreground">{label}</p><p className="text-xl font-semibold">{formatCurrency(Number(value || 0) / 100)}</p></div>)}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Payroll totals for this structure</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {Object.entries(trackedTotals).map(([label, value]) => (
+                <div key={label} className="rounded-md border p-4">
+                  <p className="text-sm capitalize text-muted-foreground">{label.replace(/([A-Z])/g, " $1")}</p>
+                  <p className="text-lg font-semibold">{formatCurrency(Number(value) / 100)}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">{structurePayroll.length} payroll record(s) since this structure became effective.</p>
+            <Table>
+              <TableHeader><TableRow><TableHead>Period</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Basic</TableHead><TableHead className="text-right">Allowances</TableHead><TableHead className="text-right">Deductions</TableHead><TableHead className="text-right">Net pay</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {structurePayroll.length ? structurePayroll.map((record: any) => (
+                  <TableRow key={record.id}>
+                    <TableCell>{new Date(record.payPeriodStart).toLocaleDateString()} – {record.payPeriodEnd ? new Date(record.payPeriodEnd).toLocaleDateString() : "—"}</TableCell>
+                    <TableCell className="capitalize">{record.status}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(Number(record.basicSalary || 0) / 100)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(Number(record.allowances || 0) / 100)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(Number(record.deductions || 0) / 100)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(Number(record.netSalary || 0) / 100)}</TableCell>
+                  </TableRow>
+                )) : <TableRow><TableCell colSpan={6} className="py-6 text-center text-muted-foreground">No payroll history in this effective period.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
         <div className="grid gap-6 lg:grid-cols-3">
