@@ -94,7 +94,6 @@ export default function HRPayrollManagement() {
     const [year, month] = payrollPeriod.split("-").map(Number);
     try {
       const result = await generatePayrollMutation.mutateAsync({ year, month });
-      await utils.payroll.list.invalidate();
       result.errors.slice(0, 3).forEach((message) => toast.error(message));
       if (result.errors.length > 3) toast.error(`${result.errors.length - 3} additional payroll errors`);
       if (result.processed > 0 || result.dispatched > 0 || result.markedPaid > 0) {
@@ -106,6 +105,8 @@ export default function HRPayrollManagement() {
       }
     } catch (error: any) {
       toast.error(`Payroll generation failed: ${error?.message || "Unknown error"}`);
+    } finally {
+      await utils.payroll.list.invalidate();
     }
   };
 

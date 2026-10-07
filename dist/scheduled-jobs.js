@@ -8269,8 +8269,8 @@ async function isMaintenanceModeEnabled() {
           enabled = true;
           console.log("[Maintenance] Auto-enabled from schedule at", (/* @__PURE__ */ new Date()).toISOString());
           try {
-            const { v4: uuidv45 } = await import("uuid");
-            const backupId = uuidv45();
+            const { v4: uuidv46 } = await import("uuid");
+            const backupId = uuidv46();
             const ts = (/* @__PURE__ */ new Date()).toISOString();
             await database.execute(
               sql2`INSERT INTO backup_history (id, name, backupType, scope, status, createdBy)
@@ -9449,8 +9449,8 @@ async function generateP9Form(input, generatedBy) {
 init_db();
 init_schema();
 import { CronJob } from "cron";
-import { eq as eq11, and as and10, inArray as inArray4 } from "drizzle-orm";
-import { v4 as uuidv44 } from "uuid";
+import { eq as eq12, and as and10, inArray as inArray4 } from "drizzle-orm";
+import { v4 as uuidv45 } from "uuid";
 
 // server/utils/kenyan-payroll-calculator.ts
 var PAYE_TAX_BRACKETS = [
@@ -10725,12 +10725,12 @@ var EmailService = class {
         throw new Error("Database connection lost");
       }
       const emailQueue2 = (await Promise.resolve().then(() => (init_schema(), schema_exports))).emailQueue;
-      const { eq: eq12, and: and11, lt, isNull: isNull3, or: or2 } = await import("drizzle-orm");
+      const { eq: eq13, and: and11, lt, isNull: isNull3, or: or2 } = await import("drizzle-orm");
       const nowDate = /* @__PURE__ */ new Date();
       const now2 = nowDate.toISOString().replace("T", " ").substring(0, 19);
       const pendingEmails = await database.select().from(emailQueue2).where(
         and11(
-          eq12(emailQueue2.status, "pending"),
+          eq13(emailQueue2.status, "pending"),
           or2(
             isNull3(emailQueue2.nextRetryAt),
             lt(emailQueue2.nextRetryAt, now2)
@@ -10741,7 +10741,7 @@ var EmailService = class {
       let failed = 0;
       for (const email of pendingEmails) {
         try {
-          await database.update(emailQueue2).set({ status: "retrying" }).where(eq12(emailQueue2.id, email.id));
+          await database.update(emailQueue2).set({ status: "retrying" }).where(eq13(emailQueue2.id, email.id));
           let subject = email.subject;
           let html = email.htmlContent;
           let text4 = email.textContent;
@@ -10773,7 +10773,7 @@ var EmailService = class {
           await database.update(emailQueue2).set({
             status: "sent",
             sentAt: (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").substring(0, 19)
-          }).where(eq12(emailQueue2.id, email.id));
+          }).where(eq13(emailQueue2.id, email.id));
           sent++;
         } catch (error) {
           failed++;
@@ -10788,13 +10788,13 @@ var EmailService = class {
               attempts: attemptCount,
               nextRetryAt: nextRetryStr,
               errorMessage: error instanceof Error ? error.message : String(error)
-            }).where(eq12(emailQueue2.id, email.id));
+            }).where(eq13(emailQueue2.id, email.id));
           } else {
             await database.update(emailQueue2).set({
               status: "failed",
               attempts: attemptCount,
               errorMessage: `Failed after ${maxAttempts} attempts: ${error instanceof Error ? error.message : String(error)}`
-            }).where(eq12(emailQueue2.id, email.id));
+            }).where(eq13(emailQueue2.id, email.id));
           }
         }
       }
@@ -11042,6 +11042,28 @@ async function recordPayrollCostAllocation(database, input) {
   };
 }
 
+// server/services/jobGroupPayrollDefaults.ts
+init_schema_extended();
+import { eq as eq11 } from "drizzle-orm";
+import { v4 as uuidv44 } from "uuid";
+function parseJobGroupPayrollDefaults(value) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(
+      (item) => Boolean(item) && typeof item.type === "string" && (Number.isFinite(item.amount) || Number.isFinite(item.percentage))
+    ) : [];
+  } catch {
+    return [];
+  }
+}
+function resolveJobGroupPayrollAmount(item, basicSalary) {
+  if (Number.isFinite(item.percentage)) {
+    return Math.round(Number(basicSalary || 0) * Number(item.percentage) / 100 * 100);
+  }
+  return Math.round(Number(item.amount || 0));
+}
+
 // server/jobs/payrollJobs.ts
 function fmt(d) {
   return d.toISOString().replace("T", " ").substring(0, 19);
@@ -11070,7 +11092,7 @@ function lastDay(year, month) {
 }
 async function notifyByRole(db2, orgId, roles, notification) {
   try {
-    const cond = orgId ? and10(eq11(users.organizationId, orgId), inArray4(users.role, roles)) : inArray4(users.role, roles);
+    const cond = orgId ? and10(eq12(users.organizationId, orgId), inArray4(users.role, roles)) : inArray4(users.role, roles);
     const targets = await db2.select({ id: users.id, email: users.email, name: users.name }).from(users).where(cond);
     for (const u of targets) {
       await createNotification({
@@ -11106,8 +11128,8 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
   const payPeriodEnd = fmt(lastDay(year, month));
   const processedAt = fmt(now2);
   console.log(`[PAYROLL-CRON] Processing payroll for ${payPeriodLabel}...`);
-  const employeeConditions = [eq11(employees.status, "active")];
-  if (organizationId) employeeConditions.push(eq11(employees.organizationId, organizationId));
+  const employeeConditions = [eq12(employees.status, "active")];
+  if (organizationId) employeeConditions.push(eq12(employees.organizationId, organizationId));
   const activeEmployees = await db2.select().from(employees).where(and10(...employeeConditions));
   let processed = 0;
   let skipped = 0;
@@ -11115,32 +11137,40 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
   const organizationIds = [...new Set(activeEmployees.map((employee) => employee.organizationId).filter(Boolean))];
   const organizationDepartments = /* @__PURE__ */ new Map();
   if (organizationIds.length > 0) {
-    const departmentRows = await db2.select({ id: departments.id, name: departments.name, organizationId: departments.organizationId }).from(departments).where(inArray4(departments.organizationId, organizationIds));
-    for (const department of departmentRows) {
-      if (!department.organizationId) continue;
-      let byName = organizationDepartments.get(department.organizationId);
-      if (!byName) {
-        byName = /* @__PURE__ */ new Map();
-        organizationDepartments.set(department.organizationId, byName);
+    try {
+      const departmentRows = await db2.select({ id: departments.id, name: departments.name, organizationId: departments.organizationId }).from(departments).where(inArray4(departments.organizationId, organizationIds));
+      for (const department of departmentRows) {
+        if (!department.organizationId) continue;
+        let byName = organizationDepartments.get(department.organizationId);
+        if (!byName) {
+          byName = /* @__PURE__ */ new Map();
+          organizationDepartments.set(department.organizationId, byName);
+        }
+        byName.set(department.id.toLowerCase(), department.id);
+        byName.set(department.name.trim().toLowerCase(), department.id);
       }
-      byName.set(department.id.toLowerCase(), department.id);
-      byName.set(department.name.trim().toLowerCase(), department.id);
+    } catch (error) {
+      console.error("[PAYROLL-CRON] Department lookup failed; using cost-center departments for budget allocation:", error);
     }
   }
+  const jobGroupRows = await db2.select().from(jobGroups);
+  const jobGroupById = new Map(jobGroupRows.map((group) => [String(group.id), group]));
   const payrollOrganizationIds = /* @__PURE__ */ new Set();
   for (const emp of activeEmployees) {
     try {
       const existing = await db2.select({ id: payroll.id }).from(payroll).where(
         and10(
-          eq11(payroll.employeeId, emp.id),
-          eq11(payroll.payPeriodStart, payPeriodStart)
+          eq12(payroll.employeeId, emp.id),
+          eq12(payroll.payPeriodStart, payPeriodStart)
         )
       ).limit(1);
       if (existing.length > 0) {
         skipped++;
         continue;
       }
-      const basicSalaryCents = Math.round(Number(emp.salary ?? 0) * 100);
+      const jobGroup = jobGroupById.get(String(emp.jobGroupId));
+      const basicSalaryUnits = emp.salary ?? jobGroup?.defaultBasicSalary ?? 0;
+      const basicSalaryCents = Math.round(Number(basicSalaryUnits) * 100);
       if (basicSalaryCents === 0) {
         errors.push(`${emp.firstName} ${emp.lastName}: no salary configured`);
         skipped++;
@@ -11174,14 +11204,46 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
           benefitComponents = benefitRows.filter((row) => Number(row.cost || 0) > 0 || Number(row.employerCost || 0) > 0);
           employeeBenefitsCents = benefitComponents.reduce((sum2, row) => sum2 + Number(row.cost || 0), 0);
           employerBenefitsCents = benefitComponents.reduce((sum2, row) => sum2 + Number(row.employerCost || 0), 0);
-        } catch {
+        } catch (error) {
+          console.error(`[PAYROLL-CRON] Failed to load compensation components for ${emp.id}:`, error);
+          errors.push(`${emp.firstName} ${emp.lastName}: compensation components could not be loaded`);
+          skipped++;
+          continue;
         }
+      }
+      const applyMissingDefaults = (rows, typeField, defaults) => {
+        const configuredTypes = new Set(rows.map((row) => String(row[typeField]).trim().toLowerCase()));
+        for (const item of defaults) {
+          const key = item.type.trim().toLowerCase();
+          if (configuredTypes.has(key)) continue;
+          rows.push({
+            [typeField]: item.type,
+            amount: resolveJobGroupPayrollAmount(item, basicSalaryUnits),
+            frequency: item.frequency || "monthly",
+            ...typeField === "benefitType" && {
+              cost: resolveJobGroupPayrollAmount(item, basicSalaryUnits),
+              employerCost: resolveJobGroupPayrollAmount(item, basicSalaryUnits)
+            }
+          });
+          configuredTypes.add(key);
+        }
+      };
+      if (jobGroup) {
+        applyMissingDefaults(allowanceComponents, "allowanceType", parseJobGroupPayrollDefaults(jobGroup.defaultAllowances));
+        applyMissingDefaults(deductionComponents, "deductionType", parseJobGroupPayrollDefaults(jobGroup.defaultDeductions));
+        applyMissingDefaults(benefitComponents, "benefitType", parseJobGroupPayrollDefaults(jobGroup.defaultBenefits));
+        allowancesCents = allowanceComponents.reduce((sum2, row) => sum2 + monthlyAmount(row.amount, row.frequency), 0);
+        employeeDeductionsCents = deductionComponents.reduce((sum2, row) => sum2 + monthlyAmount(row.amount, row.frequency), 0);
+        employeeBenefitsCents = benefitComponents.reduce((sum2, row) => sum2 + Number(row.cost || 0), 0);
+        employerBenefitsCents = benefitComponents.reduce((sum2, row) => sum2 + Number(row.employerCost || 0), 0);
+      } else {
+        employeeDeductionsCents = deductionComponents.reduce((sum2, row) => sum2 + monthlyAmount(row.amount, row.frequency), 0);
       }
       const calc = calculateKenyanPayroll({
         basicSalary: basicSalaryCents,
         allowances: allowancesCents
       });
-      const id = uuidv44();
+      const id = uuidv45();
       const statutoryDeductions = calc.nssfContribution + calc.payeeTax + calc.shifContribution + calc.housingLevyDeduction;
       const totalDeductions = statutoryDeductions + employeeDeductionsCents + employeeBenefitsCents;
       const netSalary = calc.grossSalary - totalDeductions;
@@ -11282,7 +11344,7 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
           const isDeduction = componentType === "deduction" || componentType === "statutory" || componentType === "benefit";
           await pool.query(
             `INSERT INTO payrollDetails (id, payrollId, itemType, itemId, description, amount, isDeduction, lineNumber, componentType, component, notes, createdAt) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [uuidv44(), id, componentType, component, amount, isDeduction ? 1 : 0, index4 + 1, componentType, component, "Automated monthly payroll component", processedAt]
+            [uuidv45(), id, componentType, component, amount, isDeduction ? 1 : 0, index4 + 1, componentType, component, "Automated monthly payroll component", processedAt]
           ).catch((detailErr) => console.warn("[PAYROLL-CRON] Payroll detail insert failed:", detailErr?.message));
         }
       }
@@ -11337,11 +11399,11 @@ async function dispatchPayslips(targetYear, targetMonth, organizationId) {
   const payPeriodEnd = fmt(lastDay(year, month));
   console.log(`[PAYROLL-CRON] Dispatching payslips for ${payPeriodLabel}...`);
   const payrollConditions = [
-    eq11(payroll.payPeriodStart, payPeriodStart),
+    eq12(payroll.payPeriodStart, payPeriodStart),
     inArray4(payroll.status, ["processed", "paid"])
   ];
   if (organizationId) {
-    const orgEmployees = await db2.select({ id: employees.id }).from(employees).where(eq11(employees.organizationId, organizationId));
+    const orgEmployees = await db2.select({ id: employees.id }).from(employees).where(eq12(employees.organizationId, organizationId));
     if (orgEmployees.length === 0) {
       return { dispatched: 0, errors: ["No employees found in this organization"] };
     }
@@ -11473,7 +11535,7 @@ async function dispatchPayslips(targetYear, targetMonth, organizationId) {
               allowancesBreakdown, deductionsBreakdown, htmlContent, status
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'generated')`,
             [
-              uuidv44(),
+              uuidv45(),
               record.id,
               emp.organizationId,
               record.id,

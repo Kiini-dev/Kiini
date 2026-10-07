@@ -19029,6 +19029,110 @@ var init_usageReminders = __esm({
   }
 });
 
+// server/services/jobGroupPayrollDefaults.ts
+import { eq as eq49 } from "drizzle-orm";
+import { v4 as uuidv432 } from "uuid";
+function parseJobGroupPayrollDefaults(value) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(
+      (item) => Boolean(item) && typeof item.type === "string" && (Number.isFinite(item.amount) || Number.isFinite(item.percentage))
+    ) : [];
+  } catch {
+    return [];
+  }
+}
+function resolveJobGroupPayrollAmount(item, basicSalary) {
+  if (Number.isFinite(item.percentage)) {
+    return Math.round(Number(basicSalary || 0) * Number(item.percentage) / 100 * 100);
+  }
+  return Math.round(Number(item.amount || 0));
+}
+function toPayrollStorageAmount(value) {
+  return value == null ? null : Math.round(Number(value) * 100);
+}
+async function applyJobGroupCompensationDefaults(db2, employee, jobGroup, actorId) {
+  const now2 = /* @__PURE__ */ new Date();
+  const basicSalaryUnits = employee.salary ?? jobGroup.defaultBasicSalary;
+  const basicSalary = toPayrollStorageAmount(basicSalaryUnits);
+  const resolveAmount = (item) => resolveJobGroupPayrollAmount(item, basicSalaryUnits);
+  if (basicSalary != null) {
+    const existingStructure = await db2.select({ id: salaryStructures.id }).from(salaryStructures).where(eq49(salaryStructures.employeeId, employee.id)).limit(1);
+    if (!existingStructure.length) {
+      await db2.insert(salaryStructures).values({
+        id: uuidv432(),
+        employeeId: employee.id,
+        effectiveDate: now2,
+        basicSalary,
+        allowances: 0,
+        deductions: 0,
+        createdBy: actorId,
+        createdAt: now2,
+        updatedAt: now2
+      });
+    } else if (employee.salary != null) {
+      await db2.update(salaryStructures).set({ basicSalary, updatedAt: now2 }).where(eq49(salaryStructures.id, existingStructure[0].id));
+    }
+  }
+  const [allowanceRows, deductionRows, benefitRows] = await Promise.all([
+    db2.select({ allowanceType: salaryAllowances.allowanceType }).from(salaryAllowances).where(eq49(salaryAllowances.employeeId, employee.id)),
+    db2.select({ deductionType: salaryDeductions.deductionType }).from(salaryDeductions).where(eq49(salaryDeductions.employeeId, employee.id)),
+    db2.select({ benefitType: employeeBenefits.benefitType }).from(employeeBenefits).where(eq49(employeeBenefits.employeeId, employee.id))
+  ]);
+  const allowances = parseJobGroupPayrollDefaults(jobGroup.defaultAllowances);
+  const deductions = parseJobGroupPayrollDefaults(jobGroup.defaultDeductions);
+  const benefits = parseJobGroupPayrollDefaults(jobGroup.defaultBenefits);
+  for (const item of allowances.filter((candidate) => !allowanceRows.some((row) => row.allowanceType === candidate.type))) {
+    await db2.insert(salaryAllowances).values({
+      id: uuidv432(),
+      employeeId: employee.id,
+      allowanceType: item.type,
+      amount: resolveAmount(item),
+      frequency: item.frequency || "monthly",
+      effectiveDate: now2,
+      isActive: true,
+      createdBy: actorId,
+      createdAt: now2,
+      updatedAt: now2
+    });
+  }
+  for (const item of deductions.filter((candidate) => !deductionRows.some((row) => row.deductionType === candidate.type))) {
+    await db2.insert(salaryDeductions).values({
+      id: uuidv432(),
+      employeeId: employee.id,
+      deductionType: item.type,
+      amount: resolveAmount(item),
+      frequency: item.frequency || "monthly",
+      effectiveDate: now2,
+      isActive: true,
+      createdBy: actorId,
+      createdAt: now2,
+      updatedAt: now2
+    });
+  }
+  for (const item of benefits.filter((candidate) => !benefitRows.some((row) => row.benefitType === candidate.type))) {
+    const amount = resolveAmount(item);
+    await db2.insert(employeeBenefits).values({
+      id: uuidv432(),
+      employeeId: employee.id,
+      benefitType: item.type,
+      enrollDate: now2,
+      isActive: true,
+      cost: amount || null,
+      employerCost: amount || null,
+      createdBy: actorId,
+      createdAt: now2,
+      updatedAt: now2
+    });
+  }
+}
+var init_jobGroupPayrollDefaults = __esm({
+  "server/services/jobGroupPayrollDefaults.ts"() {
+    init_schema_extended();
+  }
+});
+
 // server/utils/kenyan-payroll-calculator.ts
 function calculateNSSF(grossMonthlySalary) {
   const tier1Contribution = Math.min(grossMonthlySalary * NSSF_RATES.TIER_1_RATE, NSSF_RATES.TIER_1_MAX);
@@ -19768,18 +19872,24 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
   const organizationIds = [...new Set(activeEmployees.map((employee) => employee.organizationId).filter(Boolean))];
   const organizationDepartments = /* @__PURE__ */ new Map();
   if (organizationIds.length > 0) {
-    const departmentRows = await db2.select({ id: departments.id, name: departments.name, organizationId: departments.organizationId }).from(departments).where(inArray15(departments.organizationId, organizationIds));
-    for (const department of departmentRows) {
-      if (!department.organizationId) continue;
-      let byName = organizationDepartments.get(department.organizationId);
-      if (!byName) {
-        byName = /* @__PURE__ */ new Map();
-        organizationDepartments.set(department.organizationId, byName);
+    try {
+      const departmentRows = await db2.select({ id: departments.id, name: departments.name, organizationId: departments.organizationId }).from(departments).where(inArray15(departments.organizationId, organizationIds));
+      for (const department of departmentRows) {
+        if (!department.organizationId) continue;
+        let byName = organizationDepartments.get(department.organizationId);
+        if (!byName) {
+          byName = /* @__PURE__ */ new Map();
+          organizationDepartments.set(department.organizationId, byName);
+        }
+        byName.set(department.id.toLowerCase(), department.id);
+        byName.set(department.name.trim().toLowerCase(), department.id);
       }
-      byName.set(department.id.toLowerCase(), department.id);
-      byName.set(department.name.trim().toLowerCase(), department.id);
+    } catch (error) {
+      console.error("[PAYROLL-CRON] Department lookup failed; using cost-center departments for budget allocation:", error);
     }
   }
+  const jobGroupRows = await db2.select().from(jobGroups);
+  const jobGroupById = new Map(jobGroupRows.map((group) => [String(group.id), group]));
   const payrollOrganizationIds = /* @__PURE__ */ new Set();
   for (const emp of activeEmployees) {
     try {
@@ -19793,7 +19903,9 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
         skipped++;
         continue;
       }
-      const basicSalaryCents = Math.round(Number(emp.salary ?? 0) * 100);
+      const jobGroup = jobGroupById.get(String(emp.jobGroupId));
+      const basicSalaryUnits = emp.salary ?? jobGroup?.defaultBasicSalary ?? 0;
+      const basicSalaryCents = Math.round(Number(basicSalaryUnits) * 100);
       if (basicSalaryCents === 0) {
         errors.push(`${emp.firstName} ${emp.lastName}: no salary configured`);
         skipped++;
@@ -19827,8 +19939,40 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
           benefitComponents = benefitRows.filter((row) => Number(row.cost || 0) > 0 || Number(row.employerCost || 0) > 0);
           employeeBenefitsCents = benefitComponents.reduce((sum7, row) => sum7 + Number(row.cost || 0), 0);
           employerBenefitsCents = benefitComponents.reduce((sum7, row) => sum7 + Number(row.employerCost || 0), 0);
-        } catch {
+        } catch (error) {
+          console.error(`[PAYROLL-CRON] Failed to load compensation components for ${emp.id}:`, error);
+          errors.push(`${emp.firstName} ${emp.lastName}: compensation components could not be loaded`);
+          skipped++;
+          continue;
         }
+      }
+      const applyMissingDefaults = (rows, typeField, defaults) => {
+        const configuredTypes = new Set(rows.map((row) => String(row[typeField]).trim().toLowerCase()));
+        for (const item of defaults) {
+          const key = item.type.trim().toLowerCase();
+          if (configuredTypes.has(key)) continue;
+          rows.push({
+            [typeField]: item.type,
+            amount: resolveJobGroupPayrollAmount(item, basicSalaryUnits),
+            frequency: item.frequency || "monthly",
+            ...typeField === "benefitType" && {
+              cost: resolveJobGroupPayrollAmount(item, basicSalaryUnits),
+              employerCost: resolveJobGroupPayrollAmount(item, basicSalaryUnits)
+            }
+          });
+          configuredTypes.add(key);
+        }
+      };
+      if (jobGroup) {
+        applyMissingDefaults(allowanceComponents, "allowanceType", parseJobGroupPayrollDefaults(jobGroup.defaultAllowances));
+        applyMissingDefaults(deductionComponents, "deductionType", parseJobGroupPayrollDefaults(jobGroup.defaultDeductions));
+        applyMissingDefaults(benefitComponents, "benefitType", parseJobGroupPayrollDefaults(jobGroup.defaultBenefits));
+        allowancesCents = allowanceComponents.reduce((sum7, row) => sum7 + monthlyAmount(row.amount, row.frequency), 0);
+        employeeDeductionsCents = deductionComponents.reduce((sum7, row) => sum7 + monthlyAmount(row.amount, row.frequency), 0);
+        employeeBenefitsCents = benefitComponents.reduce((sum7, row) => sum7 + Number(row.cost || 0), 0);
+        employerBenefitsCents = benefitComponents.reduce((sum7, row) => sum7 + Number(row.employerCost || 0), 0);
+      } else {
+        employeeDeductionsCents = deductionComponents.reduce((sum7, row) => sum7 + monthlyAmount(row.amount, row.frequency), 0);
       }
       const calc = calculateKenyanPayroll({
         basicSalary: basicSalaryCents,
@@ -20252,6 +20396,7 @@ async function processAndPayPayroll(targetYear, targetMonth, triggeredBy = "manu
   const payPeriodStart = fmt(new Date(year, month - 1, 1));
   const organizationFilter2 = organizationId ? " AND e.organizationId = ?" : "";
   const parameters = organizationId ? [`${year}-${String(month).padStart(2, "0")}`, now2, now2, payPeriodStart, organizationId] : [`${year}-${String(month).padStart(2, "0")}`, now2, now2, payPeriodStart];
+  let paymentUpdateError;
   const [updateResult] = await pool13.query(
     `UPDATE payroll p
      INNER JOIN payslips s ON CONVERT(s.payrollId USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(p.id USING utf8mb4) COLLATE utf8mb4_unicode_ci AND s.payPeriod = ?
@@ -20259,11 +20404,16 @@ async function processAndPayPayroll(targetYear, targetMonth, triggeredBy = "manu
      SET p.status = 'paid', p.paymentDate = COALESCE(p.paymentDate, ?), p.updatedAt = ?
      WHERE p.payPeriodStart = ? AND p.status IN ('processed', 'paid')${organizationFilter2}`,
     parameters
-  );
+  ).catch((error) => {
+    console.error("[PAYROLL] Payroll records were generated, but marking payslips paid failed:", error);
+    paymentUpdateError = error?.message || "Unknown database error";
+    return [{ affectedRows: 0 }, []];
+  });
   const markedPaid = typeof updateResult === "object" && updateResult !== null && "affectedRows" in updateResult ? Number(updateResult.affectedRows) : 0;
   return {
     ...result,
-    markedPaid
+    markedPaid,
+    ...paymentUpdateError ? { errors: [...result.errors, `Payroll records were generated, but could not be marked paid: ${paymentUpdateError}`] } : {}
   };
 }
 function initializePayrollJobs() {
@@ -20314,6 +20464,7 @@ var init_payrollJobs = __esm({
     init_emailService();
     init_payrollCostAllocationService();
     init_currency();
+    init_jobGroupPayrollDefaults();
   }
 });
 
@@ -35306,107 +35457,8 @@ async function startEmployeeOffboarding(input) {
   return { created: true, checklistId };
 }
 
-// server/services/jobGroupPayrollDefaults.ts
-init_schema_extended();
-import { eq as eq49 } from "drizzle-orm";
-import { v4 as uuidv432 } from "uuid";
-function parseJobGroupPayrollDefaults(value) {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter(
-      (item) => Boolean(item) && typeof item.type === "string" && (Number.isFinite(item.amount) || Number.isFinite(item.percentage))
-    ) : [];
-  } catch {
-    return [];
-  }
-}
-function resolveJobGroupPayrollAmount(item, basicSalary) {
-  if (Number.isFinite(item.percentage)) {
-    return Math.round(Number(basicSalary || 0) * Number(item.percentage) / 100 * 100);
-  }
-  return Math.round(Number(item.amount || 0));
-}
-function toPayrollStorageAmount(value) {
-  return value == null ? null : Math.round(Number(value) * 100);
-}
-async function applyJobGroupCompensationDefaults(db2, employee, jobGroup, actorId) {
-  const now2 = /* @__PURE__ */ new Date();
-  const basicSalaryUnits = employee.salary ?? jobGroup.defaultBasicSalary;
-  const basicSalary = toPayrollStorageAmount(basicSalaryUnits);
-  const resolveAmount = (item) => resolveJobGroupPayrollAmount(item, basicSalaryUnits);
-  if (basicSalary != null) {
-    const existingStructure = await db2.select({ id: salaryStructures.id }).from(salaryStructures).where(eq49(salaryStructures.employeeId, employee.id)).limit(1);
-    if (!existingStructure.length) {
-      await db2.insert(salaryStructures).values({
-        id: uuidv432(),
-        employeeId: employee.id,
-        effectiveDate: now2,
-        basicSalary,
-        allowances: 0,
-        deductions: 0,
-        createdBy: actorId,
-        createdAt: now2,
-        updatedAt: now2
-      });
-    } else if (employee.salary != null) {
-      await db2.update(salaryStructures).set({ basicSalary, updatedAt: now2 }).where(eq49(salaryStructures.id, existingStructure[0].id));
-    }
-  }
-  const [allowanceRows, deductionRows, benefitRows] = await Promise.all([
-    db2.select({ allowanceType: salaryAllowances.allowanceType }).from(salaryAllowances).where(eq49(salaryAllowances.employeeId, employee.id)),
-    db2.select({ deductionType: salaryDeductions.deductionType }).from(salaryDeductions).where(eq49(salaryDeductions.employeeId, employee.id)),
-    db2.select({ benefitType: employeeBenefits.benefitType }).from(employeeBenefits).where(eq49(employeeBenefits.employeeId, employee.id))
-  ]);
-  const allowances = parseJobGroupPayrollDefaults(jobGroup.defaultAllowances);
-  const deductions = parseJobGroupPayrollDefaults(jobGroup.defaultDeductions);
-  const benefits = parseJobGroupPayrollDefaults(jobGroup.defaultBenefits);
-  for (const item of allowances.filter((candidate) => !allowanceRows.some((row) => row.allowanceType === candidate.type))) {
-    await db2.insert(salaryAllowances).values({
-      id: uuidv432(),
-      employeeId: employee.id,
-      allowanceType: item.type,
-      amount: resolveAmount(item),
-      frequency: item.frequency || "monthly",
-      effectiveDate: now2,
-      isActive: true,
-      createdBy: actorId,
-      createdAt: now2,
-      updatedAt: now2
-    });
-  }
-  for (const item of deductions.filter((candidate) => !deductionRows.some((row) => row.deductionType === candidate.type))) {
-    await db2.insert(salaryDeductions).values({
-      id: uuidv432(),
-      employeeId: employee.id,
-      deductionType: item.type,
-      amount: resolveAmount(item),
-      frequency: item.frequency || "monthly",
-      effectiveDate: now2,
-      isActive: true,
-      createdBy: actorId,
-      createdAt: now2,
-      updatedAt: now2
-    });
-  }
-  for (const item of benefits.filter((candidate) => !benefitRows.some((row) => row.benefitType === candidate.type))) {
-    const amount = resolveAmount(item);
-    await db2.insert(employeeBenefits).values({
-      id: uuidv432(),
-      employeeId: employee.id,
-      benefitType: item.type,
-      enrollDate: now2,
-      isActive: true,
-      cost: amount || null,
-      employerCost: amount || null,
-      createdBy: actorId,
-      createdAt: now2,
-      updatedAt: now2
-    });
-  }
-}
-
 // server/routers/employees.ts
+init_jobGroupPayrollDefaults();
 function normalizeEmployeePayload(payload) {
   const normalized2 = { ...payload };
   if (normalized2.country === void 0 && typeof normalized2.countryCode === "string") {
@@ -37566,6 +37618,7 @@ function generateP9Form(data) {
 // server/routers/payroll.ts
 init_kenyan_payroll_calculator();
 init_payrollJobs();
+init_jobGroupPayrollDefaults();
 import { TRPCError as TRPCError30 } from "@trpc/server";
 function normalizeDateValue2(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {

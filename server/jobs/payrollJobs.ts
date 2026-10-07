@@ -5,7 +5,7 @@
  */
 import { CronJob } from "cron";
 import { getDb, getPool, createNotification } from "../db";
-import { payroll, employees, users, departments } from "../../drizzle/schema";
+import { payroll, employees, users, departments, jobGroups } from "../../drizzle/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { calculateKenyanPayroll } from "../utils/kenyan-payroll-calculator";
@@ -15,6 +15,7 @@ import { checkBudget, deductFromBudget, findActiveBudget } from "../utils/budget
 import { sendEmailImmediately } from "../services/emailService";
 import { recordPayrollCostAllocation } from "../services/payrollCostAllocationService";
 import { formatMinorCurrencyAmount } from "../../shared/currency";
+import { parseJobGroupPayrollDefaults, resolveJobGroupPayrollAmount } from "../services/jobGroupPayrollDefaults";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -124,21 +125,27 @@ export async function processMonthlyPayroll(
   const organizationIds = [...new Set(activeEmployees.map((employee) => employee.organizationId).filter(Boolean))] as string[];
   const organizationDepartments = new Map<string, Map<string, string>>();
   if (organizationIds.length > 0) {
-    const departmentRows = await db
-      .select({ id: departments.id, name: departments.name, organizationId: departments.organizationId })
-      .from(departments)
-      .where(inArray(departments.organizationId, organizationIds));
-    for (const department of departmentRows) {
-      if (!department.organizationId) continue;
-      let byName = organizationDepartments.get(department.organizationId);
-      if (!byName) {
-        byName = new Map<string, string>();
-        organizationDepartments.set(department.organizationId, byName);
+    try {
+      const departmentRows = await db
+        .select({ id: departments.id, name: departments.name, organizationId: departments.organizationId })
+        .from(departments)
+        .where(inArray(departments.organizationId, organizationIds));
+      for (const department of departmentRows) {
+        if (!department.organizationId) continue;
+        let byName = organizationDepartments.get(department.organizationId);
+        if (!byName) {
+          byName = new Map<string, string>();
+          organizationDepartments.set(department.organizationId, byName);
+        }
+        byName.set(department.id.toLowerCase(), department.id);
+        byName.set(department.name.trim().toLowerCase(), department.id);
       }
-      byName.set(department.id.toLowerCase(), department.id);
-      byName.set(department.name.trim().toLowerCase(), department.id);
+    } catch (error) {
+      console.error("[PAYROLL-CRON] Department lookup failed; using cost-center departments for budget allocation:", error);
     }
   }
+  const jobGroupRows = await db.select().from(jobGroups);
+  const jobGroupById = new Map(jobGroupRows.map((group: any) => [String(group.id), group]));
 
   const payrollOrganizationIds = new Set<string>();
 
@@ -161,7 +168,9 @@ export async function processMonthlyPayroll(
       }
 
       // Employee master salary is stored in whole KES; payroll records use cents.
-      const basicSalaryCents = Math.round(Number(emp.salary ?? 0) * 100);
+      const jobGroup = jobGroupById.get(String(emp.jobGroupId)) as any;
+      const basicSalaryUnits = emp.salary ?? jobGroup?.defaultBasicSalary ?? 0;
+      const basicSalaryCents = Math.round(Number(basicSalaryUnits) * 100);
       if (basicSalaryCents === 0) {
         errors.push(`${emp.firstName} ${emp.lastName}: no salary configured`);
         skipped++;
@@ -199,7 +208,45 @@ export async function processMonthlyPayroll(
           benefitComponents = (benefitRows as any[]).filter((row) => Number(row.cost || 0) > 0 || Number(row.employerCost || 0) > 0);
           employeeBenefitsCents = benefitComponents.reduce((sum, row) => sum + Number(row.cost || 0), 0);
           employerBenefitsCents = benefitComponents.reduce((sum, row) => sum + Number(row.employerCost || 0), 0);
-        } catch { /* ignore — allowances optional */ }
+        } catch (error) {
+          console.error(`[PAYROLL-CRON] Failed to load compensation components for ${emp.id}:`, error);
+          errors.push(`${emp.firstName} ${emp.lastName}: compensation components could not be loaded`);
+          skipped++;
+          continue;
+        }
+      }
+
+      const applyMissingDefaults = (
+        rows: any[],
+        typeField: string,
+        defaults: ReturnType<typeof parseJobGroupPayrollDefaults>,
+      ) => {
+        const configuredTypes = new Set(rows.map((row) => String(row[typeField]).trim().toLowerCase()));
+        for (const item of defaults) {
+          const key = item.type.trim().toLowerCase();
+          if (configuredTypes.has(key)) continue;
+          rows.push({
+            [typeField]: item.type,
+            amount: resolveJobGroupPayrollAmount(item, basicSalaryUnits),
+            frequency: item.frequency || "monthly",
+            ...(typeField === "benefitType" && {
+              cost: resolveJobGroupPayrollAmount(item, basicSalaryUnits),
+              employerCost: resolveJobGroupPayrollAmount(item, basicSalaryUnits),
+            }),
+          });
+          configuredTypes.add(key);
+        }
+      };
+      if (jobGroup) {
+        applyMissingDefaults(allowanceComponents, "allowanceType", parseJobGroupPayrollDefaults(jobGroup.defaultAllowances));
+        applyMissingDefaults(deductionComponents, "deductionType", parseJobGroupPayrollDefaults(jobGroup.defaultDeductions));
+        applyMissingDefaults(benefitComponents, "benefitType", parseJobGroupPayrollDefaults(jobGroup.defaultBenefits));
+        allowancesCents = allowanceComponents.reduce((sum, row) => sum + monthlyAmount(row.amount, row.frequency), 0);
+        employeeDeductionsCents = deductionComponents.reduce((sum, row) => sum + monthlyAmount(row.amount, row.frequency), 0);
+        employeeBenefitsCents = benefitComponents.reduce((sum, row) => sum + Number(row.cost || 0), 0);
+        employerBenefitsCents = benefitComponents.reduce((sum, row) => sum + Number(row.employerCost || 0), 0);
+      } else {
+        employeeDeductionsCents = deductionComponents.reduce((sum, row) => sum + monthlyAmount(row.amount, row.frequency), 0);
       }
 
       // Calculate Kenyan payroll deductions
@@ -673,6 +720,7 @@ export async function processAndPayPayroll(
   const parameters = organizationId
     ? [`${year}-${String(month).padStart(2, "0")}`, now, now, payPeriodStart, organizationId]
     : [`${year}-${String(month).padStart(2, "0")}`, now, now, payPeriodStart];
+  let paymentUpdateError: string | undefined;
   const [updateResult] = await pool.query(
     `UPDATE payroll p
      INNER JOIN payslips s ON CONVERT(s.payrollId USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(p.id USING utf8mb4) COLLATE utf8mb4_unicode_ci AND s.payPeriod = ?
@@ -680,7 +728,11 @@ export async function processAndPayPayroll(
      SET p.status = 'paid', p.paymentDate = COALESCE(p.paymentDate, ?), p.updatedAt = ?
      WHERE p.payPeriodStart = ? AND p.status IN ('processed', 'paid')${organizationFilter}`,
     parameters
-  );
+  ).catch((error: any) => {
+    console.error("[PAYROLL] Payroll records were generated, but marking payslips paid failed:", error);
+    paymentUpdateError = error?.message || "Unknown database error";
+    return [{ affectedRows: 0 }, []];
+  });
   const markedPaid =
     typeof updateResult === "object" &&
     updateResult !== null &&
@@ -691,6 +743,9 @@ export async function processAndPayPayroll(
   return {
     ...result,
     markedPaid,
+    ...(paymentUpdateError
+      ? { errors: [...result.errors, `Payroll records were generated, but could not be marked paid: ${paymentUpdateError}`] }
+      : {}),
   };
 }
 

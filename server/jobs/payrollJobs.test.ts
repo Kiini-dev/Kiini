@@ -27,7 +27,7 @@ vi.mock("../services/payrollCostAllocationService", () => ({
   recordPayrollCostAllocation: recordPayrollCostAllocationMock,
 }));
 
-import { employees, payroll, users } from "../../drizzle/schema";
+import { employees, jobGroups, payroll, users } from "../../drizzle/schema";
 import { dispatchPayslips, processAndPayPayroll, processMonthlyPayroll } from "./payrollJobs";
 
 describe("dispatchPayslips", () => {
@@ -132,6 +132,30 @@ describe("dispatchPayslips", () => {
     expect(pool.query.mock.calls[0][0]).toContain("e.organizationId = ?");
   });
 
+  it("returns generated payroll counts when the final paid-status update fails", async () => {
+    const pool = {
+      query: vi.fn(async () => {
+        throw new Error("database collation mismatch");
+      }),
+    };
+    getDbMock.mockResolvedValue(null);
+    getPoolMock.mockReturnValue(pool);
+
+    const result = await processAndPayPayroll(2026, 6, "user-1", "org-1");
+
+    expect(result).toEqual({
+      processed: 0,
+      skipped: 0,
+      dispatched: 0,
+      markedPaid: 0,
+      errors: [
+        "Payroll: Database not available",
+        "Database not available",
+        "Payroll records were generated, but could not be marked paid: database collation mismatch",
+      ],
+    });
+  });
+
   describe("processMonthlyPayroll", () => {
     afterEach(() => vi.clearAllMocks());
 
@@ -142,10 +166,21 @@ describe("dispatchPayslips", () => {
         firstName: "Joshua",
         lastName: "Fidel",
         department: "Legacy department label",
-        salary: 50000,
+        salary: null,
+        jobGroupId: "group-1",
         status: "active",
       };
-      const dbRows = (table: unknown) => table === employees ? [employee] : [];
+      const jobGroup = {
+        id: "group-1",
+        organizationId: "org-1",
+        defaultBasicSalary: 50000,
+        defaultAllowances: JSON.stringify([{ type: "Housing", amount: 250000 }]),
+        defaultDeductions: JSON.stringify([{ type: "Other", amount: 50000 }]),
+        defaultBenefits: "[]",
+      };
+      const dbRows = (table: unknown) =>
+        table === employees ? [employee] : table === jobGroups ? [jobGroup] : [];
+      const insertedPayroll: any[] = [];
       const db = {
         select: vi.fn(() => ({
           from: vi.fn((table: unknown) => ({
@@ -156,10 +191,15 @@ describe("dispatchPayslips", () => {
                 then: (resolve: (value: unknown[]) => unknown) => Promise.resolve(rows).then(resolve),
               };
             }),
+            then: (resolve: (value: unknown[]) => unknown) => Promise.resolve(dbRows(table)).then(resolve),
           })),
         })),
         transaction: vi.fn(async (callback: (transaction: any) => Promise<unknown>) => callback({
-          insert: vi.fn(() => ({ values: vi.fn(async () => undefined) })),
+          insert: vi.fn((table: unknown) => ({
+            values: vi.fn(async (values: any) => {
+              if (table === payroll) insertedPayroll.push(values);
+            }),
+          })),
         })),
       };
       getDbMock.mockResolvedValue(db);
@@ -169,6 +209,14 @@ describe("dispatchPayslips", () => {
       const result = await processMonthlyPayroll(2026, 6, "user-1", "org-1");
 
       expect(result).toMatchObject({ processed: 1, skipped: 0, errors: [] });
+      expect(insertedPayroll).toHaveLength(1);
+      expect(insertedPayroll[0]).toMatchObject({
+        basicSalary: 5_000_000,
+        allowances: 250_000,
+      });
+      expect(JSON.parse(insertedPayroll[0].notes).deductionComponents).toEqual([
+        expect.objectContaining({ deductionType: "Other", amount: 50_000 }),
+      ]);
       expect(recordPayrollCostAllocationMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
