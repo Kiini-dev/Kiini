@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { useCurrencySettings } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -438,23 +439,7 @@ export default function PaymentTracking({
 
                   <div>
                     <label className="text-sm font-medium mb-2 block">Chart of Accounts (Optional)</label>
-                    <Select
-                      value={formData.accountId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, accountId: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a chart of accounts..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {chartOfAccounts && chartOfAccounts.map((coa: any) => (
-                          <SelectItem key={coa.id} value={coa.id}>
-                            {coa.accountCode} - {coa.accountName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <ChartOfAccountsSelector accounts={chartOfAccounts ?? []} value={formData.accountId} onChange={(accountId) => setFormData({ ...formData, accountId })} placeholder="Select a chart of accounts..." />
                   </div>
 
                   <div>
@@ -701,23 +686,7 @@ export default function PaymentTracking({
 
             <div>
               <label className="text-sm font-medium mb-2 block">Chart of Accounts (Optional)</label>
-              <Select
-                value={formData.accountId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, accountId: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a chart of accounts..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {chartOfAccounts && chartOfAccounts.map((coa: any) => (
-                    <SelectItem key={coa.id} value={coa.id}>
-                      {coa.accountCode} - {coa.accountName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ChartOfAccountsSelector accounts={chartOfAccounts ?? []} value={formData.accountId} onChange={(accountId) => setFormData({ ...formData, accountId })} placeholder="Select a chart of accounts..." />
             </div>
 
             <div>

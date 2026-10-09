@@ -4,6 +4,7 @@ import { ModuleLayout } from "@/components/ModuleLayout";
 import { useRequireFeature } from "@/lib/permissions";
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
+import { SearchableSelect } from "@/components/SearchableSelect";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ import { format } from "date-fns";
 import { PaginationControls, usePagination } from "@/components/ui/data-table-controls";
 import { ListPageToolbar } from "@/components/list-page/ListPageToolbar";
 import { EnhancedBulkActions, bulkExportAction, bulkCopyIdsAction, bulkDeleteAction } from "@/components/list-page/EnhancedBulkActions";
+import { OperationalTemplateFields, createOperationalTemplateDefaults, normalizeOperationalTemplateData, type OperationalTemplateData } from "@/components/operations/OperationalTemplateFields";
 
 export default function ImprestsPage() {
   // CALL ALL HOOKS UNCONDITIONALLY AT TOP LEVEL
@@ -92,12 +94,20 @@ export default function ImprestsPage() {
     amount: 0,
     notes: "",
   });
+  const [templateData, setTemplateData] = useState<OperationalTemplateData>(() => createOperationalTemplateDefaults("imprest"));
 
   // ALL HOOKS MUST BE CALLED BEFORE CONDITIONAL RETURNS
   // Queries - Fetch users/employees for dropdown
   const { data: imprests = [], isLoading: isLoadingImprests, refetch } = trpc.imprest.list.useQuery({});
   const { data: surrenders = [], refetch: refetchSurrenders } = trpc.imprestSurrender.list.useQuery({});
-  const { data: employees = [] } = trpc.users.list.useQuery({ limit: 100 });
+  const { data: employees = [] } = trpc.employees.list.useQuery({ limit: 500 });
+  const employeeOptions = employees
+    .filter((employee: any) => employee.userId)
+    .map((employee: any) => ({
+      value: employee.userId,
+      label: `${employee.firstName} ${employee.lastName}`.trim(),
+      keywords: [employee.employeeNumber, employee.email, employee.department].filter(Boolean).join(" "),
+    }));
 
   // Mutations
   const createMutation = trpc.imprest.create.useMutation({
@@ -192,6 +202,7 @@ export default function ImprestsPage() {
       approvalStatus: "pending",
       notes: "",
     });
+    setTemplateData(createOperationalTemplateDefaults("imprest"));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -203,11 +214,11 @@ export default function ImprestsPage() {
   };
 
   const handleEmployeeSelect = (userId: string) => {
-    const selectedEmployee = employees.find((e: any) => e.id === userId);
+    const selectedEmployee = employees.find((employee: any) => employee.userId === userId);
     setFormData((prev) => ({
       ...prev,
       userId,
-      userName: selectedEmployee?.name || "",
+      userName: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}`.trim() : "",
     }));
   };
 
@@ -225,6 +236,12 @@ export default function ImprestsPage() {
       dateNeeded: formData.dateNeeded || undefined,
       approvalStatus: formData.approvalStatus,
       notes: formData.notes || undefined,
+      templateData: normalizeOperationalTemplateData("imprest", {
+        ...templateData,
+        requestDate: templateData.requestDate || formData.dateRequested,
+        employeeName: templateData.employeeName || formData.userName,
+        initialCashFloat: formData.amount,
+      }),
     } as any);
   };
 
@@ -524,18 +541,16 @@ export default function ImprestsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="userId">Select Employee *</Label>
-                      <Select value={formData.userId} onValueChange={handleEmployeeSelect}>
-                        <SelectTrigger id="userId">
-                          <SelectValue placeholder="Select an employee" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {employees.map((emp: any) => (
-                            <SelectItem key={emp.id} value={emp.id}>
-                              {emp.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        id="userId"
+                        value={formData.userId}
+                        options={employeeOptions}
+                        onValueChange={handleEmployeeSelect}
+                        placeholder="Select an employee"
+                        searchPlaceholder="Search employees..."
+                        emptyMessage="No employees with linked user accounts found."
+                        required
+                      />
                     </div>
                   </div>
                 </CardContent>
@@ -624,6 +639,7 @@ export default function ImprestsPage() {
                 </CardContent>
               </Card>
             </div>
+            <OperationalTemplateFields documentType="imprest" value={templateData} onChange={setTemplateData} />
 
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
@@ -723,4 +739,3 @@ export default function ImprestsPage() {
     </ModuleLayout>
   );
 }
-

@@ -13,8 +13,8 @@ import { generatePayslipHTML } from "../utils/payslip-template";
 import { getCompanyInfo } from "../utils/company-info";
 import { renderNotificationTemplate } from "../services/notificationRenderer";
 import { createNotification } from "../_core/notification";
-import puppeteer from "puppeteer-core";
 import { processMonthlyPayroll } from "../jobs/payrollJobs";
+import { renderHtmlToPdf } from "../services/documentPdf";
 
 function pool(): any {
   const p = getPool();
@@ -102,20 +102,6 @@ function payPeriodDates(period: unknown): { start: string; end: string; label: s
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const end = `${year}-${pad(month)}-${pad(lastDay)}`;
   return { start, end, label: `${start} to ${end}` };
-}
-
-async function generatePayslipPdf(html: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "domcontentloaded" });
-    return Buffer.from(await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true }));
-  } finally {
-    await browser.close();
-  }
 }
 
 async function renderPayslipForRow(connection: any, payslip: any, employee: any, organizationId?: string | null): Promise<string> {
@@ -461,6 +447,8 @@ export const payslipRouter = router({
       if (orgId) {
         query += ` AND (p.organizationId = ? OR (p.organizationId IS NULL AND e.organizationId = ?))`;
         params.push(orgId, orgId);
+      } else {
+        query += " AND p.organizationId IS NULL AND e.organizationId IS NULL";
       }
       if (!canViewAll) {
         query += ` AND e.userId = ?`;
@@ -512,6 +500,8 @@ export const payslipRouter = router({
       if (ctx.user.organizationId && !isGlobalSuperAdmin(ctx.user)) {
         scope = " AND (p.organizationId = ? OR (p.organizationId IS NULL AND e.organizationId = ?))";
         params.push(ctx.user.organizationId, ctx.user.organizationId);
+      } else {
+        scope = " AND p.organizationId IS NULL AND e.organizationId IS NULL";
       }
       if (!canViewAll) {
         scope += " AND e.userId = ?";
@@ -552,6 +542,8 @@ export const payslipRouter = router({
       if (ctx.user.organizationId && !isGlobalSuperAdmin(ctx.user)) {
         query += " AND (p.organizationId = ? OR (p.organizationId IS NULL AND e.organizationId = ?))";
         params.push(ctx.user.organizationId, ctx.user.organizationId);
+      } else {
+        query += " AND p.organizationId IS NULL AND e.organizationId IS NULL";
       }
       if (!canViewAll) {
         query += " AND e.userId = ?";
@@ -594,12 +586,17 @@ export const payslipRouter = router({
       const orgId = ctx.user.organizationId;
       const company = await getCompanyInfo();
       const [year, month] = input.payPeriod.split("-").map(Number);
-      const payrollRun = await processMonthlyPayroll(year, month, ctx.user.id, orgId);
+      const payrollRun = await processMonthlyPayroll(year, month, ctx.user.id, orgId ?? null);
 
       // Get employees
       let empQuery = `SELECT * FROM employees WHERE status = 'active'`;
       const empParams: any[] = [];
-      if (orgId) { empQuery += ` AND organizationId = ?`; empParams.push(orgId); }
+      if (orgId) {
+        empQuery += ` AND organizationId = ?`;
+        empParams.push(orgId);
+      } else {
+        empQuery += " AND organizationId IS NULL";
+      }
       if (input.employeeIds?.length) {
         empQuery += ` AND id IN (${input.employeeIds.map(() => "?").join(",")})`;
         empParams.push(...input.employeeIds);
@@ -808,13 +805,16 @@ export const payslipRouter = router({
             html: `<p>Dear {{employee_name}},</p><p>Your payslip for {{pay_period}} is ready.</p><p>Net Pay: <strong>{{net_salary}}</strong></p>`,
           });
           const { sendEmail } = await import("../_core/mail");
-          await sendEmail({
+          const emailResult = await sendEmail({
             to: payslip.email,
             subject: renderedEmail.subject,
             html: renderedEmail.html,
             text: renderedEmail.text,
-            attachments: [{ filename: pdfFilename, content: await generatePayslipPdf(renderedPayslipHtml), contentType: "application/pdf" }],
+            attachments: [{ filename: pdfFilename, content: await renderHtmlToPdf(renderedPayslipHtml), contentType: "application/pdf" }],
           });
+          if (!emailResult.success) {
+            throw new Error(emailResult.error || "Email provider did not confirm delivery");
+          }
 
           await p.query(`UPDATE payslips SET status = 'sent', sentAt = NOW() WHERE id = ?`, [payslipId]);
           sent++;
@@ -904,6 +904,8 @@ export const payslipRouter = router({
         if (orgId) {
           query += " AND (p.organizationId = ? OR (p.organizationId IS NULL AND e.organizationId = ?))";
           params.push(orgId, orgId);
+        } else {
+          query += " AND p.organizationId IS NULL AND e.organizationId IS NULL";
         }
         if (!canViewAll) {
           query += " AND e.userId = ?";

@@ -4,6 +4,7 @@ import { Download, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 
 export const FinanceSettingsPage: React.FC = () => {
   const utils = trpc.useUtils();
@@ -12,6 +13,7 @@ export const FinanceSettingsPage: React.FC = () => {
   const [payableAccount, setPayableAccount] = useState('');
   const setAccounts = trpc.finance.setVendorAccounts.useMutation();
   const { data: defaults } = trpc.finance.getDefaults.useQuery({});
+  const { data: accounts = [] } = trpc.chartOfAccounts.list.useQuery(undefined);
   const vendorQuery = trpc.finance.getVendorAccounts.useQuery(vendorId, { enabled: !!vendorId });
   const listVendors = trpc.finance.listVendorAccounts.useQuery(undefined);
   const [vendorSearch, setVendorSearch] = useState('');
@@ -84,11 +86,11 @@ export const FinanceSettingsPage: React.FC = () => {
       </div>
       <div>
         <label>Expense Account</label>
-        <input value={expenseAccount} onChange={e => setExpenseAccount(e.target.value)} />
+        <ChartOfAccountsSelector accounts={accounts} value={expenseAccount} onChange={setExpenseAccount} noneLabel="None" placeholder="Select expense account" />
       </div>
       <div>
         <label>Payable Account</label>
-        <input value={payableAccount} onChange={e => setPayableAccount(e.target.value)} />
+        <ChartOfAccountsSelector accounts={accounts} value={payableAccount} onChange={setPayableAccount} noneLabel="None" placeholder="Select payable account" />
       </div>
       <button onClick={save}>Save</button>
       <div>

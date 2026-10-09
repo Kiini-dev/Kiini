@@ -16,6 +16,21 @@ const createProcedure = createFeatureRestrictedProcedure("lpo:create");
 const updateProcedure = createFeatureRestrictedProcedure("lpo:edit");
 const deleteProcedure = createFeatureRestrictedProcedure("lpo:delete");
 
+export async function generateAvailableLPONumber(
+  database: any,
+  generateNumber: (db: any, documentType: "lpo") => Promise<string> = generateNextDocumentNumber,
+): Promise<string> {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const candidate = await generateNumber(database, "lpo");
+    const existing = await database.select({ id: lpos.id })
+      .from(lpos)
+      .where(eq(lpos.lpoNumber, candidate))
+      .limit(1);
+    if (existing.length === 0) return candidate;
+  }
+  throw new Error("Could not allocate a unique LPO number after 20 attempts");
+}
+
 export const lpoRouter = router({
   list: protectedProcedure
     .input(z.object({
@@ -96,15 +111,7 @@ export const lpoRouter = router({
       const database = await getDb();
       if (!database) throw new Error("Database not available");
       const resolvedSupplierId = (input.supplierId && input.supplierId.trim()) || (input.supplierName && input.supplierName.trim()) || "custom-supplier";
-      const lpoNumber = await generateNextDocumentNumber(database, "lpo");
-
-      // Check for duplicate LPO number
-      const existing = await database.select().from(lpos)
-        .where(eq(lpos.lpoNumber, lpoNumber))
-        .limit(1);
-      if (existing.length > 0) {
-        throw new Error(`LPO with number '${lpoNumber}' already exists`);
-      }
+      const lpoNumber = await generateAvailableLPONumber(database);
 
       const lpoId = uuidv4();
       

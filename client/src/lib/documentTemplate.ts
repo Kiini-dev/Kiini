@@ -51,9 +51,16 @@ export interface DocumentTemplateData {
   bankDetailsHtml?: string;
   /** Custom HTML body from saved document template (overrides default layout) */
   customTemplateHtml?: string;
+  additionalFields?: Record<string, string>;
 }
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeHtml = (value: string) => value
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;");
 const money = (n: number) => (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function normalizeTokenKey(raw: string): string {
@@ -192,6 +199,9 @@ function buildTokenMap(data: DocumentTemplateData): Record<string, string> {
   const output: Record<string, string> = {};
   Object.entries(values).forEach(([key, value]) => {
     output[normalizeTokenKey(key)] = value == null ? "" : String(value);
+  });
+  Object.entries(data.additionalFields || {}).forEach(([key, value]) => {
+    output[normalizeTokenKey(key)] = escapeHtml(value);
   });
   return output;
 }

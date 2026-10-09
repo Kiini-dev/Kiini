@@ -19,6 +19,7 @@ import { ArrowLeft, Save, Loader2, Percent } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import mutateAsync from "@/lib/mutationHelpers";
 import { Spinner } from "@/components/ui/spinner";
+import { toMinorCurrencyAmount } from "../../../shared/currency";
 
 const ALLOWANCE_TYPES = [
   "House Allowance",
@@ -52,7 +53,7 @@ export default function EditAllowance() {
     if (allowance) {
       setFormData({
         allowanceType: (allowance as any).allowanceType || "",
-        amount: (allowance as any).amount ? String(Number((allowance as any).amount)) : "",
+        amount: (allowance as any).amount != null ? String(Number((allowance as any).amount) / 100) : "",
         frequency: (allowance as any).frequency || "monthly",
         notes: (allowance as any).notes || "",
       });
@@ -81,7 +82,7 @@ export default function EditAllowance() {
       await mutateAsync(updateMutation, {
         id: id || "",
         allowanceType: formData.allowanceType,
-        amount: parseInt(formData.amount),
+        amount: toMinorCurrencyAmount(formData.amount),
         frequency: formData.frequency,
         notes: formData.notes || undefined,
       });
@@ -172,4 +173,3 @@ export default function EditAllowance() {
     </ModuleLayout>
   );
 }
-

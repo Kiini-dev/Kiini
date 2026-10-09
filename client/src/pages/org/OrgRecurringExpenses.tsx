@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -422,20 +423,7 @@ export function RecurringExpenses() {
 
                 <div className="space-y-2">
                   <Label>Chart of Accounts</Label>
-                  <Select
-                    value={formData.chartOfAccountId || "__none__"}
-                    onValueChange={(value) => setFormData({ ...formData, chartOfAccountId: value === "__none__" ? "" : value })}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">None</SelectItem>
-                      {chartOfAccounts.map((account: any) => (
-                        <SelectItem key={account.id} value={String(account.id)}>
-                          {account.accountCode} - {account.accountName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ChartOfAccountsSelector accounts={chartOfAccounts} value={formData.chartOfAccountId || ""} onChange={(chartOfAccountId) => setFormData({ ...formData, chartOfAccountId })} noneLabel="None" placeholder="Select account" />
                 </div>
 
                 <div className="space-y-2">

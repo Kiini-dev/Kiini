@@ -28,6 +28,8 @@ import { useRequireFeature } from "@/lib/permissions";
 import { Spinner } from "@/components/ui/spinner";
 import { useCompanyInfo } from "@/hooks/useCompanyInfo";
 import { Switch } from "@/components/ui/switch";
+import { SupplierSelector } from "@/components/SupplierSelector";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 
 interface ExpenseLineItem {
   id: string;
@@ -136,31 +138,36 @@ export default function CreateExpense() {
     setSelectedBudgetAllocation(null);
   };
 
-  const createRecurringExpenseMutation = trpc.expenses.createRecurringExpense.useMutation({
-    onSuccess: () => toast.success("Recurring expense schedule created!"),
-    onError: (e: any) => toast.error(`Failed to create recurring schedule: ${e.message}`),
-  });
+  const createRecurringExpenseMutation = trpc.expenses.createRecurringExpense.useMutation();
 
   const createExpenseMutation = trpc.expenses.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Expense created successfully!");
       utils.expenses.list.invalidate();
-      // Also create recurring schedule if toggled
       if (isRecurring) {
-        createRecurringExpenseMutation.mutate({
-          category: formData.category,
-          vendor: formData.vendor || undefined,
-          amount: Math.round(parseFloat(formData.amount || "0") * 100),
-          description: formData.description || undefined,
-          paymentMethod: (formData.paymentMethod as any) || undefined,
-          frequency: recurringFrequency as any,
-          startDate: recurringStartDate,
-          endDate: recurringNoEnd ? undefined : recurringEndDate || undefined,
-          dayOfMonth: recurringDayOfMonth,
-          reminderDaysBefore: recurringReminderDays,
-          chartOfAccountId: formData.chartOfAccountId || undefined,
-          budgetAllocationId: formData.budgetAllocationId || undefined,
-        });
+        try {
+          await createRecurringExpenseMutation.mutateAsync({
+            category: formData.category,
+            vendor: formData.vendor || undefined,
+            amount: Math.round((useLineItems ? lineItemsTotal : parseFloat(formData.amount || "0")) * 100),
+            description: formData.description || undefined,
+            paymentMethod: (formData.paymentMethod as any) || undefined,
+            frequency: recurringFrequency as any,
+            startDate: recurringStartDate,
+            endDate: recurringNoEnd ? undefined : recurringEndDate || undefined,
+            dayOfMonth: recurringDayOfMonth,
+            reminderDaysBefore: recurringReminderDays,
+            chartOfAccountId: formData.chartOfAccountId || undefined,
+            budgetAllocationId: formData.budgetAllocationId || undefined,
+          });
+          toast.success("Recurring expense schedule created!");
+        } catch (error) {
+          toast.error("Expense was saved, but its recurring schedule could not be created.", {
+            description: error instanceof Error ? error.message : "Unknown schedule error",
+          });
+          navigate("/expenses");
+          return;
+        }
       }
       navigate("/expenses");
     },
@@ -329,6 +336,11 @@ export default function CreateExpense() {
       }
     }
 
+    if (isRecurring && !recurringNoEnd && recurringEndDate && recurringEndDate < recurringStartDate) {
+      toast.error("The recurring expense end date must be on or after its start date.");
+      return;
+    }
+
     const amountInCents = useLineItems
       ? Math.round(lineItemsTotal * 100)
       : Math.round(parseFloat(formData.amount) * 100);
@@ -413,12 +425,13 @@ export default function CreateExpense() {
               </div>
 
               <div className="grid grid-cols-[140px_1fr] items-center gap-3">
-                <Label className="text-right text-sm">Vendor</Label>
-                <Input
-                  placeholder="e.g., ABC Supplies Ltd"
+                <Label htmlFor="vendorName" className="text-right text-sm">Vendor</Label>
+                <SupplierSelector
+                  id="vendorName"
+                  label=""
                   value={formData.vendor}
-                  onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                  className="max-w-xs"
+                  onChange={(vendor) => setFormData({ ...formData, vendor })}
+                  placeholder="Select or enter a vendor..."
                 />
               </div>
 
@@ -476,16 +489,7 @@ export default function CreateExpense() {
 
               <div className="grid grid-cols-[140px_1fr] items-center gap-3">
                 <Label className="text-right text-sm">Account *</Label>
-                <Select value={formData.chartOfAccountId} onValueChange={(value) => setFormData({ ...formData, chartOfAccountId: value })}>
-                  <SelectTrigger className="max-w-xs"><SelectValue placeholder="Select account" /></SelectTrigger>
-                  <SelectContent>
-                    {chartOfAccounts.map((account: any) => (
-                      <SelectItem key={account.id} value={account.id.toString()}>
-                        {account.accountCode} - {account.accountName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ChartOfAccountsSelector accounts={chartOfAccounts} value={formData.chartOfAccountId} onChange={(chartOfAccountId) => setFormData({ ...formData, chartOfAccountId })} placeholder="Select account" />
               </div>
 
               <div className="space-y-2">
@@ -770,7 +774,7 @@ export default function CreateExpense() {
               <div className="flex gap-2">
                 <Button
                   type="submit"
-                  disabled={createExpenseMutation.isPending}
+                  disabled={createExpenseMutation.isPending || createRecurringExpenseMutation.isPending}
                 >
                   {createExpenseMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

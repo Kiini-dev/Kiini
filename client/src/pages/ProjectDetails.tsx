@@ -302,6 +302,7 @@ export default function ProjectDetails() {
                   projectId={projectId}
                   projectName={plainProject?.name || ""}
                   currentProgress={plainProject?.progress || 0}
+                  isEditable={canManageProject}
                   onProgressUpdate={(newProgress) => {
                     updateProgressMutation.mutate({ id: projectId, progress: newProgress });
                   }}
@@ -627,4 +628,3 @@ export default function ProjectDetails() {
     </ModuleLayout>
   );
 }
-

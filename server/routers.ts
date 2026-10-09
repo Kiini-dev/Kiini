@@ -101,9 +101,10 @@ import { orgThemeCustomizationRouter } from "./routers/orgThemeCustomization";
 import { orgRolesRouter } from "./routers/orgRoles";
 import { customHomepageRouter } from "./routers/customHomepage";
 import { quotationsRouter } from "./routers/quotations";
+import { proposalsRouter } from "./routers/proposals";
 import { quotesRouter } from "./routers/quotes";
-import { grnRouter } from "./routers/procurementGrn";
-import { deliveryNotesRouter } from "./routers/procurementDeliveryNotes";
+import { grnRouter } from "./routers/grn";
+import { deliveryNotesRouter } from "./routers/delivery-notes";
 import { erpOperationsRouter } from "./routers/erpOperations";
 
 // ============= PHASE 4: ENTERPRISE EXPANSION =============
@@ -412,6 +413,7 @@ export const appRouter = router({
 
   // ============= QUOTES =============
   quotes: quotesRouter,
+  proposals: proposalsRouter,
 
   // ============= PROCUREMENT - DELIVERY NOTES =============
   deliveryNotes: deliveryNotesRouter,

@@ -30,6 +30,7 @@ import { PaginationControls, usePagination } from "@/components/ui/data-table-co
 import { SupplierSelector } from "@/components/SupplierSelector";
 import { ListPageToolbar } from "@/components/list-page/ListPageToolbar";
 import { EnhancedBulkActions, bulkExportAction, bulkCopyIdsAction, bulkDeleteAction } from "@/components/list-page/EnhancedBulkActions";
+import { OperationalTemplateFields, createOperationalTemplateDefaults, normalizeOperationalTemplateData, type OperationalTemplateData } from "@/components/operations/OperationalTemplateFields";
 
 const emptyForm = { dnNo: "", supplier: "", orderId: "", deliveryDate: "", items: "", status: "pending" as const, notes: "" };
 
@@ -51,6 +52,7 @@ export default function DeliveryNotes() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingDN, setEditingDN] = useState<any>(null);
   const [form, setForm] = useState({ ...emptyForm });
+  const [templateData, setTemplateData] = useState<OperationalTemplateData>(() => createOperationalTemplateDefaults("delivery-note"));
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
   const { page, pageSize, setPage, setPageSize, paginate } = usePagination(25);
   const utils = trpc.useUtils();
@@ -59,7 +61,7 @@ export default function DeliveryNotes() {
   useEffect(() => { if (new URLSearchParams(_search).get("action") === "create") setCreateOpen(true); }, []);
 
   const { data: notesData, isLoading: dataLoading } = trpc.deliveryNotes.list.useQuery({ limit: 50, offset: 0 }, { enabled: allowed });
-  const deliveryNotes = notesData?.data || [];
+  const deliveryNotes: any[] = (notesData?.data || []) as any[];
 
   const createMutation = trpc.deliveryNotes.create.useMutation({
     onSuccess: () => { utils.deliveryNotes.list.invalidate(); toast.success("Delivery note created"); setCreateOpen(false); setForm({ ...emptyForm }); },
@@ -136,10 +138,14 @@ export default function DeliveryNotes() {
   const openEdit = (d: any) => {
     setEditingDN(d);
     setForm({ dnNo: d.dnNo || "", supplier: d.supplier || "", orderId: d.orderId || "", deliveryDate: d.deliveryDate || "", items: String(d.items || ""), status: d.status || "pending", notes: d.notes || "" });
+    setTemplateData(d.templateData || createOperationalTemplateDefaults("delivery-note"));
   };
 
   const handleSubmit = (isEdit: boolean) => {
-    const payload = { dnNo: form.dnNo, supplier: form.supplier, orderId: form.orderId || undefined, deliveryDate: form.deliveryDate, items: parseInt(form.items) || 0, status: form.status, notes: form.notes || undefined };
+    const normalizedTemplateData = normalizeOperationalTemplateData("delivery-note", templateData);
+    const lineItems = normalizedTemplateData.lineItems || [];
+    const lineItemCount = lineItems.reduce((sum: number, item: any) => sum + Number(item.quantityShipped || item.quantityOrdered || 0), 0);
+    const payload = { supplier: form.supplier, orderId: form.orderId || undefined, deliveryDate: form.deliveryDate, items: parseInt(form.items) || lineItemCount, status: form.status, notes: form.notes || undefined, templateData: normalizedTemplateData };
     if (isEdit && editingDN) updateMutation.mutate({ id: editingDN.id, ...payload });
     else createMutation.mutate(payload);
   };
@@ -151,7 +157,7 @@ export default function DeliveryNotes() {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1"><Label>Order Reference</Label><Input value={form.orderId} onChange={e => setForm(f => ({ ...f, orderId: e.target.value }))} placeholder="PO-001" /></div>
-        <div className="space-y-1"><Label>Delivery Date *</Label><Input type="date" value={form.deliveryDate} onChange={e => setForm(f => ({ ...f, deliveryDate: e.target.value }))} /></div>
+        <div className="space-y-1"><Label>Dispatch Date *</Label><Input type="date" value={form.deliveryDate} onChange={e => setForm(f => ({ ...f, deliveryDate: e.target.value }))} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1"><Label>Number of Items *</Label><Input type="number" value={form.items} onChange={e => setForm(f => ({ ...f, items: e.target.value }))} placeholder="0" /></div>
@@ -168,6 +174,7 @@ export default function DeliveryNotes() {
         </div>
       </div>
       <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
+      <OperationalTemplateFields documentType="delivery-note" value={templateData} onChange={setTemplateData} />
     </div>
   );
 
@@ -205,7 +212,7 @@ export default function DeliveryNotes() {
               </SelectContent>
             </Select>
             <TableColumnSettings columns={DELIVERY_NOTE_COLUMNS} visibleColumns={visibleColumns} onToggleColumn={toggleColumn} />
-            <Button onClick={() => { setForm({ ...emptyForm }); setCreateOpen(true); }} className="gap-2">
+            <Button onClick={() => { setForm({ ...emptyForm }); setTemplateData(createOperationalTemplateDefaults("delivery-note")); setCreateOpen(true); }} className="gap-2">
               <Plus className="h-4 w-4" /> New DN
             </Button>
           </div>
@@ -263,9 +270,9 @@ export default function DeliveryNotes() {
                           <TableCell className="text-right">
                             <RowActionsMenu 
                               actions={[
-                                { label: "View", icon: Eye, onClick: () => setLocation(`/delivery-notes/${dn.id}`) },
-                                { label: "Edit", icon: Edit2, onClick: () => openEdit(dn) },
-                                { label: "Delete", icon: Trash2, onClick: () => { if (confirm("Delete?")) deleteMutation.mutate(dn.id); }, isDangerous: true },
+                                { label: "View", icon: <Eye className="h-4 w-4" />, onClick: () => setLocation(`/delivery-notes/${dn.id}`) },
+                                { label: "Edit", icon: <Edit2 className="h-4 w-4" />, onClick: () => openEdit(dn) },
+                                { label: "Delete", icon: <Trash2 className="h-4 w-4" />, onClick: () => { if (confirm("Delete?")) deleteMutation.mutate(dn.id); }, destructive: true },
                               ]}
                             />
                           </TableCell>
@@ -282,21 +289,21 @@ export default function DeliveryNotes() {
         <PaginationControls total={processedNotes.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
       </div>
 
-      <Dialog open={createOpen} onOpenChange={v => { setCreateOpen(v); if (!v) setForm({ ...emptyForm }); }}>
-        <DialogContent className="max-w-xl">
+      <Dialog open={createOpen} onOpenChange={v => { setCreateOpen(v); if (!v) { setForm({ ...emptyForm }); setTemplateData(createOperationalTemplateDefaults("delivery-note")); } }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>New Delivery Note</DialogTitle></DialogHeader>
           <DNForm />
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.dnNo || !form.supplier || !form.deliveryDate || !form.items}>
+            <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.supplier || !form.deliveryDate || (!form.items && !(templateData.lineItems || []).length)}>
               {createMutation.isPending ? "Saving..." : "Create Delivery Note"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editingDN} onOpenChange={v => { if (!v) setEditingDN(null); }}>
-        <DialogContent className="max-w-xl">
+      <Dialog open={!!editingDN} onOpenChange={v => { if (!v) { setEditingDN(null); setTemplateData(createOperationalTemplateDefaults("delivery-note")); } }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Delivery Note</DialogTitle></DialogHeader>
           <DNForm />
           <DialogFooter>

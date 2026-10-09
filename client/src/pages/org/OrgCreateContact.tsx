@@ -9,6 +9,7 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -41,7 +42,6 @@ export default function CreateContact() {
     clientId: presetClientId,
   });
 
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
 
   const createMutation = trpc.contacts.create.useMutation({
     onSuccess: () => {
@@ -146,17 +146,7 @@ export default function CreateContact() {
             </div>
             <div>
               <Label htmlFor="clientId">Associated Client</Label>
-              <select
-                id="clientId"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={formData.clientId}
-                onChange={(e) => update("clientId", e.target.value)}
-              >
-                <option value="">-- No client --</option>
-                {(clients as any[]).map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.companyName || `${c.firstName} ${c.lastName}`}</option>
-                ))}
-              </select>
+              <ClientSelector id="clientId" label="" value={formData.clientId} onChange={(clientId) => update("clientId", clientId)} includeUnassigned placeholder="-- No client --" />
             </div>
           </CardContent>
         </Card>

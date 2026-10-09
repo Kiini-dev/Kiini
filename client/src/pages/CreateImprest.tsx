@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileText } from "lucide-react";
 import { useLocation } from "wouter";
+import { OperationalTemplateFields, createOperationalTemplateDefaults, normalizeOperationalTemplateData, type OperationalTemplateData } from "@/components/operations/OperationalTemplateFields";
 
 export default function CreateImprest() {
   const [, setLocation] = useLocation();
   const [userId, setUserId] = useState("");
   const [purpose, setPurpose] = useState("");
   const [amount, setAmount] = useState<number>(0);
+  const [templateData, setTemplateData] = useState<OperationalTemplateData>(() => createOperationalTemplateDefaults("imprest"));
 
   const createMutation = trpc.imprest.create.useMutation({
     onSuccess: () => {
@@ -26,7 +28,17 @@ export default function CreateImprest() {
     e.preventDefault();
     if (!userId) { toast.error("Employee ID is required"); return; }
     if (amount <= 0) { toast.error("Amount must be greater than 0"); return; }
-    createMutation.mutate({ userId, purpose: purpose || undefined, amount });
+    createMutation.mutate({
+      userId,
+      purpose: purpose || undefined,
+      amount: Math.round(amount * 100),
+      templateData: normalizeOperationalTemplateData("imprest", {
+        ...templateData,
+        requestDate: templateData.requestDate || new Date().toISOString().slice(0, 10),
+        employeeName: templateData.employeeName || userId,
+        initialCashFloat: amount,
+      }),
+    });
   };
 
   return (
@@ -65,7 +77,7 @@ export default function CreateImprest() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Amount (KES) *</label>
+              <label className="block text-sm font-medium mb-1">Approved Cash Advance Float (KES) *</label>
               <Input
                 type="number"
                 value={amount || ""}
@@ -76,6 +88,13 @@ export default function CreateImprest() {
                 required
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Department & Reconciliation</CardTitle></CardHeader>
+          <CardContent>
+            <OperationalTemplateFields documentType="imprest" value={templateData} onChange={setTemplateData} />
           </CardContent>
         </Card>
 

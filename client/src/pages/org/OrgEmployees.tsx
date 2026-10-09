@@ -10,6 +10,7 @@ import { Download, DollarSign, Copy, Mail, Phone } from "lucide-react";
 import { BulkExportManager } from "@/components/DataExport";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/PhoneInput";
+import { BankNameSelect } from "@/components/BankNameSelect";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -683,23 +684,11 @@ export default function Employees() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="bankName">Bank Name</Label>
-                      <Select value={newEmployee.bankName} onValueChange={(value) => setNewEmployee({ ...newEmployee, bankName: value })}>
-                        <SelectTrigger id="bankName"><SelectValue placeholder="Select bank" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="KCB Bank">KCB Bank</SelectItem>
-                          <SelectItem value="Equity Bank">Equity Bank</SelectItem>
-                          <SelectItem value="Co-operative Bank">Co-operative Bank</SelectItem>
-                          <SelectItem value="ABSA Bank">ABSA Bank</SelectItem>
-                          <SelectItem value="Standard Chartered">Standard Chartered</SelectItem>
-                          <SelectItem value="NCBA Bank">NCBA Bank</SelectItem>
-                          <SelectItem value="I&amp;M Bank">I&amp;M Bank</SelectItem>
-                          <SelectItem value="Diamond Trust Bank">Diamond Trust Bank</SelectItem>
-                          <SelectItem value="Stanbic Bank">Stanbic Bank</SelectItem>
-                          <SelectItem value="Family Bank">Family Bank</SelectItem>
-                          <SelectItem value="M-Pesa">M-Pesa (Safaricom)</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <BankNameSelect
+                        id="bankName"
+                        value={newEmployee.bankName}
+                        onValueChange={(bankName) => setNewEmployee({ ...newEmployee, bankName })}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="bankBranch">Bank Branch</Label>

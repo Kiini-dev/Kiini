@@ -3,5 +3,6 @@ export type OrganizationScopedUser = {
 };
 
 export function resolveOrganizationScope(user: OrganizationScopedUser): { organizationId: string | null } {
-  return { organizationId: user.organizationId || null };
+  const organizationId = user.organizationId?.trim();
+  return { organizationId: organizationId || null };
 }

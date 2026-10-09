@@ -17,7 +17,10 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2, Heart } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { EmployeeSelector } from "@/components/EmployeeSelector";
 import mutateAsync from "@/lib/mutationHelpers";
+import { PayrollComponentAllocationFields } from "@/components/PayrollComponentAllocationFields";
+import { toMinorCurrencyAmount } from "../../../shared/currency";
 
 const BENEFIT_TYPES = [
   "Health Insurance",
@@ -45,10 +48,11 @@ export default function CreateBenefit() {
     coverage: "",
     employeeCost: "",
     employerCost: "",
+    departmentIdOverride: "",
+    glAccountId: "",
     notes: "",
   });
 
-  const { data: employees = [] } = trpc.employees.list.useQuery({});
 
   const createMutation = trpc.payroll.benefits.create.useMutation({
     onSuccess: () => {
@@ -76,8 +80,10 @@ export default function CreateBenefit() {
         benefitType: formData.benefitType,
         provider: formData.provider || undefined,
         coverage: formData.coverage || undefined,
-        cost: formData.employeeCost ? parseInt(formData.employeeCost) * 100 : 0,
-        employerCost: formData.employerCost ? parseInt(formData.employerCost) * 100 : 0,
+        cost: toMinorCurrencyAmount(formData.employeeCost),
+        employerCost: toMinorCurrencyAmount(formData.employerCost),
+        departmentIdOverride: formData.departmentIdOverride || undefined,
+        glAccountId: formData.glAccountId || undefined,
         notes: formData.notes || undefined,
       });
     } finally {
@@ -121,18 +127,13 @@ export default function CreateBenefit() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="employeeId">Employee *</Label>
-                <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {(employee.firstName || "")} {(employee.lastName || "")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EmployeeSelector
+                  id="employeeId"
+                  label=""
+                  value={formData.employeeId}
+                  onChange={(employeeId) => setFormData({ ...formData, employeeId })}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -196,6 +197,14 @@ export default function CreateBenefit() {
                   />
                 </div>
               </div>
+
+              <PayrollComponentAllocationFields
+                departmentIdOverride={formData.departmentIdOverride}
+                glAccountId={formData.glAccountId}
+                accountKind="expense"
+                onDepartmentChange={(departmentIdOverride) => setFormData({ ...formData, departmentIdOverride })}
+                onAccountChange={(glAccountId) => setFormData({ ...formData, glAccountId })}
+              />
 
               {/* Cost Summary */}
               {(totalCost.employee > 0 || totalCost.employer > 0) && (

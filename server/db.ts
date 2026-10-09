@@ -1251,6 +1251,7 @@ function getDefaultPrefix(documentType: string): string {
     contract: 'CON-',
     quotation: 'QUO-',
     purchase_order: 'LPO-',
+    lpo: 'LPO-',
     credit_note: 'CN-',
     debit_note: 'DN-',
   };
@@ -2730,5 +2731,4 @@ export async function markTenantMessageRead(messageId: string) {
   if (!db) throw new Error('Database not available');
   await db.update(tenantMessages).set({ isRead: 1 }).where(eq(tenantMessages.id, messageId));
 }
-
 

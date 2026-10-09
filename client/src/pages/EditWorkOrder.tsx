@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Pencil } from "lucide-react";
 import { EmployeeNameSelector } from "@/components/EmployeeNameSelector";
+import { OperationalTemplateFields, createOperationalTemplateDefaults, normalizeOperationalTemplateData, type OperationalTemplateData } from "@/components/operations/OperationalTemplateFields";
 
 interface EditWorkOrderProps {
   params?: { id: string };
@@ -29,6 +30,7 @@ export default function EditWorkOrder({ params }: EditWorkOrderProps) {
   const id = params?.id || "";
   const { allowed, isLoading: permLoading } = useRequireFeature("operations:work-orders:edit");
   const [isLoading, setIsLoading] = useState(false);
+  const [templateData, setTemplateData] = useState<OperationalTemplateData>(() => createOperationalTemplateDefaults("work-order"));
 
   const [formData, setFormData] = useState({
     workOrderNumber: "",
@@ -71,6 +73,7 @@ export default function EditWorkOrder({ params }: EditWorkOrderProps) {
         notes: wo.notes || "",
         status: wo.status || "draft",
       });
+      setTemplateData(wo.templateData || createOperationalTemplateDefaults("work-order"));
     }
   }, [getQuery.data]);
 
@@ -81,7 +84,11 @@ export default function EditWorkOrder({ params }: EditWorkOrderProps) {
     try {
       const laborCost = parseFloat(formData.laborCost) || 0;
       const serviceCost = parseFloat(formData.serviceCost) || 0;
-      const total = laborCost + serviceCost;
+      const normalizedTemplateData = normalizeOperationalTemplateData("work-order", templateData);
+      const materialsTotal = (normalizedTemplateData.materials || []).reduce((sum: number, item: any) => (
+        sum + Number(item.totalCost || Number(item.quantity || 0) * Number(item.unitCost || 0)) + Number(item.vat || 0)
+      ), 0);
+      const total = laborCost + serviceCost + materialsTotal;
 
       updateMutation.mutate({
         id,
@@ -97,6 +104,7 @@ export default function EditWorkOrder({ params }: EditWorkOrderProps) {
         total,
         notes: formData.notes,
         status: formData.status as any,
+        templateData: normalizedTemplateData,
       });
     } catch (error: any) {
       toast.error(`Error: ${error.message}`);
@@ -178,7 +186,7 @@ export default function EditWorkOrder({ params }: EditWorkOrderProps) {
               </div>
 
               <div>
-                <Label htmlFor="startDate">Start Date *</Label>
+                <Label htmlFor="startDate">Allocation Date *</Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -189,7 +197,7 @@ export default function EditWorkOrder({ params }: EditWorkOrderProps) {
               </div>
 
               <div>
-                <Label htmlFor="targetEndDate">Target End Date *</Label>
+                <Label htmlFor="targetEndDate">Target Completion Date *</Label>
                 <Input
                   id="targetEndDate"
                   type="date"
@@ -236,6 +244,8 @@ export default function EditWorkOrder({ params }: EditWorkOrderProps) {
                 required
               />
             </div>
+
+            <OperationalTemplateFields documentType="work-order" value={templateData} onChange={setTemplateData} />
 
             <div>
               <Label htmlFor="notes">Notes</Label>

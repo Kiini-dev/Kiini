@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { useOrgAccess } from "@/hooks/useOrgAccess";
 import { useOrgPermission } from "@/hooks/useOrgPermission";
 import { toast } from "sonner";
@@ -33,8 +34,6 @@ export default function OrgCreateProposal() {
     expectedCloseDate: new Date().toISOString().split("T")[0],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const { data: clients = [] } = trpc.clients.list.useQuery(undefined, { staleTime: 60_000 });
 
   const createMutation = trpc.opportunities.create.useMutation({
     onSuccess: (data) => {
@@ -120,17 +119,11 @@ export default function OrgCreateProposal() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="client">Client *</Label>
-                  <Select value={form.clientId} onValueChange={(value) => setForm((f) => ({ ...f, clientId: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client: any) => (
-                        <SelectItem key={client.id} value={client.id}>{client.companyName || client.name || "Unknown"}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ClientSelector
+                    value={form.clientId}
+                    onChange={(clientId) => setForm((f) => ({ ...f, clientId }))}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="title">Proposal Title *</Label>

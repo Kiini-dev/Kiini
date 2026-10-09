@@ -31,15 +31,21 @@ async function getEmailSetting(key: string): Promise<string | undefined> {
 }
 
 const getSmtpConfig = async () => {
-  // Env vars take priority; fall back to settings table
-  const host = process.env.SMTP_HOST || await getEmailSetting('smtpHost');
-  const portStr = process.env.SMTP_PORT || await getEmailSetting('smtpPort');
+  // Settings are user-editable; environment variables are deployment defaults.
+  const host = (await getEmailSetting('smtpHost')) || process.env.SMTP_HOST;
+  const portStr = (await getEmailSetting('smtpPort')) || process.env.SMTP_PORT;
   const port = portStr ? parseInt(portStr, 10) : undefined;
-  const user = process.env.SMTP_USER || await getEmailSetting('smtpUser');
-  const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS || await getEmailSetting('smtpPass') || await getEmailSetting('smtpPassword');
-  const secure = process.env.SMTP_SECURE
-    ? process.env.SMTP_SECURE === 'true'
-    : port === 465;
+  const user = (await getEmailSetting('smtpUser')) || process.env.SMTP_USER;
+  const pass = (await getEmailSetting('smtpPass'))
+    || (await getEmailSetting('smtpPassword'))
+    || process.env.SMTP_PASSWORD
+    || process.env.SMTP_PASS;
+  const secureSetting = await getEmailSetting('smtpSecure');
+  const secure = secureSetting
+    ? secureSetting === 'true'
+    : process.env.SMTP_SECURE
+      ? process.env.SMTP_SECURE === 'true'
+      : port === 465;
 
   if (!host || !port) {
     throw new Error('SMTP_HOST and SMTP_PORT must be configured to send email (set via env vars or Settings → Email)');
@@ -64,9 +70,13 @@ export async function sendEmail(opts: MailOptions) {
       });
     };
 
-    const fromEmail = process.env.SMTP_FROM_EMAIL || await getEmailSetting('fromEmail') || await getEmailSetting('smtpFromEmail') || user || 'info@kiini.africa';
+    const fromEmail = (await getEmailSetting('fromEmail'))
+      || (await getEmailSetting('smtpFromEmail'))
+      || process.env.SMTP_FROM_EMAIL
+      || user
+      || 'info@kiini.africa';
     const companyInfo = await getCompanyInfo();
-    const fromName = process.env.SMTP_FROM_NAME || await getEmailSetting('fromName') || companyInfo.name;
+    const fromName = (await getEmailSetting('fromName')) || process.env.SMTP_FROM_NAME || companyInfo.name;
     const from = opts.from || `"${fromName}" <${fromEmail}>`;
     const html = opts.html
       ? buildEmailHtmlFromContent(opts.html, opts.subject, companyInfo.name, companyInfo.email, companyInfo.logo)

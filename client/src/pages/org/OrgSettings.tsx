@@ -25,6 +25,7 @@ import mutateAsync from "@/lib/mutationHelpers";
 import BackupRestore from "@/components/BackupRestore";
 import CSVImportExport from "@/components/CSVImportExport";
 import { CountrySelect, CitySelect } from "@/components/LocationSelects";
+import { DocumentBrandingSettings } from "@/components/settings/DocumentBrandingSettings";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import AdminEmailTemplates from "@/pages/admin/AdminEmailTemplates";
 import { cn } from "@/lib/utils";
@@ -1757,6 +1758,7 @@ export default function Settings() {
                 </div>
               </div>
             </Field>
+            <DocumentBrandingSettings />
             <SaveButton
               saving={!!saving.company}
               onClick={() => save("company", persistCompanyInfo)}

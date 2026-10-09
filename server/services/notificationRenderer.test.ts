@@ -16,6 +16,7 @@ vi.mock("../_core/mail", () => ({ sendEmail: sendEmailMock }));
 import { renderNotificationTemplate } from "./notificationRenderer";
 import { sendSystemEmail } from "./systemEmailService";
 import { processEmailQueue, sendEmailImmediately } from "./emailService";
+import { buildEmailHtmlFromContent } from "../_core/emailTemplates";
 import { organizationSettings, settings } from "../../drizzle/schema";
 
 const fallback = {
@@ -79,6 +80,25 @@ describe("system email templates", () => {
     expect(rendered.html).toContain("src=\"https://kiini.africa/logo.png\"");
   });
 
+  it("renders completed-signature email details and a working signed-document link", async () => {
+    const rendered = await renderNotificationTemplate("user/document_signed", {
+      recipientEmail: "recipient@example.com",
+      recipientName: "Recipient",
+      app_name: "Kiini",
+      document_name: "Service Agreement",
+      document_reference: "contract-123",
+      signed_by: "Mumbi Ke, Eliakim Mwaniki",
+      signed_at: "October 8, 2026",
+      document_attachment_names: "Service_Agreement.pdf",
+      document_url: "https://kiini.africa/api/esignatures/signing-token/signed-document.pdf",
+    }, fallback);
+
+    expect(rendered.html).toContain("Mumbi Ke, Eliakim Mwaniki");
+    expect(rendered.html).toContain("Service_Agreement.pdf");
+    expect(rendered.html).toContain('href="https://kiini.africa/api/esignatures/signing-token/signed-document.pdf"');
+    expect(rendered.html).not.toContain('href=""');
+  });
+
   it("renders tokens and keeps HTML markup on immediate general-template sends", async () => {
     await sendEmailImmediately({
       toEmail: "new.user@example.com",
@@ -117,6 +137,18 @@ describe("system email templates", () => {
     expect(rendered.html).toContain("href=\"https://kiini.africa/login?next=%2Fhome&amp;source=email\"");
     expect(rendered.html).toContain("src=\"https://kiini.africa/uploads/logo.png\"");
     expect(rendered.html).not.toContain("{{");
+  });
+
+  it("replaces large inline base64 logos with the hosted logo URL in outgoing email", () => {
+    const inlineLogo = `data:image/png;base64,${"A".repeat(120_000)}`;
+    const html = buildEmailHtmlFromContent(
+      `<html><body><img src="${inlineLogo}" alt="Kiini"></body></html>`,
+      "Verification code",
+    );
+
+    expect(html).not.toContain(inlineLogo);
+    expect(html).toContain('src="https://kiini.africa/logo.png"');
+    expect(html.length).toBeLessThan(10_000);
   });
 
   it("prefers organization email template overrides over global settings", async () => {

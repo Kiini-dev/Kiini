@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { SupplierSelector } from "@/components/SupplierSelector";
+import { ContractTypeSelector } from "@/components/ContractTypeSelector";
 import { useOrgAccess } from "@/hooks/useOrgAccess";
 import { useOrgPermission } from "@/hooks/useOrgPermission";
 import { toast } from "sonner";
@@ -153,12 +154,7 @@ export default function OrgCreateContract() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contractType" className="text-white">Contract Type</Label>
-                  <Select value={form.contractType} onValueChange={(value) => setForm({ ...form, contractType: value })}>
-                    <SelectTrigger className="bg-white/5 border-white/10 text-white"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {contractCategories.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <ContractTypeSelector options={contractCategories} value={form.contractType} onChange={(contractType) => setForm({ ...form, contractType })} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status" className="text-white">Status</Label>

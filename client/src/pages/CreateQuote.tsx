@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Trash2, AlertCircle, ChevronDown, ChevronUp, SaveIcon 
 import { trpc } from "../utils/trpc";
 import { z } from "zod";
 import { toast } from "sonner";
+import { ClientSelector } from "@/components/ClientSelector";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,19 +180,8 @@ export function CreateQuote() {
 
           <div className="space-y-3">
             <div className="grid grid-cols-[140px_1fr] items-center gap-3">
-              <Label className="text-sm font-medium">Client <span className="text-red-500">*</span></Label>
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="clientId" className="text-sm font-medium">Client <span className="text-red-500">*</span></Label>
+              <ClientSelector id="clientId" value={clientId} onChange={setClientId} required placeholder="Select a client" label="" />
             </div>
             {errors.clientId && <p className="text-red-500 text-sm ml-[152px]">{errors.clientId}</p>}
 

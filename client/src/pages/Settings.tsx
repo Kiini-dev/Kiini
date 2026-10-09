@@ -21,10 +21,12 @@ import { useAuthWithPersistence } from "@/_core/hooks/useAuthWithPersistence";
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
 import { EmailMarketingCampaignManager, EmailMarketingSubscriberManager } from "@/components/settings/EmailMarketingManager";
+import { ResetToDefaultButton } from "@/components/settings/ResetToDefaultButton";
 import mutateAsync from "@/lib/mutationHelpers";
 import BackupRestore from "@/components/BackupRestore";
 import CSVImportExport from "@/components/CSVImportExport";
 import { CountrySelect, CitySelect } from "@/components/LocationSelects";
+import { DocumentBrandingSettings } from "@/components/settings/DocumentBrandingSettings";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import AdminEmailTemplates from "@/pages/admin/AdminEmailTemplates";
 import CustomFieldsManager from "@/components/CustomFieldsManager";
@@ -142,6 +144,17 @@ const L = (id: string, label: string, href: string, _description?: string): NavI
 const E = (id: string, label: string, sectionId: string, href?: string): NavItemEmbed =>
   ({ id, label, type: "embed", sectionId, href });
 
+const DEFAULT_EMAIL_SETTINGS = {
+  mailDriver: "smtp",
+  smtpHost: "",
+  smtpPort: "587",
+  smtpUser: "",
+  smtpPass: "",
+  fromName: "",
+  fromEmail: "",
+  replyTo: "",
+};
+
 // ─── Full settings tree (matching Kiini: One Hub. Total Control + tools absorbed) ────────────────
 const NAV_GROUPS: NavGroup[] = [
   {
@@ -152,6 +165,7 @@ const NAV_GROUPS: NavGroup[] = [
       S("currency",             "Currency",            "currency"),
       S("theme",                "Theme",               "theme"),
       S("company-logo",         "App Logo",             "company-logo"),
+      L("payroll-gl-mapping",   "Payroll GL Mapping",   "/payroll/gl-mapping"),
     ],
   },
   {
@@ -825,14 +839,7 @@ export default function Settings() {
 
   // ── Email ──────────────────────────────────────────────────────────────────
   const [emailSettings, setEmailSettings] = useState({
-    mailDriver: "smtp",
-    smtpHost: "",
-    smtpPort: "587",
-    smtpUser: "",
-    smtpPass: "",
-    fromName: "",
-    fromEmail: "",
-    replyTo: "",
+    ...DEFAULT_EMAIL_SETTINGS,
   });
 
   // ── Invoices ───────────────────────────────────────────────────────────────
@@ -1862,6 +1869,7 @@ export default function Settings() {
                 </div>
               </div>
             </Field>
+            <DocumentBrandingSettings />
             <SaveButton
               saving={!!saving.company}
               onClick={() => save("company", () => mutateAsync(updateCompanyMutation, companyInfo))}
@@ -2357,10 +2365,22 @@ export default function Settings() {
                 <Input type="email" value={emailSettings.replyTo} onChange={(e) => setEmailSettings((p) => ({ ...p, replyTo: e.target.value }))} placeholder="support@company.com" />
               </Field>
             </div>
-            <SaveButton
-              saving={!!saving.email}
-              onClick={() => save("email", () => updateByCategory.mutateAsync({ category: "email", values: { ...emailSettings } }))}
-            />
+            <div className="flex flex-wrap gap-2">
+              <SaveButton
+                saving={!!saving.email}
+                onClick={() => save("email", () => updateByCategory.mutateAsync({ category: "email", values: { ...emailSettings } }))}
+              />
+              <ResetToDefaultButton
+                label="Reset to Defaults"
+                onReset={async () => {
+                  await updateByCategory.mutateAsync({
+                    category: "email",
+                    values: { ...DEFAULT_EMAIL_SETTINGS },
+                  });
+                  setEmailSettings({ ...DEFAULT_EMAIL_SETTINGS });
+                }}
+              />
+            </div>
           </Section>
         );
 

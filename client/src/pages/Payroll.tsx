@@ -68,7 +68,7 @@ export default function Payroll() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
   // Fetch real data from backend
-  const { data: data = [], isLoading, isError, error } = trpc.payroll.list.useQuery({});
+  const { data: data = [], isLoading, isError, error } = trpc.payroll.list.useQuery({ limit: 5000 });
   const deleteMut = trpc.payroll.delete.useMutation();
   const updateMut = trpc.payroll.update.useMutation();
   const downloadP9 = trpc.payroll.downloadP9.useMutation();
@@ -79,7 +79,7 @@ export default function Payroll() {
   const utils = trpc.useUtils();
 
   // Manual payroll automation triggers
-  const processAndPayMut = trpc.payroll.processAndPay.useMutation();
+  const processMonthlyMut = trpc.payroll.processMonthly.useMutation();
   const dispatchPayslipsMut = trpc.payroll.dispatchPayslips.useMutation();
 
   const [records, setRecords] = useState<PayrollRecord[]>([]);
@@ -292,39 +292,73 @@ export default function Payroll() {
   const totalNetPay = filteredRecords.reduce((sum, r) => sum + r.netSalary, 0);
   const paidCount = filteredRecords.filter((r) => r.status === "paid").length;
 
-  const handleProcessPayroll = () => {
+  const handleProcessPayroll = async () => {
     setIsProcessingPayroll(true);
-    processAndPayMut.mutate(
-      {
+    try {
+      const result = await processMonthlyMut.mutateAsync({
         year: selectedYear,
         month: selectedMonth,
-      },
-      {
-        onSuccess(result) {
-          setIsProcessingPayroll(false);
-          utils.payroll.list.refetch();
-          if (result.errors.length > 0) {
-            result.errors.slice(0, 3).forEach((message) => toast.error(message));
-            if (result.errors.length > 3) toast.error(`${result.errors.length - 3} additional payroll errors`);
-          }
-          if (result.processed > 0) {
-            toast.success(
-              `Payroll processed for ${result.processed}; ${result.markedPaid} marked paid; ${result.dispatched} payslips sent; ${result.skipped} skipped`
-            );
-          } else if (result.markedPaid > 0 || result.dispatched > 0) {
-            toast.success(
-              `${result.markedPaid} payroll records marked paid; ${result.dispatched} payslips sent`
-            );
-          } else if (result.errors.length === 0) {
-            toast.info(`No payroll records were created; ${result.skipped} employees were skipped`);
-          }
-        },
-        onError(error) {
-          setIsProcessingPayroll(false);
-          toast.error("Payroll processing failed: " + error.message);
-        },
+      });
+      const refreshedPayrolls = await utils.payroll.list.refetch();
+      const payPeriod = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
+      const periodHasPayroll = refreshedPayrolls.data?.some(
+        (record) => String(record.payPeriodStart).slice(0, 7) === payPeriod
+      ) ?? false;
+      result.errors.slice(0, 3).forEach((message) => toast.error(message));
+      if (result.errors.length > 3) {
+        toast.error(`${result.errors.length - 3} additional payroll errors`);
       }
-    );
+      if (refreshedPayrolls.isError) {
+        toast.error(`Payroll processing finished, but the payroll list could not be refreshed: ${refreshedPayrolls.error.message}`);
+        return;
+      }
+      if (!periodHasPayroll) {
+        if (result.processed > 0) {
+          toast.error(`Payroll processing reported ${result.processed} employees, but no records for ${payPeriod} appeared in the list.`);
+        } else if (result.errors.length > 0) {
+          toast.error(`No payroll records were created for ${payPeriod}: ${result.errors.length} employee payroll errors occurred.`);
+        } else if (result.skipped > 0) {
+          toast.error(`No payroll records were created for ${payPeriod}; ${result.skipped} employees were skipped. See the payroll run details.`);
+        } else {
+          toast.error(`No payroll records were created for ${payPeriod}: no eligible employees were found.`);
+        }
+        return;
+      }
+
+      setIsProcessingPayroll(false);
+      setIsDispatchingPayslips(true);
+
+      let dispatchSummary = "";
+      try {
+        const dispatch = await dispatchPayslipsMut.mutateAsync({
+          year: selectedYear,
+          month: selectedMonth,
+        });
+        dispatch.errors.slice(0, 3).forEach((message) => toast.error(`Payslip delivery: ${message}`));
+        if (dispatch.errors.length > 3) {
+          toast.error(`${dispatch.errors.length - 3} additional payslip errors`);
+        }
+        dispatchSummary = `; ${dispatch.dispatched} payslips sent`;
+      } catch (error: any) {
+        toast.error(`Payroll was generated, but payslip delivery failed: ${error.message}`);
+      } finally {
+        setIsDispatchingPayslips(false);
+      }
+
+      if (result.processed > 0) {
+        if (result.errors.length > 0) {
+          toast.error(`Payroll generated for ${result.processed} employees${dispatchSummary}, but ${result.errors.length} payroll issue${result.errors.length === 1 ? "" : "s"} require attention`);
+        } else {
+          toast.success(`Payroll generated for ${result.processed} employees${dispatchSummary}; ${result.skipped} skipped`);
+        }
+      } else if (result.errors.length === 0) {
+        toast.info(`No new payroll records were created; ${result.skipped} employees were skipped${dispatchSummary}`);
+      }
+    } catch (error: any) {
+      toast.error(`Payroll generation failed: ${error.message}`);
+    } finally {
+      setIsProcessingPayroll(false);
+    }
   };
 
   const handleDispatchPayslips = () => {
@@ -383,7 +417,7 @@ export default function Payroll() {
             <div className="space-y-1">
               <h2 className="text-lg font-semibold">Payroll Generator</h2>
               <p className="text-sm text-muted-foreground">
-                Generate payroll for {new Date(selectedYear, selectedMonth - 1).toLocaleString("en-US", { month: "long" })} {selectedYear}, create and send payslips, and mark payroll paid when a payslip is saved.
+                Generate payroll for active staff in {new Date(selectedYear, selectedMonth - 1).toLocaleString("en-US", { month: "long" })} {selectedYear}, then attempt payslip delivery. Payroll is not marked paid by generation.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -415,11 +449,17 @@ export default function Payroll() {
                 data-testid="generate-payroll-button"
                 onClick={handleProcessPayroll}
                 disabled={isProcessingPayroll || isDispatchingPayslips}
-                title="Processes the selected period, generates and sends payslips, then marks payroll with a saved payslip as paid."
+                title="Generates payroll for active staff and attempts payslip delivery without marking payroll paid."
                 className="gap-2"
               >
-                {isProcessingPayroll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                {isProcessingPayroll ? "Generating..." : "Generate Payroll & Payslips"}
+                {isProcessingPayroll || isDispatchingPayslips
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Zap className="h-4 w-4" />}
+                {isProcessingPayroll
+                  ? "Generating payroll..."
+                  : isDispatchingPayslips
+                    ? "Sending payslips..."
+                    : "Generate Payroll & Payslips"}
               </Button>
             </div>
           </CardContent>

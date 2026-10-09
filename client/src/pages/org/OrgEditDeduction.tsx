@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2, MinusCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import mutateAsync from "@/lib/mutationHelpers";
+import { toMinorCurrencyAmount } from "../../../../shared/currency";
 import { Spinner } from "@/components/ui/spinner";
 
 const DEDUCTION_TYPES = [
@@ -83,7 +84,7 @@ export default function EditDeduction() {
       await mutateAsync(updateMutation, {
         id: id || "",
         deductionType: formData.deductionType,
-        amount: parseInt(formData.amount) * 100,
+        amount: toMinorCurrencyAmount(formData.amount),
         frequency: formData.frequency,
         reference: formData.reference || undefined,
         notes: formData.notes || undefined,

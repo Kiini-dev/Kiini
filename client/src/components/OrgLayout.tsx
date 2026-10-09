@@ -36,6 +36,7 @@ import { useOrgAccess } from "@/hooks/useOrgAccess";
 import { canAccessOrgFeatureComplete, getOrgFeatureKeyForRoute } from "@/lib/orgPermissions";
 import MaintenancePage from "@/pages/MaintenancePage";
 import { NotificationBell } from "./NotificationBell";
+import HeaderSearchModal from "./HeaderSearchModal";
 import ProductGuidance from "./ProductGuidance";
 import { PageHeader } from "./PageHeader";
 import { FloatingAIChat } from "./FloatingAIChat";
@@ -158,11 +159,9 @@ function buildOrgNav(slug: string): NavItem[] {
     { id: 'hr_group', label: 'HR & Payroll', href: '', icon: UserCog, children: [
       { id: 'employees', label: 'Employees', href: `/org/${slug}/employees`, icon: Users, featureKey: 'hr' },
       { id: 'departments', label: 'Departments', href: `/org/${slug}/departments`, icon: Building2, featureKey: 'hr' },
-      { id: 'attendance', label: 'Attendance', href: `/org/${slug}/attendance`, icon: Clock, featureKey: 'attendance' },
       { id: 'payroll', label: 'Payroll', href: `/org/${slug}/payroll`, icon: Banknote, featureKey: 'hr' },
       { id: 'leave', label: 'Leave Management', href: `/org/${slug}/leave`, icon: Calendar, featureKey: 'leave' },
       { id: 'job_groups', label: 'Job Groups', href: `/org/${slug}/job-groups`, icon: GraduationCap, featureKey: 'hr' },
-      { id: 'performance', label: 'Performance Reviews', href: `/org/${slug}/performance-reviews`, icon: TrendingUp, featureKey: 'hr' },
     ]},
     { id: 'support_group', label: 'Support', href: '', icon: Headphones, children: [
       { id: 'tickets', label: 'Tickets', href: `/org/${slug}/tickets`, icon: HelpCircle, featureKey: 'tickets' },
@@ -323,7 +322,6 @@ export function OrgLayout({ title, description, icon, breadcrumbs, actions, chil
     try { const v = localStorage.getItem('orgSidebarPinned'); return v !== null ? JSON.parse(v) : true; } catch { return true; }
   });
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  const [headerSearchQuery, setHeaderSearchQuery] = useState("");
   const [cmdOpen, setCmdOpen] = useState(false);
 
   // Timer state
@@ -808,24 +806,9 @@ export function OrgLayout({ title, description, icon, breadcrumbs, actions, chil
             </Tooltip>
           </TooltipProvider>
 
-          {/* Search bar */}
-          <form data-tour="global-search" className="relative hidden sm:flex items-center ml-1" onSubmit={(e) => { e.preventDefault(); if (headerSearchQuery.trim()) { setCmdOpen(true); setHeaderSearchQuery(""); } }}>
-            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <input type="text" placeholder="Search" value={headerSearchQuery} onChange={e => setHeaderSearchQuery(e.target.value)} onFocus={() => setCmdOpen(true)}
-              className="h-8 w-40 md:w-52 rounded-md border border-input bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
-          </form>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            data-tour="global-search"
-            aria-label="Open search"
-            className="absolute left-14 top-1/2 z-40 h-9 w-9 -translate-y-1/2 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-600 dark:hover:text-slate-50 sm:hidden"
-            onClick={() => navigate('/search')}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
+          <HeaderSearchModal
+            onNavigate={(href) => navigateOrg(slug ? `/org/${slug}${href}` : href)}
+          />
 
           <div className="flex-1" />
 

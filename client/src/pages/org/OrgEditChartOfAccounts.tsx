@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { trpc } from "@/lib/trpc";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { toast } from "sonner";
 import { BookOpen, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 
@@ -232,26 +233,7 @@ export default function EditChartOfAccounts() {
               {/* Parent Account Selection for Hierarchy */}
               <div className="space-y-2">
                 <Label htmlFor="parentAccountId">Parent Account (for Hierarchy)</Label>
-                <Select
-                  value={formData.parentAccountId || ""}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, parentAccountId: value === "__none__" ? null : value || null })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select parent account (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">No Parent (Top Level)</SelectItem>
-                    {allAccounts
-                      .filter(acc => acc.id !== id) // Don't show current account
-                      .map(acc => (
-                        <SelectItem key={acc.id} value={acc.id}>
-                          {acc.accountCode} - {acc.accountName} ({acc.accountType})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <ChartOfAccountsSelector accounts={allAccounts.filter(acc => acc.id !== id)} value={formData.parentAccountId || ""} onChange={(parentAccountId) => setFormData({ ...formData, parentAccountId: parentAccountId || null })} noneLabel="No Parent (Top Level)" placeholder="Select parent account (optional)" />
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   Select a parent account to create a sub-account (e.g., "Cash" under "Current Assets")
                 </p>

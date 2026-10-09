@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { useRequireFeature } from "@/lib/permissions";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
@@ -211,9 +212,9 @@ export default function EditServiceInvoice({ params }: EditServiceInvoiceProps) 
 
               <div>
                 <Label htmlFor="clientId">Client</Label>
-                <Select
+                <ClientSelector
                   value={formData.clientId}
-                  onValueChange={(value) => {
+                  onChange={(value) => {
                     const selected = clientsData.find((client: any) => client.id === value);
                     setFormData({
                       ...formData,
@@ -221,18 +222,9 @@ export default function EditServiceInvoice({ params }: EditServiceInvoiceProps) 
                       clientName: selected ? getClientLabel(selected) : formData.clientName,
                     });
                   }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientsData.map((client: any) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {getClientLabel(client)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select client"
+                  label=""
+                />
                 <Input
                   id="clientId"
                   value={formData.clientId}

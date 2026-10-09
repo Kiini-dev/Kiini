@@ -220,7 +220,7 @@ export default function AllowancesDeductions() {
           />
           <StatsCard
             title="Total Amount (Monthly)"
-            value={formatCurrency(totalAmount)}
+            value={formatCurrency(totalAmount / 100)}
             icon={<Filter className="h-5 w-5" />}
           />
         </div>
@@ -361,7 +361,7 @@ export default function AllowancesDeductions() {
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.allowanceType || item.deductionType || item.type || "-"}</TableCell>
                         <TableCell className="text-right font-mono">
-                          {formatCurrency(Number(item.amount || 0) / 100)}
+                          {formatCurrency(Number(item.amount || 0))}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{item.frequency}</Badge>

@@ -16,7 +16,10 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2, Percent } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { EmployeeSelector } from "@/components/EmployeeSelector";
 import mutateAsync from "@/lib/mutationHelpers";
+import { PayrollComponentAllocationFields } from "@/components/PayrollComponentAllocationFields";
+import { toMinorCurrencyAmount } from "../../../shared/currency";
 
 const ALLOWANCE_TYPES = [
   "House Allowance",
@@ -38,10 +41,11 @@ export default function CreateAllowance() {
     allowanceType: "",
     amount: "",
     frequency: "monthly" as "monthly" | "quarterly" | "annual" | "one_time",
+    departmentIdOverride: "",
+    glAccountId: "",
     notes: "",
   });
 
-  const { data: employees = [] } = trpc.employees.list.useQuery({});
 
   const createMutation = trpc.payroll.allowances.create.useMutation({
     onSuccess: () => {
@@ -67,8 +71,10 @@ export default function CreateAllowance() {
       await mutateAsync(createMutation, {
         employeeId: formData.employeeId,
         allowanceType: formData.allowanceType,
-        amount: parseInt(formData.amount), // convert to cents
+        amount: toMinorCurrencyAmount(formData.amount),
         frequency: formData.frequency,
+        departmentIdOverride: formData.departmentIdOverride || undefined,
+        glAccountId: formData.glAccountId || undefined,
         notes: formData.notes || undefined,
       });
     } finally {
@@ -105,18 +111,13 @@ export default function CreateAllowance() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="employeeId">Employee *</Label>
-                <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {(employee.firstName || "")} {(employee.lastName || "")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EmployeeSelector
+                  id="employeeId"
+                  label=""
+                  value={formData.employeeId}
+                  onChange={(employeeId) => setFormData({ ...formData, employeeId })}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -164,6 +165,14 @@ export default function CreateAllowance() {
                   </Select>
                 </div>
               </div>
+
+              <PayrollComponentAllocationFields
+                departmentIdOverride={formData.departmentIdOverride}
+                glAccountId={formData.glAccountId}
+                accountKind="expense"
+                onDepartmentChange={(departmentIdOverride) => setFormData({ ...formData, departmentIdOverride })}
+                onAccountChange={(glAccountId) => setFormData({ ...formData, glAccountId })}
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>

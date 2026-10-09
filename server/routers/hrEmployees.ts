@@ -20,7 +20,7 @@ const createEmployeeSchema = z.object({
   hireDate: z.string().datetime(),
   departmentId: z.string(),
   jobGroupId: z.string(),
-  salary: z.number().int(),
+  salary: z.number().finite().nonnegative(),
   employmentType: z.enum(['full_time', 'part_time', 'contract', 'intern', 'contractual', 'hourly', 'wage', 'temporary', 'seasonal']),
   address: z.string().optional(),
   bankName: z.string().optional(),
@@ -39,7 +39,7 @@ const updateEmployeeSchema = createEmployeeSchema.partial().extend({
 const promoteEmployeeSchema = z.object({
   employeeId: z.string(),
   newJobGroupId: z.string(),
-  newSalary: z.number().int(),
+  newSalary: z.number().finite().nonnegative(),
   promotionDate: z.string().datetime(),
   promotionReason: z.string(),
   approvedBy: z.string().optional(),

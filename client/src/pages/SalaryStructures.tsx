@@ -258,7 +258,7 @@ export default function SalaryStructures() {
                           {structure.effectiveDate ? new Date(structure.effectiveDate).toLocaleDateString() : "-"}
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {formatCurrency(structure.basicSalary)}
+                          {formatCurrency(Number(structure.basicSalary || 0) / 100)}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline">{(Number(structure.taxRate || 0) / 100).toFixed(2)}%</Badge>

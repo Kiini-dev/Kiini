@@ -34,7 +34,6 @@ export default function EditTicket() {
   });
 
   const { data: ticket, isLoading: isLoadingTicket } = trpc.tickets.getById.useQuery(id || "", { enabled: !!id });
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
   const utils = trpc.useUtils();
 
   useEffect(() => {
@@ -169,4 +168,3 @@ export default function EditTicket() {
     </ModuleLayout>
   );
 }
-

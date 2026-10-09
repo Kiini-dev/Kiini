@@ -30,6 +30,7 @@ import {
   Star,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import mutateAsync from "@/lib/mutationHelpers";
 import UserSelector from "@/components/UserSelector";
 import { KiiniTagSelector } from "@/components/KiiniTagSelector";
@@ -77,8 +78,6 @@ export default function EditProject() {
   const { data: project, isLoading: isLoadingProject } = trpc.projects.getById.useQuery(projectId, {
     enabled: !!projectId,
   });
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
-  const clientsArr = Array.isArray(clients) ? clients : (clients as any)?.items ?? [];
 
   const updateProjectMutation = trpc.projects.update.useMutation({
     onSuccess: () => {
@@ -234,17 +233,7 @@ export default function EditProject() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Client <span className="text-destructive">*</span></Label>
-                  <Select value={formData.clientId} onValueChange={(value) => setFormData({ ...formData, clientId: value })}>
-                    <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
-                    <SelectContent className="max-h-60 overflow-y-auto">
-                      {clientsArr.map((client: any) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.companyName || client.contactPerson}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ClientSelector value={formData.clientId} onChange={(clientId) => setFormData({ ...formData, clientId })} required />
                 </div>
                 <div className="space-y-2">
                   <Label>Project Name <span className="text-destructive">*</span></Label>
@@ -501,4 +490,3 @@ export default function EditProject() {
     </ModuleLayout>
   );
 }
-

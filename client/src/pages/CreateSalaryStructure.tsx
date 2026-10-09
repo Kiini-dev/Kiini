@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2, DollarSign } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { EmployeeSelector } from "@/components/EmployeeSelector";
 import mutateAsync from "@/lib/mutationHelpers";
 
 export default function CreateSalaryStructure() {
@@ -32,6 +33,39 @@ export default function CreateSalaryStructure() {
   });
 
   const { data: employees = [] } = trpc.employees.list.useQuery({});
+  const selectedEmployee = employees.find((employee) => employee.id === formData.employeeId);
+  const compensationPackageQuery = trpc.payroll.employeePackage.useQuery(
+    { employeeId: formData.employeeId },
+    { enabled: Boolean(formData.employeeId) }
+  );
+
+  useEffect(() => {
+    const employeePackage = compensationPackageQuery.data?.package;
+    if (!selectedEmployee || !employeePackage || compensationPackageQuery.isFetching) return;
+    const structure = employeePackage.structure;
+    const minorToInput = (amount: number | null | undefined) =>
+      amount == null ? "0.00" : (Number(amount) / 100).toFixed(2);
+    const structuredAllowanceTotal = Number(employeePackage.totals.allowances || 0);
+    const structuredDeductionTotal = Number(employeePackage.totals.deductions || 0);
+    setFormData((current) => ({
+      ...current,
+      basicSalary: employeePackage.basicSalary > 0
+        ? minorToInput(employeePackage.basicSalary)
+        : selectedEmployee.salary == null
+          ? ""
+          : Number(selectedEmployee.salary).toFixed(2),
+      allowances: minorToInput(structuredAllowanceTotal),
+      deductions: minorToInput(structuredDeductionTotal),
+      taxRate: (Number(employeePackage.taxRate || 0) / 100).toString(),
+      notes: structure?.notes || "",
+    }));
+  }, [selectedEmployee, compensationPackageQuery.data, compensationPackageQuery.isFetching]);
+
+  useEffect(() => {
+    if (compensationPackageQuery.error) {
+      toast.error(`Could not load the employee's compensation details: ${compensationPackageQuery.error.message}`);
+    }
+  }, [compensationPackageQuery.error]);
 
   const createMutation = trpc.payroll.salaryStructures.create.useMutation({
     onSuccess: () => {
@@ -92,18 +126,13 @@ export default function CreateSalaryStructure() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="employeeId">Employee *</Label>
-                <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {(employee.firstName || "")} {(employee.lastName || "")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EmployeeSelector
+                  id="employeeId"
+                  label=""
+                  value={formData.employeeId}
+                  onChange={(employeeId) => setFormData({ ...formData, employeeId })}
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -190,22 +219,22 @@ export default function CreateSalaryStructure() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>Basic Salary:</div>
                   <div className="font-semibold">
-                    KES {parseInt(formData.basicSalary || 0).toLocaleString()}
+                    KES {Number(formData.basicSalary || 0).toLocaleString()}
                   </div>
                   <div>+ Allowances:</div>
                   <div className="font-semibold">
-                    KES {parseInt(formData.allowances || 0).toLocaleString()}
+                    KES {Number(formData.allowances || 0).toLocaleString()}
                   </div>
                   <div>- Deductions:</div>
                   <div className="font-semibold">
-                    KES {parseInt(formData.deductions || 0).toLocaleString()}
+                    KES {Number(formData.deductions || 0).toLocaleString()}
                   </div>
-                  <div>- Tax ({parseInt(formData.taxRate || 0)}%):</div>
+                  <div>- Tax ({Number(formData.taxRate || 0)}%):</div>
                   <div className="font-semibold">
                     KES{" "}
                     {(
-                      ((parseInt(formData.basicSalary || 0) + parseInt(formData.allowances || 0)) *
-                        parseInt(formData.taxRate || 0)) /
+                      ((Number(formData.basicSalary || 0) + Number(formData.allowances || 0)) *
+                        Number(formData.taxRate || 0)) /
                       100
                     ).toLocaleString()}
                   </div>
@@ -213,11 +242,11 @@ export default function CreateSalaryStructure() {
                   <div className="border-t pt-2 font-bold">
                     KES{" "}
                     {(
-                      parseInt(formData.basicSalary || 0) +
-                      parseInt(formData.allowances || 0) -
-                      parseInt(formData.deductions || 0) -
-                      ((parseInt(formData.basicSalary || 0) + parseInt(formData.allowances || 0)) *
-                        parseInt(formData.taxRate || 0)) /
+                      Number(formData.basicSalary || 0) +
+                      Number(formData.allowances || 0) -
+                      Number(formData.deductions || 0) -
+                      ((Number(formData.basicSalary || 0) + Number(formData.allowances || 0)) *
+                        Number(formData.taxRate || 0)) /
                         100
                     ).toLocaleString()}
                   </div>

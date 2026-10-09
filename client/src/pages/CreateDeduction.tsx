@@ -16,7 +16,10 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Save, Loader2, Minus } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { EmployeeSelector } from "@/components/EmployeeSelector";
 import mutateAsync from "@/lib/mutationHelpers";
+import { PayrollComponentAllocationFields } from "@/components/PayrollComponentAllocationFields";
+import { toMinorCurrencyAmount } from "../../../shared/currency";
 
 const DEDUCTION_TYPES = [
   "Loan Repayment",
@@ -40,11 +43,12 @@ export default function CreateDeduction() {
     deductionType: "",
     amount: "",
     frequency: "monthly" as "monthly" | "quarterly" | "annual" | "one_time",
+    departmentIdOverride: "",
+    glAccountId: "",
     reference: "",
     notes: "",
   });
 
-  const { data: employees = [] } = trpc.employees.list.useQuery({});
 
   const createMutation = trpc.payroll.deductions.create.useMutation({
     onSuccess: () => {
@@ -70,8 +74,10 @@ export default function CreateDeduction() {
       await mutateAsync(createMutation, {
         employeeId: formData.employeeId,
         deductionType: formData.deductionType,
-        amount: parseInt(formData.amount) * 100, // convert to cents
+        amount: toMinorCurrencyAmount(formData.amount),
         frequency: formData.frequency,
+        departmentIdOverride: formData.departmentIdOverride || undefined,
+        glAccountId: formData.glAccountId || undefined,
         reference: formData.reference || undefined,
         notes: formData.notes || undefined,
       });
@@ -104,18 +110,13 @@ export default function CreateDeduction() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="employeeId">Employee *</Label>
-                <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {(employee.firstName || "")} {(employee.lastName || "")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EmployeeSelector
+                  id="employeeId"
+                  label=""
+                  value={formData.employeeId}
+                  onChange={(employeeId) => setFormData({ ...formData, employeeId })}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -163,6 +164,14 @@ export default function CreateDeduction() {
                   </Select>
                 </div>
               </div>
+
+              <PayrollComponentAllocationFields
+                departmentIdOverride={formData.departmentIdOverride}
+                glAccountId={formData.glAccountId}
+                accountKind="liability"
+                onDepartmentChange={(departmentIdOverride) => setFormData({ ...formData, departmentIdOverride })}
+                onAccountChange={(glAccountId) => setFormData({ ...formData, glAccountId })}
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="reference">Reference (e.g., Loan ID, Policy Number)</Label>

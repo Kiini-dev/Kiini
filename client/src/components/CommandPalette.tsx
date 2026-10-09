@@ -170,18 +170,6 @@ export function CommandPalette() {
         setOpen(false);
       },
     },
-    {
-      id: "nav-attendance",
-      label: "Attendance",
-      description: "Track attendance records",
-      icon: <CheckCircle2 className="w-4 h-4" />,
-      category: "HR",
-      action: () => {
-        navigate("/attendance");
-        setOpen(false);
-      },
-    },
-
     // Procurement
     {
       id: "nav-suppliers",

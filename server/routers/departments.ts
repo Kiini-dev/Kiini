@@ -21,12 +21,10 @@ export const departmentsRouter = router({
       const orgId = ctx.user.organizationId;
       const query = orgId
         ? database.select().from(departments).where(or(eq(departments.organizationId, orgId), isNull(departments.organizationId)))
-        : database.select().from(departments);
+        : database.select().from(departments).where(isNull(departments.organizationId));
       const rows = await (query as any).limit(input?.limit || 100).offset(input?.offset || 0);
-      const employeeWhere = orgId ? eq(employees.organizationId, orgId) : undefined;
-      const employeeRows = employeeWhere
-        ? await database.select().from(employees).where(employeeWhere)
-        : await database.select().from(employees);
+      const employeeWhere = orgId ? eq(employees.organizationId, orgId) : isNull(employees.organizationId);
+      const employeeRows = await database.select().from(employees).where(employeeWhere);
       const employeeById = new Map(employeeRows.map((employee) => [employee.id, employee]));
       return rows.map((r: any) => {
         const headEmployee = r.headId ? employeeById.get(r.headId) as any : null;

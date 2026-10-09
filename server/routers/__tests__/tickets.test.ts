@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { canRoleCreateTicket, resolveAllowClientTickets, ticketsRouter } from '../tickets';
+import { canRoleCreateTicket, getClientOrganizationId, resolveAllowClientTickets, ticketsRouter } from '../tickets';
 import { tickets, ticketComments, ticketTasks } from '../../../drizzle/schema-extended';
 
 // stub DB similar to other integration tests
@@ -71,6 +71,27 @@ describe('Tickets Router basic checks', () => {
     expect(canRoleCreateTicket('client', 'false')).toBe(false);
     expect(canRoleCreateTicket('client', undefined)).toBe(true);
     expect(canRoleCreateTicket('user', 'false')).toBe(true);
+  });
+
+  it('resolves a global client login to the organization of its linked client record', async () => {
+    const clientDb: any = {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => [{ organizationId: 'org1' }],
+          }),
+        }),
+      }),
+    };
+
+    await expect(getClientOrganizationId(clientDb, { clientId: 'client1', organizationId: null })).resolves.toBe('org1');
+    await expect(getClientOrganizationId(clientDb, { clientId: 'client1', organizationId: 'org2' }))
+      .rejects.toThrow('Client account is not linked to an organization');
+  });
+
+  it('rejects client accounts without a linked client record', async () => {
+    await expect(getClientOrganizationId(fakeDb, { organizationId: null }))
+      .rejects.toThrow('Client account is not linked to a client record');
   });
 
   it('create should avoid legacy client ticket columns when using the canonical support schema', async () => {

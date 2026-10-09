@@ -11,7 +11,7 @@ import { CurrencyProvider } from "./pages/website/CurrencyContext";
 import { PermissionProvider } from "./_core/context/PermissionContext";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useAuthWithPersistence } from "@/_core/hooks/useAuthWithPersistence";
-import { isKnownGlobalAppRoute, PUBLIC_ROUTES } from "@/lib/permissions";
+import { canAccessRoute, isKnownGlobalAppRoute, PUBLIC_ROUTES } from "@/lib/permissions";
 import { canAccessOrgFeatureComplete, getOrgFeatureKeyForRoute } from "@/lib/orgPermissions";
 import BusinessDashboardPage from "./pages/Dashboard";
 import { initializeAppLanguage } from "@/lib/language";
@@ -91,7 +91,6 @@ const CreateExpense = React.lazy(() => import("./pages/CreateExpense"));
 const CreateOpportunity = React.lazy(() => import("./pages/CreateOpportunity"));
 const CreateEmployee = React.lazy(() => import("./pages/CreateEmployee"));
 const CreateDepartment = React.lazy(() => import("./pages/CreateDepartment"));
-const CreateAttendance = React.lazy(() => import("./pages/CreateAttendance"));
 const CreatePayroll = React.lazy(() => import("./pages/CreatePayroll"));
 const CreateLeaveRequest = React.lazy(() => import("./pages/CreateLeaveRequest"));
 const CreateProject = React.lazy(() => import("./pages/CreateProject"));
@@ -107,18 +106,16 @@ const Services = React.lazy(() => import("./pages/Services"));
 const HR = React.lazy(() => import("./pages/HR"));
 const Employees = React.lazy(() => import("./pages/Employees"));
 const EmployeeDetails = React.lazy(() => import("./pages/EmployeeDetails"));
-const Attendance = React.lazy(() => import("./pages/Attendance"));
 const Payroll = React.lazy(() => import("./pages/Payroll"));
 const PayrollCostAllocations = React.lazy(() => import("./pages/PayrollCostAllocations"));
+const PayrollGLMapping = React.lazy(() => import("./pages/PayrollGLMapping"));
 const LeaveManagement = React.lazy(() => import("./pages/LeaveManagement"));
 const JobGroups = React.lazy(() => import("./pages/JobGroups"));
 const JobGroupDetails = React.lazy(() => import("./pages/JobGroupDetails"));
 const Onboarding = React.lazy(() => import("./pages/Onboarding"));
-const Holidays = React.lazy(() => import("./pages/Holidays"));
 const Payslips = React.lazy(() => import("./pages/Payslips"));
 const MyPayslips = React.lazy(() => import("./pages/MyPayslips"));
 const PayslipDetails = React.lazy(() => import("./pages/PayslipDetails"));
-const Training = React.lazy(() => import("./pages/Training"));
 const Reports = React.lazy(() => import("./pages/Reports"));
 const Settings = React.lazy(() => import("@/pages/Settings"));
 const TestPDFGeneration = React.lazy(() => import("@/pages/TestPDFGeneration"));
@@ -141,7 +138,6 @@ const Signup = React.lazy(() => import("./pages/Signup"));
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const ClientPortal = React.lazy(() => import("./pages/ClientPortal"));
-const AttendanceDetails = React.lazy(() => import("@/pages/AttendanceDetails"));
 const PayrollDetails = React.lazy(() => import("@/pages/PayrollDetails"));
 const LeaveManagementDetails = React.lazy(() => import("@/pages/LeaveManagementDetails"));
 const ReportsDetails = React.lazy(() => import("@/pages/ReportsDetails"));
@@ -175,7 +171,6 @@ const TenantAdminDetails = React.lazy(() => import("./pages/admin/TenantAdminDet
 const TenantUserDetails = React.lazy(() => import("./pages/admin/TenantUserDetails"));
 const CreateClient = React.lazy(() => import("./pages/CreateClient"));
 const EditDepartment = React.lazy(() => import("./pages/EditDepartment"));
-const EditAttendance = React.lazy(() => import("./pages/EditAttendance"));
 const EditPayroll = React.lazy(() => import("./pages/EditPayroll"));
 const EditLeave = React.lazy(() => import("./pages/EditLeave"));
 const RoleBasedDashboard = React.lazy(() => import("./components/RoleBasedDashboard"));
@@ -336,8 +331,9 @@ const OrderDetails = React.lazy(() => import("./pages/OrderDetails"));
 const ImprestDetails = React.lazy(() => import("./pages/ImprestDetails"));
 const Proposals = React.lazy(() => import("./pages/Proposals"));
 const EditProposal = React.lazy(() => import("./pages/EditProposal"));
-const ProposalDetails = React.lazy(() => import("./pages/UnifiedOpportunityDetails"));
+const ProposalDetails = React.lazy(() => import("./pages/ProposalDetails"));
 const ServiceInvoices = React.lazy(() => import("./pages/ServiceInvoices"));
+const ServiceInvoiceDetails = React.lazy(() => import("./pages/ServiceInvoiceDetails"));
 const CreateServiceInvoice = React.lazy(() => import("./pages/CreateServiceInvoice"));
 const EditServiceInvoice = React.lazy(() => import("./pages/EditServiceInvoice"));
 const CreditNotes = React.lazy(() => import("./pages/CreditNotes"));
@@ -434,10 +430,7 @@ const OrgApprovals = React.lazy(() => import("./pages/org/OrgApprovals"));
 const OrgAccounting = React.lazy(() => import("./pages/org/OrgAccounting"));
 const OrgBudgets = React.lazy(() => import("./pages/org/OrgBudgets"));
 const OrgLeave = React.lazy(() => import("./pages/org/OrgLeave"));
-const OrgAttendance = React.lazy(() => import("./pages/org/OrgAttendance"));
 const OrgProcurement = React.lazy(() => import("./pages/org/OrgProcurement"));
-const OrgContracts = React.lazy(() => import("./pages/org/OrgContracts"));
-const OrgCreateContract = React.lazy(() => import("./pages/org/OrgCreateContract"));
 const OrgContractTemplates = React.lazy(() => import("./pages/org/OrgContractTemplates"));
 const OrgWorkOrders = React.lazy(() => import("./pages/org/OrgWorkOrders"));
 const OrgWorkOrderDetail = React.lazy(() => import("./pages/org/OrgWorkOrderDetail"));
@@ -445,7 +438,6 @@ const OrgEditWorkOrder = React.lazy(() => import("./pages/org/OrgEditWorkOrder")
 const OrgCreateWorkOrder = React.lazy(() => import("./pages/org/OrgCreateWorkOrder"));
 const OrgCreateProcurement = React.lazy(() => import("./pages/org/OrgCreateProcurement"));
 const OrgCreateLeave = React.lazy(() => import("./pages/org/OrgCreateLeave"));
-const OrgContractDetail = React.lazy(() => import("./pages/org/OrgContractDetail"));
 const OrgEditContract = React.lazy(() => import("./pages/org/OrgEditContract"));
 const OrgLeaveDetail = React.lazy(() => import("./pages/org/OrgLeaveDetail"));
 const OrgEditLeave = React.lazy(() => import("./pages/org/OrgEditLeave"));
@@ -464,9 +456,6 @@ const OrgBudgetDetail = React.lazy(() => import("./pages/org/OrgBudgetDetail"));
 const OrgEditBudget = React.lazy(() => import("./pages/org/OrgEditBudget"));
 const OrgProcurementDetail = React.lazy(() => import("./pages/org/OrgProcurementDetail"));
 const OrgEditProcurement = React.lazy(() => import("./pages/org/OrgEditProcurement"));
-const OrgCreateAttendance = React.lazy(() => import("./pages/org/OrgCreateAttendance"));
-const OrgAttendanceDetail = React.lazy(() => import("./pages/org/OrgAttendanceDetail"));
-const OrgEditAttendance = React.lazy(() => import("./pages/org/OrgEditAttendance"));
 const OrgApprovalDetail = React.lazy(() => import("./pages/org/OrgApprovalDetail"));
 const OrgEditApproval = React.lazy(() => import("./pages/org/OrgEditApproval"));
 const OrgReceipts = React.lazy(() => import("./pages/org/OrgReceipts"));
@@ -518,15 +507,12 @@ const OrgServiceInvoices = React.lazy(() => import("./pages/org/OrgServiceInvoic
 const OrgCreateServiceInvoice = React.lazy(() => import("./pages/org/OrgCreateServiceInvoice"));
 const OrgEditServiceInvoice = React.lazy(() => import("./pages/org/OrgEditServiceInvoice"));
 const OrgServiceInvoiceDetails = React.lazy(() => import("./pages/org/OrgServiceInvoiceDetails"));
-const OrgProposals = React.lazy(() => import("./pages/org/OrgProposals"));
-const OrgProposalDetail = React.lazy(() => import("./pages/UnifiedOpportunityDetails"));
-const OrgCreateProposal = React.lazy(() => import("./pages/org/OrgCreateProposal"));
-const OrgEditProposal = React.lazy(() => import("./pages/org/OrgEditProposal"));
 const OrgQuotations = React.lazy(() => import("./pages/org/OrgQuotations"));
 const OrgQuotationDetail = React.lazy(() => import("./pages/org/OrgQuotationDetail"));
 const OrgCreateQuotation = React.lazy(() => import("./pages/org/OrgCreateQuotation"));
 const OrgEditQuotation = React.lazy(() => import("./pages/org/OrgEditQuotation"));
 const OrgTasks = React.lazy(() => import("./pages/org/OrgTasks"));
+const OrgTaskDetails = React.lazy(() => import("./pages/org/OrgTaskDetails"));
 const OrgAssets = React.lazy(() => import("./pages/org/OrgAssets"));
 const OrgWarranty = React.lazy(() => import("./pages/org/OrgWarranty"));
 const OrgEmployees = React.lazy(() => import("./pages/org/OrgEmployees"));
@@ -544,7 +530,6 @@ const OrgCreateSalaryStructure = React.lazy(() => import("./pages/org/OrgCreateS
 const OrgEditSalaryStructure = React.lazy(() => import("./pages/org/OrgEditSalaryStructure"));
 const OrgSalaryStructureDetails = React.lazy(() => import("./pages/org/OrgSalaryStructureDetails"));
 const OrgJobGroups = React.lazy(() => import("./pages/org/OrgJobGroups"));
-const OrgPerformanceReviews = React.lazy(() => import("./pages/org/OrgPerformanceReviews"));
 const OrgCannedResponses = React.lazy(() => import("./pages/org/OrgCannedResponses"));
 const OrgKnowledgebase = React.lazy(() => import("./pages/org/OrgKnowledgeBase"));
 const OrgStaffChat = React.lazy(() => import("./pages/org/OrgStaffChat"));
@@ -649,6 +634,11 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (user?.role === "client" && (location.startsWith("/org/") || !canAccessRoute(user.role, location))) {
+      navigate("/crm/client-portal?tab=projects");
+      return;
+    }
+
     // Org isolation: tenant org users must stay within /org/* or public routes
     const isKnownGlobalRoute = isKnownGlobalAppRoute(location);
     if (user?.organizationId && !isGlobalAppUser && !location.startsWith("/org/") && !isPublic && !isKnownGlobalRoute) {
@@ -711,6 +701,7 @@ function RouteGuard({ children }: { children: React.ReactNode }) {
 
   // After timeout or loading done: check auth for protected routes
   if (!isAuthenticated && !loading) return null;
+  if (user?.role === "client" && (location.startsWith("/org/") || !canAccessRoute(user.role, location))) return null;
   if (user?.organizationId && !isGlobalAppUser && !location.startsWith("/org/")) return null;
 
   if (user?.organizationId && subscriptionAccess?.locked) {
@@ -864,13 +855,12 @@ function Router() {
       <Route path={"/org/:slug/leave/create"} component={OrgCreateLeave} />
       <Route path={"/org/:slug/leave/:id"} component={OrgLeaveDetail} />
       <Route path={"/org/:slug/leave/:id/edit"} component={OrgEditLeave} />
-      <Route path={"/org/:slug/attendance"} component={OrgAttendance} />
       <Route path={"/org/:slug/procurement"} component={OrgProcurement} />
       <Route path={"/org/:slug/procurement/create"} component={OrgCreateProcurement} />
-      <Route path={"/org/:slug/contracts"} component={OrgContracts} />
-      <Route path={"/org/:slug/contracts/create"} component={OrgCreateContract} />
+      <Route path={"/org/:slug/contracts"} component={ContractManagement} />
+      <Route path={"/org/:slug/contracts/create"} component={ContractManagement} />
       <Route path={"/org/:slug/contracts/templates"} component={OrgContractTemplates} />
-      <Route path={"/org/:slug/contracts/:id"} component={OrgContractDetail} />
+      <Route path={"/org/:slug/contracts/:id"} component={ContractDetails} />
       <Route path={"/org/:slug/contracts/:id/edit"} component={OrgEditContract} />
       <Route path={"/org/:slug/work-orders"} component={OrgWorkOrders} />
       <Route path={"/org/:slug/work-orders/create"} component={OrgCreateWorkOrder} />
@@ -888,9 +878,6 @@ function Router() {
       <Route path={"/org/:slug/budgets/:id/edit"} component={OrgEditBudget} />
       <Route path={"/org/:slug/procurement/:id"} component={OrgProcurementDetail} />
       <Route path={"/org/:slug/procurement/:id/edit"} component={OrgEditProcurement} />
-      <Route path={"/org/:slug/attendance/create"} component={OrgCreateAttendance} />
-      <Route path={"/org/:slug/attendance/:id"} component={OrgAttendanceDetail} />
-      <Route path={"/org/:slug/attendance/:id/edit"} component={OrgEditAttendance} />
       <Route path={"/org/:slug/approvals/:id"} component={OrgApprovalDetail} />
       <Route path={"/org/:slug/approvals/:id/edit"} component={OrgEditApproval} />
       <Route path={"/org/:slug/receipts/new"} component={OrgCreateReceipt} />
@@ -950,15 +937,16 @@ function Router() {
       <Route path={"/org/:slug/service-invoices/:id/edit"} component={OrgEditServiceInvoice} />
       <Route path={"/org/:slug/service-invoices/:id"} component={OrgServiceInvoiceDetails} />
       <Route path={"/org/:slug/service-invoices"} component={OrgServiceInvoices} />
-      <Route path={"/org/:slug/proposals/new"} component={OrgCreateProposal} />
-      <Route path={"/org/:slug/proposals/:id/edit"} component={OrgEditProposal} />
-      <Route path={"/org/:slug/proposals/:id"} component={OrgProposalDetail} />
-      <Route path={"/org/:slug/proposals"} component={OrgProposals} />
+      <Route path={"/org/:slug/proposals/new"} component={Proposals} />
+      <Route path={"/org/:slug/proposals/:id/edit"} component={EditProposal} />
+      <Route path={"/org/:slug/proposals/:id"} component={ProposalDetails} />
+      <Route path={"/org/:slug/proposals"} component={Proposals} />
       <Route path={"/org/:slug/quotations/new"} component={OrgCreateQuotation} />
       <Route path={"/org/:slug/quotations/:id/edit"} component={OrgEditQuotation} />
       <Route path={"/org/:slug/quotations/:id"} component={OrgQuotationDetail} />
       <Route path={"/org/:slug/quotations"} component={OrgQuotations} />
       <Route path={"/org/:slug/tasks"} component={OrgTasks} />
+      <Route path={"/org/:slug/tasks/:id"} component={OrgTaskDetails} />
       <Route path={"/org/:slug/assets"} component={OrgAssets} />
       <Route path={"/org/:slug/warranty"} component={OrgWarranty} />
       <Route path={"/org/:slug/employees/:id"} component={OrgEmployeeDetails} />
@@ -968,6 +956,7 @@ function Router() {
       <Route path={"/org/:slug/departments/:id"} component={OrgDepartmentDetails} />
       <Route path={"/org/:slug/departments"} component={OrgDepartments} />
       <Route path={"/org/:slug/payroll/new"} component={OrgCreatePayroll} />
+      <Route path={"/org/:slug/payroll/gl-mapping"} component={PayrollGLMapping} />
       <Route path={"/org/:slug/payroll/:id/edit"} component={OrgEditPayroll} />
       <Route path={"/org/:slug/payroll/:id"} component={OrgPayrollDetails} />
       <Route path={"/org/:slug/payroll"} component={OrgPayroll} />
@@ -976,7 +965,10 @@ function Router() {
       <Route path={"/org/:slug/salary-structures/:id"} component={OrgSalaryStructureDetails} />
       <Route path={"/org/:slug/salary-structures"} component={OrgSalaryStructures} />
       <Route path={"/org/:slug/job-groups"} component={OrgJobGroups} />
-      <Route path={"/org/:slug/performance-reviews"} component={OrgPerformanceReviews} />
+      <Route path={"/org/:slug/attendance"}>{() => <RouteRedirect to="/not-found" />}</Route>
+      <Route path={"/org/:slug/attendance/:id"}>{() => <RouteRedirect to="/not-found" />}</Route>
+      <Route path={"/org/:slug/attendance/:id/edit"}>{() => <RouteRedirect to="/not-found" />}</Route>
+      <Route path={"/org/:slug/performance-reviews"}>{() => <RouteRedirect to="/not-found" />}</Route>
       <Route path={"/org/:slug/canned-responses"} component={OrgCannedResponses} />
       <Route path={"/org/:slug/knowledge-base"} component={OrgKnowledgebase} />
       <Route path={"/org/:slug/staff-chat"} component={OrgStaffChat} />
@@ -1199,11 +1191,9 @@ function Router() {
       <Route path={"/job-groups"} component={JobGroups} />
       <Route path={"/job-groups/:id"} component={JobGroupDetails} />
       <Route path={"/onboarding"} component={Onboarding} />
-      <Route path={"/holidays"} component={Holidays} />
       <Route path={"/payslips"} component={Payslips} />
       <Route path={"/my-payslips"} component={MyPayslips} />
       <Route path={"/payslips/:id"} component={PayslipDetails} />
-      <Route path={"/training"} component={Training} />
       
       {/* Employee Routes - STATIC routes BEFORE dynamic routes */}
       <Route path={"/employees"} component={Employees} />
@@ -1211,15 +1201,9 @@ function Router() {
       <Route path={"/employees/:id/edit"} component={EditEmployee} />
       <Route path={"/employees/:id"} component={EmployeeDetails} />
       
-      {/* Attendance Routes - STATIC routes BEFORE dynamic routes */}
-      <Route path={"/attendance"} component={Attendance} />
-      <Route path={"/attendance/new"} component={CreateAttendance} />
-      <Route path={"/attendance/create"} component={CreateAttendance} />
-      <Route path={"/attendance/:id/edit"} component={EditAttendance} />
-      <Route path={"/attendance/:id"} component={AttendanceDetails} />
-      
       {/* Payroll Routes - STATIC routes BEFORE dynamic routes */}
       <Route path={"/payroll"} component={HRPayrollManagement} />
+      <Route path={"/payroll/gl-mapping"} component={PayrollGLMapping} />
       <Route path={"/payroll/approvals"} component={PayrollApprovals} />
       <Route path={"/payroll/cost-allocations"} component={PayrollCostAllocations} />
       <Route path={"/payroll/payslips"} component={PayslipManagementPage} />
@@ -1259,26 +1243,26 @@ function Router() {
       <Route path={"/payroll/salary-structures/:id/edit"} component={EditSalaryStructure} />
       
       {/* Allowances - Full CRUD Routes */}
-      <Route path={"/allowances/:id"} component={CompensationItemDetails} />
-      <Route path={"/payroll/allowances/:id"} component={CompensationItemDetails} />
       <Route path={"/allowances/create"} component={CreateAllowance} />
       <Route path={"/payroll/allowances/create"} component={CreateAllowance} />
+      <Route path={"/allowances/:id"} component={CompensationItemDetails} />
+      <Route path={"/payroll/allowances/:id"} component={CompensationItemDetails} />
       <Route path={"/allowances/:id/edit"} component={EditAllowance} />
       <Route path={"/payroll/allowances/:id/edit"} component={EditAllowance} />
       
       {/* Deductions - Full CRUD Routes */}
-      <Route path={"/deductions/:id"} component={CompensationItemDetails} />
-      <Route path={"/payroll/deductions/:id"} component={CompensationItemDetails} />
       <Route path={"/deductions/create"} component={CreateDeduction} />
       <Route path={"/payroll/deductions/create"} component={CreateDeduction} />
+      <Route path={"/deductions/:id"} component={CompensationItemDetails} />
+      <Route path={"/payroll/deductions/:id"} component={CompensationItemDetails} />
       <Route path={"/deductions/:id/edit"} component={EditDeduction} />
       <Route path={"/payroll/deductions/:id/edit"} component={EditDeduction} />
       
       {/* Benefits - Full CRUD Routes */}
-      <Route path={"/benefits/:id"} component={CompensationItemDetails} />
-      <Route path={"/payroll/benefits/:id"} component={CompensationItemDetails} />
       <Route path={"/benefits/create"} component={CreateBenefit} />
       <Route path={"/payroll/benefits/create"} component={CreateBenefit} />
+      <Route path={"/benefits/:id"} component={CompensationItemDetails} />
+      <Route path={"/payroll/benefits/:id"} component={CompensationItemDetails} />
       <Route path={"/benefits/:id/edit"} component={EditBenefit} />
       <Route path={"/payroll/benefits/:id/edit"} component={EditBenefit} />
       
@@ -1463,6 +1447,7 @@ function Router() {
       <Route path={"/service-invoices"} component={ServiceInvoices} />
       <Route path={"/service-invoices/create"} component={CreateServiceInvoice} />
       <Route path={"/service-invoices/:id/edit"} component={EditServiceInvoice} />
+      <Route path={"/service-invoices/:id"} component={ServiceInvoiceDetails} />
       <Route path={"/credit-notes/create"} component={CreateCreditNote} />
       <Route path={"/credit-notes/:id/edit"} component={EditCreditNote} />
       <Route path={"/credit-notes/:id"} component={CreditNoteDetails} />
@@ -1481,7 +1466,12 @@ function Router() {
       <Route path={"/forecasting"} component={Forecasting} />
 
       {/* HR Routes */}
-      <Route path={"/performance-reviews"} component={PerformanceReviews} />
+      <Route path={"/attendance"}>{() => <RouteRedirect to="/not-found" />}</Route>
+      <Route path={"/attendance/:id"}>{() => <RouteRedirect to="/not-found" />}</Route>
+      <Route path={"/attendance/:id/edit"}>{() => <RouteRedirect to="/not-found" />}</Route>
+      <Route path={"/holidays"}>{() => <RouteRedirect to="/not-found" />}</Route>
+      <Route path={"/training"}>{() => <RouteRedirect to="/not-found" />}</Route>
+      <Route path={"/performance-reviews"}>{() => <RouteRedirect to="/not-found" />}</Route>
       <Route path={"/employee-contracts"} component={EmployeeContracts} />
       <Route path={"/leave-balances"} component={LeaveBalances} />
       <Route path={"/disciplinary"} component={DisciplinaryRecords} />

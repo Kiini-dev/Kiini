@@ -36,6 +36,7 @@ describe('Imprest Router Validation', () => {
 
 // business logic tests
 import { imprestRouter } from '../imprest';
+import { imprestSurrenderRouter } from '../imprestSurrender';
 import { vi } from 'vitest';
 
 const fakeDb: any = {
@@ -57,10 +58,26 @@ vi.mock('../../db', () => ({
 
 describe('Imprest Router operations', () => {
   it('creates journal entry on approval', async () => {
-    const caller = imprestRouter.createCaller({ user: { id: 'u' } } as any);
+    const caller = imprestRouter.createCaller({ user: { id: 'u', role: 'super_admin', organizationId: 'org1' } } as any);
     await caller.update({ id: 'i1', status: 'approved' });
     // expect at least one insert for entry and two lines
     expect(inserts.length).toBeGreaterThanOrEqual(3);
     expect(inserts[0]).toHaveProperty('entryNumber');
+  });
+
+  it('creates surrender records using the canonical string-mode timestamps', async () => {
+    const caller = imprestSurrenderRouter.createCaller({ user: { id: 'u', role: 'super_admin', organizationId: 'org1' } } as any);
+    await caller.create({ imprestId: 'i1', amount: 5000 });
+
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0]).toMatchObject({
+      imprestId: 'i1',
+      totalExpensed: 5000,
+      returnedAmount: 5000,
+      settledBy: 'u',
+      status: 'settled',
+    });
+    expect(inserts[0].settledAt).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect(inserts[0].createdAt).toBe(inserts[0].settledAt);
   });
 });

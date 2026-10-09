@@ -6,7 +6,7 @@
 import { CronJob } from "cron";
 import { getDb, getPool, createNotification } from "../db";
 import { payroll, employees, users, departments, jobGroups } from "../../drizzle/schema";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql, inArray, desc, lte, isNull } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { calculateKenyanPayroll } from "../utils/kenyan-payroll-calculator";
 import { generatePayslipHTML } from "../utils/payslip-template";
@@ -15,7 +15,12 @@ import { checkBudget, deductFromBudget, findActiveBudget } from "../utils/budget
 import { sendEmailImmediately } from "../services/emailService";
 import { recordPayrollCostAllocation } from "../services/payrollCostAllocationService";
 import { formatMinorCurrencyAmount } from "../../shared/currency";
-import { parseJobGroupPayrollDefaults, resolveJobGroupPayrollAmount } from "../services/jobGroupPayrollDefaults";
+import {
+  parseJobGroupPayrollDefaults,
+  resolveJobGroupPayrollAmount,
+  resolveJobGroupPayrollBasisSalary,
+} from "../services/jobGroupPayrollDefaults";
+import { salaryStructures } from "../../drizzle/schema-extended";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -33,24 +38,57 @@ function monthlyAmount(amount: unknown, frequency: unknown): number {
 }
 
 async function applySavedPayslipTemplate(pool: any, html: string, values: Record<string, string>, organizationId?: string | null): Promise<string> {
-  try {
-    const [rows] = await pool.query(
-      "SELECT content FROM documentTemplates WHERE type = 'payslip' AND isDefault = 1 AND (organizationId = ? OR organizationId IS NULL) ORDER BY organizationId IS NULL ASC LIMIT 1",
-      [organizationId || null]
+  let rows: any[];
+  if (organizationId) {
+    [rows] = await pool.query(
+      "SELECT content FROM documentTemplates WHERE type = 'payslip' AND isDefault = 1 AND organizationId = ? LIMIT 1",
+      [organizationId]
     );
-    const template = (rows as any[])?.[0]?.content;
-    if (!template) return html;
-    return template.replace(/\{\{\s*([^{}]+)\s*\}\}/g, (_match: string, token: string) => values[token.trim().toLowerCase()] ?? "");
-  } catch {
-    return html;
+    if (rows?.[0]?.content) return renderPayslipTemplateContent(rows[0].content, values);
   }
+
+  [rows] = await pool.query(
+    "SELECT content FROM documentTemplates WHERE type = 'payslip' AND isDefault = 1 AND organizationId IS NULL LIMIT 1"
+  );
+  const template = rows?.[0]?.content;
+  return template ? renderPayslipTemplateContent(template, values) : html;
+}
+
+function normalizePayslipToken(token: string): string {
+  return token
+    .trim()
+    .replace(/^[{\[$\s]+|[}\]$\s]+$/g, "")
+    .replace(/([a-z\d])([A-Z])/g, "$1_$2")
+    .replace(/[\s\-.]+/g, "_")
+    .replace(/_+/g, "_")
+    .toLowerCase();
+}
+
+function renderPayslipTemplateContent(template: string, values: Record<string, string>): string {
+  return template.replace(
+    /\{\{\s*([^{}]+?)\s*\}\}|\$\{\s*([^{}]+?)\s*\}|\[\s*([^\]]+?)\s*\]/g,
+    (_match, moustache: string, dollar: string, bracket: string) =>
+      values[normalizePayslipToken(moustache || dollar || bracket)] ?? ""
+  );
 }
 
 /** Last day of a given year/month */
 function lastDay(year: number, month: number) {
-  return new Date(year, month, 0); // day 0 = last day of previous month
+  return new Date(Date.UTC(year, month, 0)); // day 0 = last day of previous month
 }
 
+function periodStart(year: number, month: number) {
+  return `${year}-${String(month).padStart(2, "0")}-01 00:00:00`;
+}
+
+function periodEnd(year: number, month: number) {
+  const day = lastDay(year, month).getUTCDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")} 23:59:59`;
+}
+
+function periodEndDate(year: number, month: number) {
+  return new Date(Date.UTC(year, month, 0, 23, 59, 59));
+}
 /** Notify all users with a specific role in an org */
 export async function notifyByRole(
   db: any,
@@ -104,15 +142,19 @@ export async function processMonthlyPayroll(
   const year = targetYear ?? now.getFullYear();
   const month = targetMonth ?? now.getMonth() + 1; // 1-12
   const payPeriodLabel = `${year}-${String(month).padStart(2, "0")}`;
-  const payPeriodStart = fmt(new Date(year, month - 1, 1));
-  const payPeriodEnd = fmt(lastDay(year, month));
+  const payPeriodStart = periodStart(year, month);
+  const payPeriodEnd = periodEnd(year, month);
   const processedAt = fmt(now);
 
   console.log(`[PAYROLL-CRON] Processing payroll for ${payPeriodLabel}...`);
 
   // Fetch all active employees grouped by org
   const employeeConditions = [eq(employees.status, "active")];
-  if (organizationId) employeeConditions.push(eq(employees.organizationId, organizationId));
+  if (organizationId !== undefined) {
+    employeeConditions.push(organizationId === null
+      ? isNull(employees.organizationId)
+      : eq(employees.organizationId, organizationId));
+  }
   const activeEmployees = await db
     .select()
     .from(employees)
@@ -121,9 +163,10 @@ export async function processMonthlyPayroll(
   let processed = 0;
   let skipped = 0;
   const errors: string[] = [];
-  // Resolve employee department names to organization-scoped department IDs.
+  // Resolve employee department names within the same tenant/global workspace.
   const organizationIds = [...new Set(activeEmployees.map((employee) => employee.organizationId).filter(Boolean))] as string[];
   const organizationDepartments = new Map<string, Map<string, string>>();
+  const globalDepartments = new Map<string, string>();
   if (organizationIds.length > 0) {
     try {
       const departmentRows = await db
@@ -142,6 +185,20 @@ export async function processMonthlyPayroll(
       }
     } catch (error) {
       console.error("[PAYROLL-CRON] Department lookup failed; using cost-center departments for budget allocation:", error);
+    }
+  }
+  if (activeEmployees.some((employee) => !employee.organizationId)) {
+    try {
+      const departmentRows = await db.select({
+        id: departments.id,
+        name: departments.name,
+      }).from(departments).where(isNull(departments.organizationId));
+      for (const department of departmentRows) {
+        globalDepartments.set(department.id.toLowerCase(), department.id);
+        globalDepartments.set(department.name.trim().toLowerCase(), department.id);
+      }
+    } catch (error) {
+      console.error("[PAYROLL-CRON] Global department lookup failed; using cost-center departments for budget allocation:", error);
     }
   }
   const jobGroupRows = await db.select().from(jobGroups);
@@ -167,9 +224,21 @@ export async function processMonthlyPayroll(
         continue;
       }
 
-      // Employee master salary is stored in whole KES; payroll records use cents.
+      // Employee salaries are stored in major KES units; payroll records use cents.
       const jobGroup = jobGroupById.get(String(emp.jobGroupId)) as any;
-      const basicSalaryUnits = emp.salary ?? jobGroup?.defaultBasicSalary ?? 0;
+      const [salaryStructure] = await db.select().from(salaryStructures)
+        .where(and(
+          eq(salaryStructures.employeeId, emp.id),
+          lte(salaryStructures.effectiveDate, periodEndDate(year, month)),
+        ))
+        .orderBy(desc(salaryStructures.effectiveDate))
+        .limit(1);
+      const employeeSalary = Number(emp.salary);
+      const basicSalaryUnits = Number.isFinite(employeeSalary) && employeeSalary > 0
+        ? employeeSalary
+        : salaryStructure?.basicSalary != null
+          ? Number(salaryStructure.basicSalary) / 100
+          : resolveJobGroupPayrollBasisSalary(undefined, jobGroup);
       const basicSalaryCents = Math.round(Number(basicSalaryUnits) * 100);
       if (basicSalaryCents === 0) {
         errors.push(`${emp.firstName} ${emp.lastName}: no salary configured`);
@@ -189,20 +258,20 @@ export async function processMonthlyPayroll(
         try {
           const activeWindow = `effectiveDate <= ? AND (endDate IS NULL OR endDate >= ?)`;
           const [allowanceRows] = await pool.query(
-            `SELECT allowanceType, amount, frequency FROM salaryAllowances WHERE employeeId = ? AND isActive = 1 AND ${activeWindow}`,
+            `SELECT id, allowanceType, amount, frequency, departmentIdOverride, glAccountId FROM salaryAllowances WHERE employeeId = ? AND isActive = 1 AND ${activeWindow}`,
             [emp.id, payPeriodEnd, payPeriodStart]
           );
           allowanceComponents = allowanceRows as any[];
           allowancesCents = allowanceComponents.reduce((sum, row) => sum + monthlyAmount(row.amount, row.frequency), 0);
 
           const [deductionRows] = await pool.query(
-            `SELECT deductionType, amount, frequency FROM salaryDeductions WHERE employeeId = ? AND isActive = 1 AND ${activeWindow}`,
+            `SELECT id, deductionType, amount, frequency, departmentIdOverride, glAccountId FROM salaryDeductions WHERE employeeId = ? AND isActive = 1 AND ${activeWindow}`,
             [emp.id, payPeriodEnd, payPeriodStart]
           );
           deductionComponents = deductionRows as any[];
 
           const [benefitRows] = await pool.query(
-            `SELECT benefitType, cost, employerCost FROM employeeBenefits WHERE employeeId = ? AND isActive = 1 AND enrollDate <= ? AND (endDate IS NULL OR endDate >= ?)`,
+            `SELECT id, benefitType, cost, employerCost, departmentIdOverride, glAccountId FROM employeeBenefits WHERE employeeId = ? AND isActive = 1 AND enrollDate <= ? AND (endDate IS NULL OR endDate >= ?)`,
             [emp.id, payPeriodEnd, payPeriodStart]
           );
           benefitComponents = (benefitRows as any[]).filter((row) => Number(row.cost || 0) > 0 || Number(row.employerCost || 0) > 0);
@@ -248,6 +317,12 @@ export async function processMonthlyPayroll(
       } else {
         employeeDeductionsCents = deductionComponents.reduce((sum, row) => sum + monthlyAmount(row.amount, row.frequency), 0);
       }
+      if (allowanceComponents.length === 0) {
+        allowancesCents = Number(salaryStructure?.allowances || 0);
+      }
+      if (deductionComponents.length === 0) {
+        employeeDeductionsCents = Number(salaryStructure?.deductions || 0);
+      }
 
       // Calculate Kenyan payroll deductions
       const calc = calculateKenyanPayroll({
@@ -262,15 +337,37 @@ export async function processMonthlyPayroll(
 
       const orgId = emp.organizationId;
       const departmentKey = String(emp.department ?? "").trim().toLowerCase();
-      const departmentId = orgId ? organizationDepartments.get(orgId)?.get(departmentKey) : undefined;
-      if (!orgId) {
-        errors.push(`${emp.firstName} ${emp.lastName}: payroll was not created because the employee is not assigned to an organization`);
-        skipped++;
-        continue;
-      }
+      const departmentId = orgId
+        ? organizationDepartments.get(orgId)?.get(departmentKey)
+        : globalDepartments.get(departmentKey);
 
       const employerStatutoryCents = calc.nssfContribution + calc.housingLevyDeduction;
-      const allocationResult = await db.transaction(async (transaction: any) => {
+      const explicitAllowanceCents = allowanceComponents.reduce((sum, row) => sum + monthlyAmount(row.amount, row.frequency), 0);
+      const expenseComponents = [
+        { componentType: "basic_salary" as const, componentName: "Basic Salary", amountCents: calc.basicSalary },
+        ...allowanceComponents.map((row) => ({
+          componentType: "allowance" as const,
+          componentName: String(row.allowanceType || "Allowance"),
+          amountCents: monthlyAmount(row.amount, row.frequency),
+          departmentIdOverride: row.departmentIdOverride || null,
+          glAccountId: row.glAccountId || null,
+        })),
+        ...(allowancesCents > explicitAllowanceCents ? [{
+          componentType: "allowance" as const,
+          componentName: "Other Allowances",
+          amountCents: allowancesCents - explicitAllowanceCents,
+        }] : []),
+        { componentType: "employer_statutory" as const, componentName: "Employer NSSF", amountCents: calc.nssfContribution },
+        { componentType: "employer_statutory" as const, componentName: "Employer Housing Levy", amountCents: calc.housingLevyDeduction },
+        ...benefitComponents.filter((row) => Number(row.employerCost || 0) > 0).map((row) => ({
+          componentType: "employer_benefit" as const,
+          componentName: String(row.benefitType || "Employer Benefit"),
+          amountCents: Number(row.employerCost || 0),
+          departmentIdOverride: row.departmentIdOverride || null,
+          glAccountId: row.glAccountId || null,
+        })),
+      ];
+      await db.transaction(async (transaction: any) => {
         await transaction.insert(payroll).values({
           id,
           employeeId: emp.id,
@@ -307,43 +404,100 @@ export async function processMonthlyPayroll(
           createdAt: processedAt,
           updatedAt: processedAt,
         } as any);
-
-        const result = await recordPayrollCostAllocation(transaction, {
-          organizationId: orgId,
-          payrollId: id,
-          employeeId: emp.id,
-          createdBy: triggeredBy ?? null,
-          payrollPeriodStart: payPeriodStart,
-          payrollPeriodEnd: payPeriodEnd,
-          // Cost-center allocations are the authoritative accounting split. The
-          // employee's legacy free-text department is only a fallback for budgets.
-          employeeDepartmentId: departmentId ?? null,
-          grossPayCents: calc.grossSalary,
-          employerStatutoryCents,
-          employerBenefitsCents,
-          employeeTaxCents: calc.payeeTax,
-          netPayoutCents: netSalary,
-        });
-        const budgetTotals = new Map<string, number>();
-        for (const split of result.budgetSplits ?? []) {
-          if (!split.departmentId) {
-            throw new Error(`Cost center ${split.costCenterId} has no department for budget charging`);
-          }
-          budgetTotals.set(split.departmentId, (budgetTotals.get(split.departmentId) ?? 0) + split.fullyBurdenedCostCents);
-        }
-        for (const [budgetDepartmentId, amountCents] of budgetTotals) {
-          const budget = await findActiveBudget(transaction, orgId, budgetDepartmentId, year);
-          if (!budget) throw new Error(`No budget found for department ${budgetDepartmentId} in FY${year}`);
-          await checkBudget(transaction, amountCents, orgId, {
-            budgetId: budget.budgetId,
-            departmentId: budgetDepartmentId,
-            fiscalYear: year,
-            label: `payroll ${payPeriodLabel}`,
-          });
-          await deductFromBudget(transaction, budget.budgetId, amountCents);
-        }
-        return result;
       });
+
+      if (orgId) payrollOrganizationIds.add(orgId);
+      processed++;
+
+      if (orgId) {
+        try {
+          await db.transaction(async (transaction: any) => {
+            const allocationResult = await recordPayrollCostAllocation(transaction, {
+              organizationId: orgId,
+              payrollId: id,
+              employeeId: emp.id,
+              createdBy: triggeredBy ?? null,
+              payrollPeriodStart: payPeriodStart,
+              payrollPeriodEnd: payPeriodEnd,
+              // Cost-center allocations are the authoritative accounting split. The
+              // employee's legacy free-text department is only a fallback for budgets.
+              employeeDepartmentId: departmentId ?? null,
+              grossPayCents: calc.grossSalary,
+              employerStatutoryCents,
+              employerBenefitsCents,
+              employeeTaxCents: calc.payeeTax,
+              netPayoutCents: netSalary,
+              expenseComponents,
+              liabilityComponents: [
+                ...deductionComponents.map((row) => ({
+                  componentName: String(row.deductionType || "Salary Deduction"),
+                  amountCents: monthlyAmount(row.amount, row.frequency),
+                  glAccountId: row.glAccountId || null,
+                })),
+                ...benefitComponents.filter((row) => Number(row.cost || 0) > 0).map((row) => ({
+                  componentName: String(row.benefitType || "Employee Benefit"),
+                  amountCents: Number(row.cost || 0),
+                  glAccountId: row.glAccountId || null,
+                })),
+                ...[
+                  { componentName: "NSSF", amountCents: calc.nssfContribution },
+                  { componentName: "PAYE", amountCents: calc.payeeTax },
+                  { componentName: "SHIF", amountCents: calc.shifContribution },
+                  { componentName: "Housing Levy", amountCents: calc.housingLevyDeduction },
+                ].map((component) => ({ ...component, componentType: "statutory_liability" as const })),
+              ],
+            });
+            if (allocationResult.inserted) {
+              const budgetTotals = new Map<string, number>();
+              for (const split of allocationResult.budgetSplits ?? []) {
+                if (!split.departmentId) {
+                  throw new Error(`Cost center ${split.costCenterId} has no department for budget charging`);
+                }
+                budgetTotals.set(split.departmentId, (budgetTotals.get(split.departmentId) ?? 0) + split.fullyBurdenedCostCents);
+              }
+              for (const [budgetDepartmentId, amountCents] of budgetTotals) {
+                const budget = await findActiveBudget(transaction, orgId, budgetDepartmentId, year);
+                if (!budget) throw new Error(`No budget found for department ${budgetDepartmentId} in FY${year}`);
+                await checkBudget(transaction, amountCents, orgId, {
+                  budgetId: budget.budgetId,
+                  departmentId: budgetDepartmentId,
+                  fiscalYear: year,
+                  label: `payroll ${payPeriodLabel}`,
+                });
+                await deductFromBudget(transaction, budget.budgetId, amountCents);
+              }
+            }
+          });
+        } catch (allocationError: any) {
+          const message = allocationError?.message ?? String(allocationError);
+          let budgetMessage = "";
+          if (departmentId) {
+            try {
+              await db.transaction(async (transaction: any) => {
+                const budget = await findActiveBudget(transaction, orgId, departmentId, year);
+                if (!budget) throw new Error(`No budget found for department ${departmentId} in FY${year}`);
+                const fullyBurdenedCostCents = calc.grossSalary + employerStatutoryCents + employerBenefitsCents;
+                await checkBudget(transaction, fullyBurdenedCostCents, orgId, {
+                  budgetId: budget.budgetId,
+                  departmentId,
+                  fiscalYear: year,
+                  label: `payroll ${payPeriodLabel}`,
+                });
+                await deductFromBudget(transaction, budget.budgetId, fullyBurdenedCostCents);
+              });
+              budgetMessage = "; department budget was charged using the employee's department";
+            } catch (budgetError: any) {
+              const budgetErrorMessage = budgetError?.message ?? String(budgetError);
+              budgetMessage = `; budget deduction also failed: ${budgetErrorMessage}`;
+              console.error("[PAYROLL-CRON] Department budget fallback failed:", budgetError);
+            }
+          } else {
+            budgetMessage = "; budget could not be charged because the employee has no matching department";
+          }
+          errors.push(`${emp.firstName} ${emp.lastName}: payroll was created${budgetMessage}, but accounting allocation failed: ${message}`);
+          console.error("[PAYROLL-CRON] Payroll created but accounting allocation failed:", allocationError);
+        }
+      }
 
       if (pool) {
         const components = [
@@ -366,9 +520,6 @@ export async function processMonthlyPayroll(
         }
       }
 
-      if (orgId) payrollOrganizationIds.add(orgId);
-
-      processed++;
     } catch (err: any) {
       errors.push(`${emp.firstName} ${emp.lastName}: ${err?.message ?? err}`);
       console.error("[PAYROLL-CRON] Error processing employee payroll:", err);
@@ -429,8 +580,8 @@ export async function dispatchPayslips(
   const year = targetYear ?? now.getFullYear();
   const month = targetMonth ?? now.getMonth() + 1;
   const payPeriodLabel = `${year}-${String(month).padStart(2, "0")}`;
-  const payPeriodStart = fmt(new Date(year, month - 1, 1));
-  const payPeriodEnd = fmt(lastDay(year, month));
+  const payPeriodStart = periodStart(year, month);
+  const payPeriodEnd = periodEnd(year, month);
 
   console.log(`[PAYROLL-CRON] Dispatching payslips for ${payPeriodLabel}...`);
 
@@ -439,9 +590,11 @@ export async function dispatchPayslips(
     eq(payroll.payPeriodStart, payPeriodStart),
     inArray(payroll.status, ["processed", "paid"]),
   ];
-  if (organizationId) {
+  if (organizationId !== undefined) {
     const orgEmployees = await db.select({ id: employees.id }).from(employees)
-      .where(eq(employees.organizationId, organizationId));
+      .where(organizationId === null
+        ? isNull(employees.organizationId)
+        : eq(employees.organizationId, organizationId));
     if (orgEmployees.length === 0) {
       return { dispatched: 0, errors: ["No employees found in this organization"] };
     }
@@ -564,6 +717,34 @@ export async function dispatchPayslips(
         gross_salary: formatMinorCurrencyAmount(payslipData.earnings.grossSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
         total_deductions: formatMinorCurrencyAmount(payslipData.deductions.total, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
         net_salary: formatMinorCurrencyAmount(payslipData.netSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        paye: formatMinorCurrencyAmount(payslipData.deductions.paye, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        nssf: formatMinorCurrencyAmount(payslipData.deductions.nssf, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        nhif: formatMinorCurrencyAmount(payslipData.deductions.shif, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        loan_deduction: formatMinorCurrencyAmount(
+          deductionsBreakdown.filter((item) => /loan/i.test(item.name)).reduce((sum, item) => sum + item.amount, 0),
+          "KES",
+          { symbol: "KES", minimumFractionDigits: 2 },
+        ),
+        other_deductions: formatMinorCurrencyAmount(
+          deductionsBreakdown.filter((item) => item.type === "deduction" && !/loan/i.test(item.name)).reduce((sum, item) => sum + item.amount, 0),
+          "KES",
+          { symbol: "KES", minimumFractionDigits: 2 },
+        ),
+        employer_nssf: formatMinorCurrencyAmount(details.nssf ?? 0, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        employer_benefits: formatMinorCurrencyAmount(
+          employerContributions.reduce((sum, item) => sum + item.amount, 0),
+          "KES",
+          { symbol: "KES", minimumFractionDigits: 2 },
+        ),
+        total_company_contribution: formatMinorCurrencyAmount(
+          employerContributions.reduce((sum, item) => sum + item.amount, 0),
+          "KES",
+          { symbol: "KES", minimumFractionDigits: 2 },
+        ),
+        ...Object.fromEntries(allowancesBreakdown.slice(0, 4).flatMap((item, index) => [
+          [`allowance_${index + 1}_name`, item.name],
+          [`allowance_${index + 1}_amount`, formatMinorCurrencyAmount(item.amount, "KES", { symbol: "KES", minimumFractionDigits: 2 })],
+        ])),
       }, emp.organizationId);
 
       // Upsert payslip record in DB
@@ -606,21 +787,34 @@ export async function dispatchPayslips(
 
       // Send email payslip if employee has email
       if (emp.email) {
+        let emailSent = false;
         try {
           await sendEmailImmediately({
             toEmail: emp.email,
             subject: `Your Payslip for ${payPeriodLabel} — ${companyName}`,
             htmlContent: htmlContent,
           });
-          if (pool) {
+          emailSent = true;
+          dispatched++;
+        } catch (emailErr: any) {
+          const message = `Failed to deliver payslip to ${emp.email}: ${emailErr?.message || "Unknown email error"}`;
+          errors.push(message);
+          console.error("[PAYROLL-CRON]", message);
+        }
+        if (emailSent && pool) {
+          try {
             await (pool as any).query(
               `UPDATE payslips SET status = 'sent', sentAt = NOW(), updatedAt = NOW() WHERE employeeId = ? AND payPeriod = ?`,
               [emp.id, payPeriodLabel]
             );
+          } catch (statusErr: any) {
+            const message = `Payslip was emailed to ${emp.email}, but its sent status could not be saved: ${statusErr?.message || "Unknown database error"}`;
+            errors.push(message);
+            console.error("[PAYROLL-CRON]", message);
           }
-        } catch (emailErr: any) {
-          console.warn(`[PAYROLL-CRON] Failed to email payslip to ${emp.email}:`, emailErr?.message);
         }
+      } else {
+        errors.push(`Payslip generated for ${emp.firstName} ${emp.lastName}, but no email address is configured`);
       }
 
       // Find user account linked to this employee and notify via dashboard
@@ -650,7 +844,6 @@ export async function dispatchPayslips(
         console.warn("[PAYROLL-CRON] Failed to notify employee:", notifErr);
       }
 
-      dispatched++;
     } catch (err: any) {
       errors.push(`Payslip error for employee ${(record as any).employeeId}: ${err?.message}`);
       console.error("[PAYROLL-CRON] Payslip dispatch error:", err);
@@ -659,7 +852,13 @@ export async function dispatchPayslips(
 
   // Notify HR and admins in each organization that payslips have been dispatched.
   try {
-    const organizationIds = [...new Set(empData.map((employee: any) => employee.organizationId).filter(Boolean))];
+    const organizationIds = [
+      ...new Set(
+        empData
+          .map((employee: any) => employee.organizationId)
+          .filter((organizationId): organizationId is string => typeof organizationId === "string" && organizationId.length > 0),
+      ),
+    ];
     for (const organizationId of organizationIds) {
       await notifyByRole(db, organizationId, ["admin", "hr_manager", "hr", "superadmin", "super_admin"], {
         title: "📤 Payslips Dispatched",
@@ -715,11 +914,17 @@ export async function processAndPayPayroll(
   const now = fmt(new Date());
   const year = targetYear ?? new Date().getFullYear();
   const month = targetMonth ?? new Date().getMonth() + 1;
-  const payPeriodStart = fmt(new Date(year, month - 1, 1));
-  const organizationFilter = organizationId ? " AND e.organizationId = ?" : "";
-  const parameters = organizationId
-    ? [`${year}-${String(month).padStart(2, "0")}`, now, now, payPeriodStart, organizationId]
-    : [`${year}-${String(month).padStart(2, "0")}`, now, now, payPeriodStart];
+  const payPeriodStart = periodStart(year, month);
+  const organizationFilter = organizationId === undefined
+    ? ""
+    : organizationId === null
+      ? " AND e.organizationId IS NULL"
+      : " AND e.organizationId = ?";
+  const parameters = organizationId === undefined
+    ? [`${year}-${String(month).padStart(2, "0")}`, now, now, payPeriodStart]
+    : organizationId === null
+      ? [`${year}-${String(month).padStart(2, "0")}`, now, now, payPeriodStart]
+      : [`${year}-${String(month).padStart(2, "0")}`, now, now, payPeriodStart, organizationId];
   let paymentUpdateError: string | undefined;
   const [updateResult] = await pool.query(
     `UPDATE payroll p

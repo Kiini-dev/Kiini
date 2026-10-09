@@ -127,7 +127,7 @@ export const importExcelRouter = router({
             phone: row[input.fieldMap.phone] || "",
             department: row[input.fieldMap.department] || "",
             position: row[input.fieldMap.position] || "",
-            salary: parseInt(row[input.fieldMap.salary] || "0"),
+            salary: Number(row[input.fieldMap.salary] || "0"),
             startDate: row[input.fieldMap.startDate] ? new Date(row[input.fieldMap.startDate]) : new Date().toISOString().replace('T', ' ').substring(0, 19),
             status: "active",
           };

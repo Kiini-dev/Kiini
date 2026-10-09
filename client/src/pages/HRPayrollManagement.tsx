@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Label } from "@/components/ui/label";
 import PayrollImportTab from "@/components/PayrollImportTab";
+import { PayrollBudgetWarnings } from "@/components/PayrollBudgetWarnings";
 import {
   DollarSign,
   Plus,
@@ -49,7 +50,13 @@ export default function HRPayrollManagement() {
 
   // Fetch data for different tabs
   const { data: employees = [] } = trpc.employees.list.useQuery({});
-  const { data: payrolls = [] } = trpc.payroll.list.useQuery({});
+  const {
+    data: payrolls = [],
+    isLoading: isPayrollsLoading,
+    isError: isPayrollsError,
+    error: payrollsError,
+    refetch: refetchPayrolls,
+  } = trpc.payroll.list.useQuery({ limit: 5000 });
   const { data: salaryStructures = [] } = trpc.payroll.salaryStructures.list.useQuery({});
   const { data: allowances = [] } = trpc.payroll.allowances.list.useQuery({});
   const { data: deductions = [] } = trpc.payroll.deductions.list.useQuery({});
@@ -71,7 +78,8 @@ export default function HRPayrollManagement() {
   const deleteDeductionMutation = trpc.payroll.deductions.delete.useMutation();
   const deleteBenefitMutation = trpc.payroll.benefits.delete.useMutation();
   const processPayrollMutation = trpc.payroll.processMonthly.useMutation();
-  const generatePayrollMutation = trpc.payroll.processAndPay.useMutation();
+  const generatePayrollMutation = trpc.payroll.processMonthly.useMutation();
+  const dispatchPayslipsMutation = trpc.payroll.dispatchPayslips.useMutation();
 
   const handleProcessPayroll = async () => {
     const [year, month] = payrollPeriod.split("-").map(Number);
@@ -92,21 +100,58 @@ export default function HRPayrollManagement() {
 
   const handleGeneratePayroll = async () => {
     const [year, month] = payrollPeriod.split("-").map(Number);
+    if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+      toast.error("Select a valid payroll month before generating payroll.");
+      return;
+    }
     try {
       const result = await generatePayrollMutation.mutateAsync({ year, month });
+      const refreshedPayrolls = await refetchPayrolls();
+      void utils.payrollAllocations.getBudgetPreview.invalidate({ payrollPeriod });
+      const generatedRecordsVisible = refreshedPayrolls.data?.some(
+        (record) => String(record.payPeriodStart).slice(0, 7) === payrollPeriod
+      ) ?? false;
+      console.info(`[PAYROLL] Run ${payrollPeriod}: ${result.processed} created, ${result.skipped} skipped, ${result.errors.length} errors`);
+      result.errors.forEach((message) => console.error(`[PAYROLL] ${payrollPeriod}: ${message}`));
       result.errors.slice(0, 3).forEach((message) => toast.error(message));
       if (result.errors.length > 3) toast.error(`${result.errors.length - 3} additional payroll errors`);
-      if (result.processed > 0 || result.dispatched > 0 || result.markedPaid > 0) {
-        toast.success(
-          `Generated payroll for ${result.processed} employees; sent ${result.dispatched} payslips; marked ${result.markedPaid} paid; ${result.skipped} skipped`
-        );
-      } else if (result.errors.length === 0) {
-        toast.info(`No payroll records were generated; ${result.skipped} employees were skipped`);
+      if (refreshedPayrolls.isError) {
+        toast.error(`Payroll generation finished, but the payroll list could not be refreshed: ${refreshedPayrolls.error.message}`);
+      } else if (result.processed > 0 && !generatedRecordsVisible) {
+        toast.error(`Payroll generation reported ${result.processed} processed employees, but no records for ${payrollPeriod} appeared in the list. Refresh the list and verify the payroll run.`);
+      } else if (result.processed === 0 && !generatedRecordsVisible) {
+        const reason = result.errors.length > 0
+          ? `${result.errors.length} payroll errors occurred`
+          : result.skipped > 0
+            ? `${result.skipped} employees were skipped`
+            : "no eligible employees were found";
+        toast.error(`No payroll records were created for ${payrollPeriod}: ${reason}.`);
+      } else {
+        let dispatchSummary = "";
+        try {
+          const dispatch = await dispatchPayslipsMutation.mutateAsync({ year, month });
+          dispatch.errors.slice(0, 3).forEach((message) => toast.error(`Payslip delivery: ${message}`));
+          if (dispatch.errors.length > 3) {
+            toast.error(`${dispatch.errors.length - 3} additional payslip delivery errors`);
+          }
+          dispatchSummary = `; sent ${dispatch.dispatched} payslips`;
+        } catch (error: any) {
+          toast.error(`Payroll was generated, but payslip delivery failed: ${error?.message || "Unknown error"}`);
+        }
+
+        if (result.processed > 0) {
+          if (result.errors.length > 0) {
+            toast.error(`Generated payroll for ${result.processed} employees${dispatchSummary}, but ${result.errors.length} payroll issue${result.errors.length === 1 ? "" : "s"} require attention`);
+          } else {
+            toast.success(`Generated payroll for ${result.processed} employees${dispatchSummary}; ${result.skipped} skipped`);
+          }
+        } else if (result.errors.length === 0) {
+          toast.info(`No new payroll records were generated; ${result.skipped} employees were skipped${dispatchSummary}`);
+        }
       }
     } catch (error: any) {
       toast.error(`Payroll generation failed: ${error?.message || "Unknown error"}`);
-    } finally {
-      await utils.payroll.list.invalidate();
+      await refetchPayrolls();
     }
   };
 
@@ -619,13 +664,17 @@ export default function HRPayrollManagement() {
                     <Button
                       size="sm"
                       onClick={() => void handleGeneratePayroll()}
-                      disabled={!payrollPeriod || generatePayrollMutation.isPending || processPayrollMutation.isPending}
+                      disabled={!payrollPeriod || dispatchPayslipsMutation.isPending || generatePayrollMutation.isPending}
                       className="bg-green-600 hover:bg-green-700"
                     >
-                      {generatePayrollMutation.isPending
+                      {generatePayrollMutation.isPending || dispatchPayslipsMutation.isPending
                         ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         : <Plus className="mr-2 h-4 w-4" />}
-                      {generatePayrollMutation.isPending ? "Generating..." : "Generate Payroll"}
+                      {generatePayrollMutation.isPending
+                        ? "Generating payroll..."
+                        : dispatchPayslipsMutation.isPending
+                          ? "Sending payslips..."
+                          : "Generate Payroll"}
                     </Button>
                   </div>
                   <div className="flex gap-2">
@@ -655,7 +704,14 @@ export default function HRPayrollManagement() {
                   </Button>
                   </div>
                 </div>
-                {payrolls.length === 0 ? (
+                <PayrollBudgetWarnings payrollPeriod={payrollPeriod} />
+                {isPayrollsLoading ? (
+                  <div className="py-8 text-center text-muted-foreground">Loading payroll records...</div>
+                ) : isPayrollsError ? (
+                  <div className="py-8 text-center text-destructive">
+                    Failed to load payroll records: {payrollsError.message}
+                  </div>
+                ) : payrolls.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">No payroll records found</p>
                   </div>
@@ -664,6 +720,7 @@ export default function HRPayrollManagement() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Employee</TableHead>
+                        <TableHead>Department</TableHead>
                         <TableHead>Pay Period</TableHead>
                         <TableHead>Basic Salary</TableHead>
                         <TableHead>Allowances</TableHead>
@@ -680,6 +737,7 @@ export default function HRPayrollManagement() {
                             {(employees.find((e) => e.id === payroll.employeeId)?.firstName || "")}{" "}
                             {(employees.find((e) => e.id === payroll.employeeId)?.lastName || "")}
                           </TableCell>
+                          <TableCell>{employees.find((e) => e.id === payroll.employeeId)?.department || "Unassigned"}</TableCell>
                           <TableCell>
                             {payroll.payPeriodStart
                               ? new Date(payroll.payPeriodStart).toLocaleDateString()

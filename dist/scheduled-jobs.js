@@ -315,6 +315,7 @@ __export(schema_exports, {
   documents: () => documents,
   dunningEvents: () => dunningEvents,
   dunningPolicies: () => dunningPolicies,
+  eSignatureAuditEvents: () => eSignatureAuditEvents,
   eSignatureRequests: () => eSignatureRequests,
   emailCalendarSync: () => emailCalendarSync,
   emailCampaigns: () => emailCampaigns,
@@ -511,7 +512,7 @@ __export(schema_exports, {
 });
 import { mysqlTable as mysqlTable2, index as index2, uniqueIndex as uniqueIndex2, varchar as varchar2, mysqlEnum, int as int2, text as text2, longtext, timestamp as timestamp2, datetime, date, tinyint, json as json2, decimal, bigint, boolean as boolean2 } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
-var accounts, activityLog, auditLogs, bankAccounts, bankTransactions, clients, communicationLogs, jobGroups, employees, estimateItems, estimates, proposals, expenses, recurringExpenses, guestClients, inventoryTransactions, invoiceItems, invoices, recurringInvoices, journalEntries, journalEntryLines, leaveRequests, opportunities, paymentPlans, paymentPlanInstallments, payroll, products, projectTasks, projects, projectMilestones, timeEntries, reminders, scheduledReminders, services, settings, organizationSettings, stockAlerts, systemSettings, templates, documentNumberFormats, defaultSettings, permissions, customRoles, userRoles, rolePermissions, receipts, creditNotes, debitNotes, departments, payrollCostCenters, employeeCostAllocations, payrollLedgerEntries, reportExportAuditLogs, nonSalesInflows, budgets, attendance, userProjectAssignments, projectComments, staffTasks, userPermissions, users, savedFilters, notifications, notificationSettings, notificationPreferences, smsQueue, smsCustomerPreferences, smsTemplates, smsAutomationRules, smsDeliveryEvents, userFavorites, aiDocuments, emailGenerationHistory, financialAnalytics, aiChatSessions, aiChatMessages, lineItems, workflows, workflowTriggers, workflowActions, workflowExecutions, permissionMetadata, dashboardLayouts, dashboardWidgets, dashboardWidgetData, permissionAuditLog, projectMetrics, clientHealthScores, performanceReviews, performanceContracts, skillsMatrix, schedules, vacationRequests, documents, fileFolders, documentVersions, documentAccess, notificationRules, usageMetrics, expenseCategories, expenseReports, reimbursements, currencies, exchangeRates, taxRates, forecastModels, forecastResults, apiKeys, webhooks, integrationLogs, emailQueue, emailLog, invoiceReminders, pricingPlans, subscriptions, organizationSubscriptions, billingInvoices, payments, paymentMethods, billingUsageMetrics, saasBillingRateCards, saasBillingRateTiers, incomeLedgerEntries, incomeLedgerLines, billingNotifications, dunningPolicies, paymentRetries, dunningEvents, userDeletions, notificationTemplates, notificationBroadcasts, messages, conversations, organizations, organizationFeatures, organizationUsers, tenantMessages, pricingTierFeatures, conversationMembers, messageReadReceipts, tickets, ticketResponses, recurringInvoiceTemplates, automatedReceipts, emailCampaigns, emailMarketingSubscribers, emailLogs, workOrders, eSignatureRequests, workOrderMaterials, serviceInvoices, serviceInvoiceItems, contacts, quotations, grnRecords, deliveryNotes, assets, assetMovements, contracts, warranties, notes, customReports, organizationAccountingPolicies, globalAccountingPolicies, imprests, imprestSurrenders, purchaseOrders, purchaseOrderItems, goodsReceiptNotes, leads, bankReconciliationStatements, bankReconciliationDetails, reconciliationRules, reconciliationMatchAllocations, reconciliationAuditEvents, automationConfigs, workflowAutomationLogs, smartWorkflows, exportJobs, securityEvents, aiConfigurations, apiPricingConfigs, etlJobs, containerDeployments, customDashboards, webhookConfigs, emailCalendarSync, securityIncidents, globalConfigs, registeredDevices, mobileAppConfigs, partnerDeals, partnerProfiles, partnerReferrals, partnerCommissions, partnerPayouts, perfConfigs, backupSchedules, backupHistory, integrationConfigs, designConfigs, aiInsights, analyticsMetrics, cohortAnalyses, executiveReports, collaborationSessions, complianceRecords, staffChatChannels, staffChatMessages, cannedResponses, kbCategories, kbArticles, warehouses, stockMovements, clientSubscriptions, systemHealth, systemLogs, activeSessions, departmentHierarchies, employeePromotions, employeeTransfers, timesheets, payrollBatches, payrollDetails, scheduledJobs, jobExecutionLogs, jobAlertRules, jobAlertHistory, jobHeartbeat, customFields, fieldValidations, fieldValues, stripeCustomers, stripePaymentIntents, mpesaTransactions, stripeWebhookEvents, lpos, orders, payslips, leaveBalances, leaveApprovals, taxCompliance, holidays, trainingCourses, trainingPrograms, trainingEnrollments, onboardingChecklists, onboardingTasks, onboardingTemplates, employeeSkills, hrSettings, approvalWorkflows2, permissionAuditLogs, permissionDelegations, paymentTriggers;
+var accounts, activityLog, auditLogs, bankAccounts, bankTransactions, clients, communicationLogs, jobGroups, employees, estimateItems, estimates, proposals, expenses, recurringExpenses, guestClients, inventoryTransactions, invoiceItems, invoices, recurringInvoices, journalEntries, journalEntryLines, leaveRequests, opportunities, paymentPlans, paymentPlanInstallments, payroll, products, projectTasks, projects, projectMilestones, timeEntries, reminders, scheduledReminders, services, settings, organizationSettings, stockAlerts, systemSettings, templates, documentNumberFormats, defaultSettings, permissions, customRoles, userRoles, rolePermissions, receipts, creditNotes, debitNotes, departments, payrollCostCenters, employeeCostAllocations, payrollLedgerEntries, reportExportAuditLogs, nonSalesInflows, budgets, attendance, userProjectAssignments, projectComments, staffTasks, userPermissions, users, savedFilters, notifications, notificationSettings, notificationPreferences, smsQueue, smsCustomerPreferences, smsTemplates, smsAutomationRules, smsDeliveryEvents, userFavorites, aiDocuments, emailGenerationHistory, financialAnalytics, aiChatSessions, aiChatMessages, lineItems, workflows, workflowTriggers, workflowActions, workflowExecutions, permissionMetadata, dashboardLayouts, dashboardWidgets, dashboardWidgetData, permissionAuditLog, projectMetrics, clientHealthScores, performanceReviews, performanceContracts, skillsMatrix, schedules, vacationRequests, documents, fileFolders, documentVersions, documentAccess, notificationRules, usageMetrics, expenseCategories, expenseReports, reimbursements, currencies, exchangeRates, taxRates, forecastModels, forecastResults, apiKeys, webhooks, integrationLogs, emailQueue, emailLog, invoiceReminders, pricingPlans, subscriptions, organizationSubscriptions, billingInvoices, payments, paymentMethods, billingUsageMetrics, saasBillingRateCards, saasBillingRateTiers, incomeLedgerEntries, incomeLedgerLines, billingNotifications, dunningPolicies, paymentRetries, dunningEvents, userDeletions, notificationTemplates, notificationBroadcasts, messages, conversations, organizations, organizationFeatures, organizationUsers, tenantMessages, pricingTierFeatures, conversationMembers, messageReadReceipts, tickets, ticketResponses, recurringInvoiceTemplates, automatedReceipts, emailCampaigns, emailMarketingSubscribers, emailLogs, workOrders, eSignatureRequests, eSignatureAuditEvents, workOrderMaterials, serviceInvoices, serviceInvoiceItems, contacts, quotations, grnRecords, deliveryNotes, assets, assetMovements, contracts, warranties, notes, customReports, organizationAccountingPolicies, globalAccountingPolicies, imprests, imprestSurrenders, purchaseOrders, purchaseOrderItems, goodsReceiptNotes, leads, bankReconciliationStatements, bankReconciliationDetails, reconciliationRules, reconciliationMatchAllocations, reconciliationAuditEvents, automationConfigs, workflowAutomationLogs, smartWorkflows, exportJobs, securityEvents, aiConfigurations, apiPricingConfigs, etlJobs, containerDeployments, customDashboards, webhookConfigs, emailCalendarSync, securityIncidents, globalConfigs, registeredDevices, mobileAppConfigs, partnerDeals, partnerProfiles, partnerReferrals, partnerCommissions, partnerPayouts, perfConfigs, backupSchedules, backupHistory, integrationConfigs, designConfigs, aiInsights, analyticsMetrics, cohortAnalyses, executiveReports, collaborationSessions, complianceRecords, staffChatChannels, staffChatMessages, cannedResponses, kbCategories, kbArticles, warehouses, stockMovements, clientSubscriptions, systemHealth, systemLogs, activeSessions, departmentHierarchies, employeePromotions, employeeTransfers, timesheets, payrollBatches, payrollDetails, scheduledJobs, jobExecutionLogs, jobAlertRules, jobAlertHistory, jobHeartbeat, customFields, fieldValidations, fieldValues, stripeCustomers, stripePaymentIntents, mpesaTransactions, stripeWebhookEvents, lpos, orders, payslips, leaveBalances, leaveApprovals, taxCompliance, holidays, trainingCourses, trainingPrograms, trainingEnrollments, onboardingChecklists, onboardingTasks, onboardingTemplates, employeeSkills, hrSettings, approvalWorkflows2, permissionAuditLogs, permissionDelegations, paymentTriggers;
 var init_schema = __esm({
   "drizzle/schema.ts"() {
     init_approvalSchema();
@@ -707,7 +708,7 @@ var init_schema = __esm({
         department: varchar2({ length: 100 }),
         position: varchar2({ length: 100 }),
         jobGroupId: varchar2({ length: 64 }).notNull(),
-        salary: int2(),
+        salary: decimal({ precision: 12, scale: 2, mode: "number" }),
         employmentType: mysqlEnum(["full_time", "part_time", "contract", "intern", "contractual", "hourly", "wage", "temporary", "seasonal"]).default("full_time").notNull(),
         status: mysqlEnum(["active", "on_leave", "terminated", "suspended"]).default("active").notNull(),
         address: text2(),
@@ -787,17 +788,31 @@ var init_schema = __esm({
       "proposals",
       {
         id: varchar2({ length: 64 }).primaryKey(),
+        organizationId: varchar2({ length: 64 }),
         proposalNumber: varchar2({ length: 100 }).notNull(),
         clientId: varchar2({ length: 64 }).notNull(),
         title: varchar2({ length: 255 }),
         status: mysqlEnum(["draft", "sent", "accepted", "rejected"]).default("draft").notNull(),
         issueDate: datetime({ mode: "string" }).notNull(),
         expiryDate: datetime({ mode: "string" }),
+        description: longtext(),
+        deliverables: longtext(),
+        timeline: text2(),
+        assumptions: text2(),
+        exclusions: text2(),
+        terms: longtext(),
+        currency: varchar2({ length: 3 }).default("KES"),
+        lineItems: json2(),
         subtotal: int2().notNull(),
         taxAmount: int2().default(0),
         discountAmount: int2().default(0),
         total: int2().notNull(),
         notes: text2(),
+        signingStatus: varchar2({ length: 32 }).default("not_sent").notNull(),
+        signingWorkflowId: varchar2({ length: 64 }),
+        signedDocumentHtml: longtext(),
+        signedDocumentHash: varchar2({ length: 64 }),
+        signedAt: timestamp2({ mode: "string" }),
         createdBy: varchar2({ length: 64 }),
         createdAt: timestamp2({ mode: "string" }),
         updatedAt: timestamp2({ mode: "string" })
@@ -983,6 +998,7 @@ var init_schema = __esm({
       {
         id: varchar2({ length: 64 }).primaryKey(),
         organizationId: varchar2({ length: 64 }),
+        costCenterId: varchar2({ length: 64 }),
         entryNumber: varchar2({ length: 100 }).notNull(),
         entryDate: datetime({ mode: "string" }).notNull(),
         entryMonth: varchar2({ length: 7 }),
@@ -1638,9 +1654,10 @@ var init_schema = __esm({
     ]);
     employeeCostAllocations = mysqlTable2("employeeCostAllocations", {
       id: varchar2({ length: 64 }).primaryKey(),
-      organizationId: varchar2({ length: 64 }).notNull(),
+      organizationId: varchar2({ length: 64 }),
       employeeId: varchar2({ length: 64 }).notNull(),
       costCenterId: varchar2({ length: 64 }).notNull(),
+      budgetCode: varchar2({ length: 100 }),
       allocationBasisPoints: int2().notNull(),
       effectiveDate: date({ mode: "string" }).notNull(),
       createdBy: varchar2({ length: 64 }).notNull(),
@@ -1652,7 +1669,7 @@ var init_schema = __esm({
     ]);
     payrollLedgerEntries = mysqlTable2("payrollLedgerEntries", {
       id: varchar2({ length: 64 }).primaryKey(),
-      organizationId: varchar2({ length: 64 }).notNull(),
+      organizationId: varchar2({ length: 64 }),
       payrollId: varchar2({ length: 64 }).notNull(),
       employeeId: varchar2({ length: 64 }).notNull(),
       costCenterId: varchar2({ length: 64 }).notNull(),
@@ -1674,7 +1691,7 @@ var init_schema = __esm({
     ]);
     reportExportAuditLogs = mysqlTable2("reportExportAuditLogs", {
       id: varchar2({ length: 64 }).primaryKey(),
-      organizationId: varchar2({ length: 64 }).notNull(),
+      organizationId: varchar2({ length: 64 }),
       managerUserId: varchar2({ length: 64 }).notNull(),
       managerEmail: varchar2({ length: 255 }).notNull(),
       reportType: varchar2({ length: 100 }).notNull(),
@@ -2369,7 +2386,7 @@ var init_schema = __esm({
       startDate: datetime({ mode: "string" }).notNull(),
       endDate: datetime({ mode: "string" }),
       status: mysqlEnum(["draft", "active", "expired", "terminated"]).default("draft").notNull(),
-      salary: int2(),
+      salary: decimal({ precision: 12, scale: 2, mode: "number" }),
       terms: text2(),
       objectives: text2(),
       signedAt: datetime({ mode: "string" }),
@@ -3446,6 +3463,7 @@ var init_schema = __esm({
       serviceCost: int2().default(0).notNull(),
       total: int2().default(0).notNull(),
       notes: text2(),
+      templateData: json2(),
       status: mysqlEnum(["draft", "open", "in-progress", "completed", "cancelled"]).default("draft").notNull(),
       createdBy: varchar2({ length: 64 }).notNull(),
       createdAt: timestamp2({ mode: "string" }).defaultNow(),
@@ -3454,19 +3472,49 @@ var init_schema = __esm({
     eSignatureRequests = mysqlTable2("eSignatureRequests", {
       id: varchar2({ length: 64 }).primaryKey(),
       organizationId: varchar2({ length: 64 }),
+      workflowId: varchar2({ length: 64 }),
+      documentType: varchar2({ length: 32 }),
+      documentId: varchar2({ length: 64 }),
+      documentHash: varchar2({ length: 64 }),
+      sequence: int2().default(1).notNull(),
       title: varchar2({ length: 255 }).notNull(),
       documentContent: longtext().notNull(),
       signerName: varchar2({ length: 255 }).notNull(),
       signerEmail: varchar2({ length: 320 }).notNull(),
+      signerUserId: varchar2({ length: 64 }),
+      typedSignature: varchar2({ length: 255 }),
       signingToken: varchar2({ length: 128 }).notNull().unique(),
       status: mysqlEnum(["pending", "signed", "declined", "expired"]).default("pending").notNull(),
       signatureData: longtext(),
       signedAt: timestamp2({ mode: "string" }),
+      verificationCodeHash: varchar2({ length: 64 }),
+      verificationCodeExpiresAt: timestamp2({ mode: "string" }),
+      verificationCodeSentAt: timestamp2({ mode: "string" }),
+      verificationCodeAttempts: int2().default(0).notNull(),
+      emailVerifiedAt: timestamp2({ mode: "string" }),
+      consentAcceptedAt: timestamp2({ mode: "string" }),
+      signerIp: varchar2({ length: 45 }),
+      signerUserAgent: varchar2({ length: 512 }),
       expiresAt: timestamp2({ mode: "string" }),
       createdBy: varchar2({ length: 64 }).notNull(),
       createdAt: timestamp2({ mode: "string" }).defaultNow(),
       updatedAt: timestamp2({ mode: "string" }).defaultNow().onUpdateNow()
     });
+    eSignatureAuditEvents = mysqlTable2("eSignatureAuditEvents", {
+      id: varchar2({ length: 64 }).primaryKey(),
+      requestId: varchar2({ length: 64 }).notNull(),
+      workflowId: varchar2({ length: 64 }),
+      eventType: varchar2({ length: 40 }).notNull(),
+      actorName: varchar2({ length: 255 }),
+      actorEmail: varchar2({ length: 320 }),
+      ipAddress: varchar2({ length: 45 }),
+      userAgent: varchar2({ length: 512 }),
+      metadata: json2(),
+      createdAt: timestamp2({ mode: "string" }).defaultNow()
+    }, (table) => [
+      index2("esign_audit_request_idx").on(table.requestId, table.createdAt),
+      index2("esign_audit_workflow_idx").on(table.workflowId, table.createdAt)
+    ]);
     workOrderMaterials = mysqlTable2("workOrderMaterials", {
       id: varchar2({ length: 64 }).primaryKey(),
       workOrderId: varchar2({ length: 64 }).notNull(),
@@ -3544,6 +3592,46 @@ var init_schema = __esm({
       description: text2(),
       amount: int2().default(0).notNull(),
       dueDate: varchar2({ length: 30 }),
+      buyerCompanyName: varchar2({ length: 200 }),
+      buyerDepartment: varchar2({ length: 200 }),
+      buyerContactName: varchar2({ length: 255 }),
+      buyerContactTitle: varchar2({ length: 150 }),
+      buyerEmail: varchar2({ length: 320 }),
+      buyerPhone: varchar2({ length: 50 }),
+      deliveryAddress: text2(),
+      issueDate: varchar2({ length: 30 }),
+      submissionDeadline: varchar2({ length: 30 }),
+      targetDeliveryDate: varchar2({ length: 30 }),
+      bidderLegalName: varchar2({ length: 200 }),
+      bidderRegistrationNumber: varchar2({ length: 100 }),
+      bidderContactName: varchar2({ length: 255 }),
+      bidderEmail: varchar2({ length: 320 }),
+      bidderPhone: varchar2({ length: 50 }),
+      quoteValidityDays: int2().default(60),
+      quoteValidUntil: varchar2({ length: 30 }),
+      leadTime: varchar2({ length: 200 }),
+      lineItems: json2(),
+      currency: varchar2({ length: 3 }).default("KES"),
+      taxRate: decimal({ precision: 5, scale: 2 }).default("0"),
+      shippingAmount: int2().default(0),
+      subtotal: int2().default(0),
+      taxAmount: int2().default(0),
+      submissionFormat: varchar2({ length: 200 }),
+      submissionMethod: varchar2({ length: 100 }),
+      submissionEmail: varchar2({ length: 320 }),
+      emailSubjectProtocol: text2(),
+      mandatoryAttachments: text2(),
+      costWeight: int2().default(50),
+      complianceWeight: int2().default(30),
+      deliveryWeight: int2().default(20),
+      nonBindingTerms: text2(),
+      incoterms: varchar2({ length: 100 }),
+      paymentTerms: text2(),
+      settlementDays: int2(),
+      buyerSignatoryName: varchar2({ length: 255 }),
+      buyerSignatoryTitle: varchar2({ length: 150 }),
+      bidderSignatoryName: varchar2({ length: 255 }),
+      bidderSignatoryTitle: varchar2({ length: 150 }),
       status: mysqlEnum(["draft", "submitted", "under_review", "approved", "rejected"]).default("draft").notNull(),
       createdBy: varchar2({ length: 64 }).notNull(),
       createdAt: timestamp2({ mode: "string" }).defaultNow(),
@@ -3563,6 +3651,7 @@ var init_schema = __esm({
       value: int2().default(0).notNull(),
       status: mysqlEnum(["accepted", "partial", "rejected", "pending"]).default("pending").notNull(),
       notes: text2(),
+      templateData: json2(),
       createdBy: varchar2({ length: 64 }).notNull(),
       createdAt: timestamp2({ mode: "string" }).defaultNow(),
       updatedAt: timestamp2({ mode: "string" }).defaultNow().onUpdateNow()
@@ -3579,6 +3668,7 @@ var init_schema = __esm({
       items: int2().default(0).notNull(),
       status: mysqlEnum(["pending", "partial", "delivered", "cancelled"]).default("pending").notNull(),
       notes: text2(),
+      templateData: json2(),
       createdBy: varchar2({ length: 64 }).notNull(),
       createdAt: timestamp2({ mode: "string" }).defaultNow(),
       updatedAt: timestamp2({ mode: "string" }).defaultNow().onUpdateNow()
@@ -3628,11 +3718,29 @@ var init_schema = __esm({
       vendor: varchar2({ length: 200 }).notNull(),
       startDate: varchar2({ length: 30 }).notNull(),
       endDate: varchar2({ length: 30 }).notNull(),
-      value: int2().default(0).notNull(),
+      value: bigint({ mode: "number" }).default(0).notNull(),
       status: mysqlEnum(["draft", "active", "expired", "terminated"]).default("draft").notNull(),
       contractType: varchar2({ length: 100 }),
       description: text2(),
       notes: text2(),
+      counterpartyContactName: varchar2({ length: 255 }),
+      counterpartyEmail: varchar2({ length: 320 }),
+      counterpartyAddress: text2(),
+      counterpartyRegistrationNumber: varchar2({ length: 100 }),
+      governingLaw: varchar2({ length: 100 }).default("Kenya"),
+      currency: varchar2({ length: 3 }).default("KES"),
+      paymentTerms: text2(),
+      terminationTerms: text2(),
+      terminatedAt: varchar2({ length: 30 }),
+      terminationReason: text2(),
+      terminatedBy: varchar2({ length: 36 }),
+      confidentialityTerms: text2(),
+      disputeResolution: text2(),
+      signingStatus: varchar2({ length: 32 }).default("not_sent").notNull(),
+      signingWorkflowId: varchar2({ length: 64 }),
+      signedDocumentHtml: longtext(),
+      signedDocumentHash: varchar2({ length: 64 }),
+      signedAt: timestamp2({ mode: "string" }),
       createdBy: varchar2({ length: 64 }).notNull(),
       createdAt: timestamp2({ mode: "string" }).defaultNow(),
       updatedAt: timestamp2({ mode: "string" }).defaultNow().onUpdateNow()
@@ -3756,6 +3864,7 @@ var init_schema = __esm({
       disbursedAt: datetime({ mode: "string" }),
       settledAt: datetime({ mode: "string" }),
       notes: text2(),
+      templateData: json2(),
       createdBy: varchar2({ length: 64 }).notNull(),
       createdAt: timestamp2({ mode: "string" }).notNull(),
       updatedAt: timestamp2({ mode: "string" })
@@ -5471,7 +5580,7 @@ import {
   decimal as decimal2,
   json as json3
 } from "drizzle-orm/mysql-core";
-var guestClients2, reminders2, scheduledReminders2, communicationLogs2, inventoryTransactions2, stockAlerts2, systemSettings2, auditLogs2, userPermissions2, salaryStructures, salaryAllowances, salaryDeductions, employeeBenefits, payrollDetails2, payrollApprovals, employeeTaxInfo, salaryIncrements, employeeDisciplinaryActions, employeeDepartmentMovements, payslips2, departmentalHeads, p9Forms, lpos2, lpoLineItems, deliveryNoteLineItems, grnLineItems, journalEntryReconciliations, imprests2, imprestSurrenders2, projectTeamMembers, invoicePayments, serviceTemplates, serviceUsageTracking, projectBudgets, departmentBudgets, ledgerBudgets, budgetAllocations, organizationAccountingPolicies2, journalEntries2, journalEntryLines2, purchaseOrders2, purchaseOrderItems2, goodsReceiptNotes2, leads2, automationConfigs2, workflowAutomationLogs2, performanceReviews2, tickets2, ticketComments, ticketTasks, suppliers, supplierRatings, supplierAudits, quotes, lineItems2, quoteLogs, userTablePreferences, organizationMembers;
+var guestClients2, reminders2, scheduledReminders2, communicationLogs2, inventoryTransactions2, stockAlerts2, systemSettings2, auditLogs2, userPermissions2, salaryStructures, salaryAllowances, salaryDeductions, employeeBenefits, payrollComponentMappings, payrollDetails2, payrollApprovals, employeeTaxInfo, salaryIncrements, employeeDisciplinaryActions, employeeDepartmentMovements, payslips2, departmentalHeads, p9Forms, lpos2, lpoLineItems, deliveryNoteLineItems, grnLineItems, journalEntryReconciliations, imprests2, imprestSurrenders2, projectTeamMembers, invoicePayments, serviceTemplates, serviceUsageTracking, projectBudgets, departmentBudgets, ledgerBudgets, budgetAllocations, organizationAccountingPolicies2, journalEntries2, journalEntryLines2, purchaseOrders2, purchaseOrderItems2, goodsReceiptNotes2, leads2, automationConfigs2, workflowAutomationLogs2, performanceReviews2, tickets2, ticketComments, ticketTasks, suppliers, supplierRatings, supplierAudits, quotes, lineItems2, quoteLogs, userTablePreferences, organizationMembers;
 var init_schema_extended = __esm({
   "drizzle/schema-extended.ts"() {
     guestClients2 = mysqlTable3("guestClients", {
@@ -5642,6 +5751,8 @@ var init_schema_extended = __esm({
       employeeId: varchar3("employeeId", { length: 64 }).notNull(),
       allowanceType: varchar3("allowanceType", { length: 100 }).notNull(),
       // house, transport, meals, phone, etc.
+      departmentIdOverride: varchar3("departmentIdOverride", { length: 64 }),
+      glAccountId: varchar3("glAccountId", { length: 64 }),
       amount: int3("amount").notNull(),
       // in cents
       frequency: mysqlEnum2("frequency", ["monthly", "quarterly", "annual", "one_time"]).notNull(),
@@ -5663,6 +5774,8 @@ var init_schema_extended = __esm({
       employeeId: varchar3("employeeId", { length: 64 }).notNull(),
       deductionType: varchar3("deductionType", { length: 100 }).notNull(),
       // loan, pension, insurance, tax, etc.
+      departmentIdOverride: varchar3("departmentIdOverride", { length: 64 }),
+      glAccountId: varchar3("glAccountId", { length: 64 }),
       amount: int3("amount").notNull(),
       // in cents
       frequency: mysqlEnum2("frequency", ["monthly", "quarterly", "annual", "one_time"]).notNull(),
@@ -5686,6 +5799,8 @@ var init_schema_extended = __esm({
       employeeId: varchar3("employeeId", { length: 64 }).notNull(),
       benefitType: varchar3("benefitType", { length: 100 }).notNull(),
       // health_insurance, life_insurance, pension, etc.
+      departmentIdOverride: varchar3("departmentIdOverride", { length: 64 }),
+      glAccountId: varchar3("glAccountId", { length: 64 }),
       provider: varchar3("provider", { length: 255 }),
       // insurance company, pension fund, etc.
       enrollDate: datetime2("enrollDate").notNull(),
@@ -5706,6 +5821,19 @@ var init_schema_extended = __esm({
       employeeIdx: index3("employee_idx").on(table.employeeId),
       typeIdx: index3("type_idx").on(table.benefitType),
       isActiveIdx: index3("is_active_idx").on(table.isActive)
+    }));
+    payrollComponentMappings = mysqlTable3("payrollComponentMappings", {
+      id: varchar3("id", { length: 64 }).primaryKey(),
+      organizationId: varchar3("organizationId", { length: 64 }),
+      componentType: varchar3("componentType", { length: 50 }).notNull(),
+      componentName: varchar3("componentName", { length: 100 }).notNull(),
+      accountId: varchar3("accountId", { length: 64 }).notNull(),
+      createdBy: varchar3("createdBy", { length: 64 }),
+      createdAt: timestamp3("createdAt").defaultNow(),
+      updatedAt: timestamp3("updatedAt").defaultNow()
+    }, (table) => ({
+      organizationIdx: index3("payroll_component_mapping_org_idx").on(table.organizationId),
+      componentIdx: index3("payroll_component_mapping_component_idx").on(table.componentType, table.componentName)
     }));
     payrollDetails2 = mysqlTable3("payrollDetails", {
       id: varchar3("id", { length: 64 }).primaryKey(),
@@ -5891,7 +6019,7 @@ var init_schema_extended = __esm({
     }));
     p9Forms = mysqlTable3("p9_forms", {
       id: varchar3("id", { length: 64 }).primaryKey(),
-      organizationId: varchar3("organizationId", { length: 64 }).notNull(),
+      organizationId: varchar3("organizationId", { length: 64 }),
       employeeId: varchar3("employeeId", { length: 64 }).notNull(),
       taxYear: int3("taxYear").notNull(),
       // e.g., 2024 (Jan-Dec)
@@ -6039,6 +6167,7 @@ var init_schema_extended = __esm({
       imprestNumber: varchar3("imprestNumber", { length: 50 }).notNull(),
       userId: varchar3("userId", { length: 64 }).notNull(),
       purpose: text3("purpose"),
+      templateData: json3("templateData"),
       amount: int3("amount").notNull(),
       status: mysqlEnum2("status", ["requested", "approved", "rejected", "settled"]).default("requested").notNull(),
       createdBy: varchar3("createdBy", { length: 64 }),
@@ -6212,6 +6341,7 @@ var init_schema_extended = __esm({
         budgetStatus: mysqlEnum2("budgetStatus", ["under", "at", "over"]).notNull(),
         category: varchar3("category", { length: 100 }),
         // e.g. payroll, operations, marketing
+        budgetCode: varchar3("budgetCode", { length: 100 }),
         notes: text3("notes"),
         createdBy: varchar3("createdBy", { length: 64 }),
         createdAt: timestamp3("createdAt").defaultNow(),
@@ -6310,6 +6440,7 @@ var init_schema_extended = __esm({
     journalEntries2 = mysqlTable3("journalEntries", {
       id: varchar3("id", { length: 36 }).primaryKey(),
       organizationId: varchar3("organizationId", { length: 36 }).notNull(),
+      costCenterId: varchar3("costCenterId", { length: 36 }),
       entryDate: datetime2("entryDate").notNull(),
       entryMonth: varchar3("entryMonth", { length: 7 }).notNull(),
       // YYYY-MM
@@ -6809,6 +6940,7 @@ function getRuntimeSchemaCheckTargets() {
     "departments",
     "jobGroups",
     "eSignatureRequests",
+    "eSignatureAuditEvents",
     "backup_history",
     "clients",
     "expenses",
@@ -6845,6 +6977,8 @@ function getRuntimeSchemaCheckTargets() {
     "emailTemplates",
     "proposalTemplates",
     "contractTemplates",
+    "proposals",
+    "contracts",
     "scheduledJobs",
     "jobExecutionLogs",
     "jobAlertRules",
@@ -6922,6 +7056,57 @@ var init_legacySchemaCompatibility = __esm({
         { name: "twoFactorEnabled", definition: "tinyint NOT NULL DEFAULT 0" },
         { name: "twoFactorSecret", definition: "varchar(255) NULL" },
         { name: "customRoleId", definition: "varchar(64) NULL" }
+      ],
+      proposals: [
+        { name: "organizationId", definition: "varchar(64) NULL" },
+        { name: "description", definition: "longtext NULL" },
+        { name: "deliverables", definition: "longtext NULL" },
+        { name: "timeline", definition: "text NULL" },
+        { name: "assumptions", definition: "text NULL" },
+        { name: "exclusions", definition: "text NULL" },
+        { name: "terms", definition: "longtext NULL" },
+        { name: "currency", definition: "varchar(3) NULL DEFAULT 'KES'" },
+        { name: "lineItems", definition: "json NULL" },
+        { name: "signingStatus", definition: "varchar(32) NOT NULL DEFAULT 'not_sent'" },
+        { name: "signingWorkflowId", definition: "varchar(64) NULL" },
+        { name: "signedDocumentHtml", definition: "longtext NULL" },
+        { name: "signedDocumentHash", definition: "varchar(64) NULL" },
+        { name: "signedAt", definition: "timestamp NULL" }
+      ],
+      contracts: [
+        { name: "counterpartyContactName", definition: "varchar(255) NULL" },
+        { name: "counterpartyEmail", definition: "varchar(320) NULL" },
+        { name: "counterpartyAddress", definition: "text NULL" },
+        { name: "counterpartyRegistrationNumber", definition: "varchar(100) NULL" },
+        { name: "governingLaw", definition: "varchar(100) NULL DEFAULT 'Kenya'" },
+        { name: "currency", definition: "varchar(3) NULL DEFAULT 'KES'" },
+        { name: "paymentTerms", definition: "text NULL" },
+        { name: "terminationTerms", definition: "text NULL" },
+        { name: "confidentialityTerms", definition: "text NULL" },
+        { name: "disputeResolution", definition: "text NULL" },
+        { name: "signingStatus", definition: "varchar(32) NOT NULL DEFAULT 'not_sent'" },
+        { name: "signingWorkflowId", definition: "varchar(64) NULL" },
+        { name: "signedDocumentHtml", definition: "longtext NULL" },
+        { name: "signedDocumentHash", definition: "varchar(64) NULL" },
+        { name: "signedAt", definition: "timestamp NULL" }
+      ],
+      esignaturerequests: [
+        { name: "organizationId", definition: "varchar(64) NULL" },
+        { name: "workflowId", definition: "varchar(64) NULL" },
+        { name: "documentType", definition: "varchar(32) NULL" },
+        { name: "documentId", definition: "varchar(64) NULL" },
+        { name: "documentHash", definition: "varchar(64) NULL" },
+        { name: "sequence", definition: "int NOT NULL DEFAULT 1" },
+        { name: "signerUserId", definition: "varchar(64) NULL" },
+        { name: "typedSignature", definition: "varchar(255) NULL" },
+        { name: "verificationCodeHash", definition: "varchar(64) NULL" },
+        { name: "verificationCodeExpiresAt", definition: "timestamp NULL" },
+        { name: "verificationCodeSentAt", definition: "timestamp NULL" },
+        { name: "verificationCodeAttempts", definition: "int NOT NULL DEFAULT 0" },
+        { name: "emailVerifiedAt", definition: "timestamp NULL" },
+        { name: "consentAcceptedAt", definition: "timestamp NULL" },
+        { name: "signerIp", definition: "varchar(45) NULL" },
+        { name: "signerUserAgent", definition: "varchar(512) NULL" }
       ],
       customRoles: [
         { name: "organizationId", definition: "varchar(64) NULL" },
@@ -7660,18 +7845,66 @@ var init_legacySchemaCompatibility = __esm({
         createSql: `CREATE TABLE IF NOT EXISTS eSignatureRequests (
       id VARCHAR(64) NOT NULL PRIMARY KEY,
       organizationId VARCHAR(64) NULL,
+      workflowId VARCHAR(64) NULL,
+      documentType VARCHAR(32) NULL,
+      documentId VARCHAR(64) NULL,
+      documentHash VARCHAR(64) NULL,
+      sequence INT NOT NULL DEFAULT 1,
       title VARCHAR(255) NOT NULL,
       documentContent LONGTEXT NOT NULL,
       signerName VARCHAR(255) NOT NULL,
       signerEmail VARCHAR(320) NOT NULL,
+      signerUserId VARCHAR(64) NULL,
+      typedSignature VARCHAR(255) NULL,
       signingToken VARCHAR(128) NOT NULL UNIQUE,
       status ENUM('pending','signed','declined','expired') NOT NULL DEFAULT 'pending',
       signatureData LONGTEXT NULL,
       signedAt TIMESTAMP NULL,
+      verificationCodeHash VARCHAR(64) NULL,
+      verificationCodeExpiresAt TIMESTAMP NULL,
+      verificationCodeSentAt TIMESTAMP NULL,
+      verificationCodeAttempts INT NOT NULL DEFAULT 0,
+      emailVerifiedAt TIMESTAMP NULL,
+      consentAcceptedAt TIMESTAMP NULL,
+      signerIp VARCHAR(45) NULL,
+      signerUserAgent VARCHAR(512) NULL,
       expiresAt TIMESTAMP NULL,
       createdBy VARCHAR(64) NOT NULL,
       createdAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+      },
+      eSignatureAuditEvents: {
+        name: "eSignatureAuditEvents",
+        createSql: `CREATE TABLE IF NOT EXISTS eSignatureAuditEvents (
+      id VARCHAR(64) NOT NULL PRIMARY KEY,
+      requestId VARCHAR(64) NOT NULL,
+      workflowId VARCHAR(64) NULL,
+      eventType VARCHAR(40) NOT NULL,
+      actorName VARCHAR(255) NULL,
+      actorEmail VARCHAR(320) NULL,
+      ipAddress VARCHAR(45) NULL,
+      userAgent VARCHAR(512) NULL,
+      metadata JSON NULL,
+      createdAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX esign_audit_request_idx (requestId, createdAt),
+      INDEX esign_audit_workflow_idx (workflowId, createdAt)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+      },
+      eSignatureSignedDocuments: {
+        name: "eSignatureSignedDocuments",
+        createSql: `CREATE TABLE IF NOT EXISTS eSignatureSignedDocuments (
+      id VARCHAR(64) NOT NULL PRIMARY KEY,
+      organizationId VARCHAR(64) NULL,
+      workflowId VARCHAR(64) NOT NULL,
+      documentType VARCHAR(32) NOT NULL,
+      documentId VARCHAR(64) NOT NULL,
+      documentHash VARCHAR(64) NOT NULL,
+      pdf LONGBLOB NOT NULL,
+      createdAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY esign_signed_document_unique_idx (documentType, documentId, workflowId),
+      INDEX esign_signed_document_org_idx (organizationId)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
       },
       jobGroups: {
@@ -9143,6 +9376,15 @@ function parseDeductionsBreakdown(value) {
     return [];
   }
 }
+function parsePayrollNotes(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(String(value || "{}"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
 function aggregateP9PayslipRows(rows) {
   return rows.reduce((totals, row) => {
     const deductions = parseDeductionsBreakdown(row.deductionsBreakdown);
@@ -9159,58 +9401,96 @@ function aggregateP9PayslipRows(rows) {
     return totals;
   }, { grossIncome: 0, paye: 0, nssf: 0, shif: 0, housingLevy: 0, numberOfPayslips: 0 });
 }
+function aggregateP9PayrollRows(rows) {
+  return rows.reduce((totals, row) => {
+    const notes2 = parsePayrollNotes(row.notes);
+    totals.grossIncome += Number(notes2.grossSalary ?? Number(row.basicSalary || 0) + Number(row.allowances || 0));
+    totals.paye += Number(notes2.paye ?? row.tax ?? 0);
+    totals.nssf += Number(notes2.nssf ?? notes2.nssfContribution ?? 0);
+    totals.shif += Number(notes2.shif ?? notes2.shifContribution ?? notes2.nhif ?? 0);
+    totals.housingLevy += Number(notes2.housingLevy ?? notes2.housingLevyDeduction ?? 0);
+    totals.numberOfPayslips += 1;
+    return totals;
+  }, { grossIncome: 0, paye: 0, nssf: 0, shif: 0, housingLevy: 0, numberOfPayslips: 0 });
+}
+function aggregateP9PayrollAndPayslipRows(payrollRows, payslipRows) {
+  const payslipPayrollIds = new Set(payslipRows.map((row) => row.payrollId || row.payrollDetailId).filter(Boolean).map(String));
+  const payrollWithoutPayslip = payrollRows.filter((row) => !payslipPayrollIds.has(String(row.id)));
+  const payrollTotals = aggregateP9PayrollRows(payrollWithoutPayslip);
+  const payslipTotals = aggregateP9PayslipRows(payslipRows);
+  return {
+    grossIncome: payrollTotals.grossIncome + payslipTotals.grossIncome,
+    paye: payrollTotals.paye + payslipTotals.paye,
+    nssf: payrollTotals.nssf + payslipTotals.nssf,
+    shif: payrollTotals.shif + payslipTotals.shif,
+    housingLevy: payrollTotals.housingLevy + payslipTotals.housingLevy,
+    numberOfPayslips: payrollTotals.numberOfPayslips + payslipTotals.numberOfPayslips
+  };
+}
+function resolveP9TaxNumber(taxInfo, employeeTaxId) {
+  const value = taxInfo?.taxNumber || taxInfo?.taxId || employeeTaxId;
+  return typeof value === "string" && value.trim() ? value.trim() : "N/A";
+}
 async function calculateP9Data(input) {
   const pool = getPool();
-  if (!pool) return null;
-  try {
-    const [empRows] = await pool.query(
-      `SELECT id, firstName, lastName, email, taxId FROM employees WHERE id = ? AND organizationId = ? LIMIT 1`,
-      [input.employeeId, input.organizationId]
-    );
-    const emp = empRows?.[0];
-    if (!emp) return null;
-    const [taxRows] = await pool.query(
-      `SELECT taxNumber FROM employeeTaxInfo WHERE employeeId = ? ORDER BY effectiveDate DESC LIMIT 1`,
-      [input.employeeId]
-    );
-    const taxInfo = taxRows?.[0];
-    const taxNumber = taxInfo?.taxNumber || emp.taxId || "N/A";
-    const [payslipRows] = await pool.query(
-      `SELECT * FROM payslips
-       WHERE employeeId = ? AND organizationId = ?
-         AND payPeriod >= ? AND payPeriod < ?
-         AND status IN ('generated', 'sent', 'viewed', 'downloaded')`,
-      [input.employeeId, input.organizationId, `${input.taxYear}-01`, `${input.taxYear + 1}-01`]
-    );
-    const payslips3 = aggregateP9PayslipRows(payslipRows || []);
-    if (payslips3.numberOfPayslips === 0) {
-      console.warn(
-        `[P9-GEN] No payslips found for employee ${emp.email} in ${input.taxYear}`
-      );
-      return null;
-    }
-    const { grossIncome, paye, nssf, shif, housingLevy, numberOfPayslips } = payslips3;
-    const reliefs = 0;
-    const totalDeductions = paye + nssf + shif + housingLevy;
-    const netTaxPayable = paye - reliefs;
-    return {
-      employeeId: input.employeeId,
-      organizationId: input.organizationId,
-      taxYear: input.taxYear,
-      taxNumber,
-      grossIncome,
-      paye,
-      nssf,
-      shif,
-      housingLevy,
-      reliefs,
-      netTaxPayable,
-      numberOfPayslips
-    };
-  } catch (error) {
-    console.error("[P9-GEN] Error calculating P9 data:", error);
+  if (!pool) throw new Error("Database not available");
+  const employeeScope = input.organizationId ? "organizationId = ?" : "organizationId IS NULL";
+  const employeeParams = input.organizationId ? [input.employeeId, input.organizationId] : [input.employeeId];
+  const [empRows] = await pool.query(
+    `SELECT id, firstName, lastName, email, taxId FROM employees WHERE id = ? AND ${employeeScope} LIMIT 1`,
+    employeeParams
+  );
+  const emp = empRows?.[0];
+  if (!emp) throw new Error(`Employee ${input.employeeId} was not found in this organization`);
+  const [taxRows] = await pool.query(
+    `SELECT * FROM employeeTaxInfo WHERE employeeId = ? ORDER BY effectiveDate DESC LIMIT 1`,
+    [input.employeeId]
+  );
+  const taxInfo = taxRows?.[0];
+  const taxNumber = resolveP9TaxNumber(taxInfo, emp.taxId);
+  const yearStart = `${input.taxYear}-01-01`;
+  const nextYearStart = `${input.taxYear + 1}-01-01`;
+  const [payrollRows] = await pool.query(
+    `SELECT p.id, p.basicSalary, p.allowances, p.tax, p.notes
+     FROM payroll p
+     INNER JOIN employees e ON e.id = p.employeeId
+     WHERE p.employeeId = ? AND e.${input.organizationId ? "organizationId = ?" : "organizationId IS NULL"}
+       AND p.payPeriodStart >= ? AND p.payPeriodStart < ?
+       AND p.status IN ('processed', 'paid')`,
+    input.organizationId ? [input.employeeId, input.organizationId, yearStart, nextYearStart] : [input.employeeId, yearStart, nextYearStart]
+  );
+  const [payslipRows] = await pool.query(
+    `SELECT * FROM payslips
+     WHERE employeeId = ? AND ${input.organizationId ? "organizationId = ?" : "organizationId IS NULL"}
+       AND status IN ('generated', 'sent', 'viewed', 'downloaded')`,
+    input.organizationId ? [input.employeeId, input.organizationId] : [input.employeeId]
+  );
+  const yearPayslips = (payslipRows || []).filter((row) => {
+    const period = String(row.payPeriod || row.payMonth || row.payPeriodStart || "");
+    return period >= yearStart && period < nextYearStart;
+  });
+  const totals = aggregateP9PayrollAndPayslipRows(payrollRows || [], yearPayslips);
+  if (totals.numberOfPayslips === 0) {
+    console.warn(`[P9-GEN] No processed payroll or payslips found for employee ${emp.email} in ${input.taxYear}`);
     return null;
   }
+  const { grossIncome, paye, nssf, shif, housingLevy, numberOfPayslips } = totals;
+  const reliefs = 0;
+  const netTaxPayable = paye - reliefs;
+  return {
+    employeeId: input.employeeId,
+    organizationId: input.organizationId,
+    taxYear: input.taxYear,
+    taxNumber,
+    grossIncome,
+    paye,
+    nssf,
+    shif,
+    housingLevy,
+    reliefs,
+    netTaxPayable,
+    numberOfPayslips
+  };
 }
 function generateP9HTML(employeeName, email, p9Data) {
   const formatAmount = (cents) => {
@@ -9393,24 +9673,50 @@ function generateP9HTML(employeeName, email, p9Data) {
 }
 async function generateP9Form(input, generatedBy) {
   const pool = getPool();
-  if (!pool) return null;
-  try {
-    const p9Data = await calculateP9Data(input);
-    if (!p9Data) {
-      console.warn(
-        `[P9-GEN] Could not generate P9 data for employee ${input.employeeId}`
-      );
-      return null;
-    }
-    const [empRows] = await pool.query(
-      `SELECT firstName, lastName, email FROM employees WHERE id = ? LIMIT 1`,
-      [input.employeeId]
+  if (!pool) throw new Error("Database not available");
+  const p9Data = await calculateP9Data(input);
+  if (!p9Data) return null;
+  const [empRows] = await pool.query(
+    `SELECT firstName, lastName, email FROM employees
+     WHERE id = ? AND ${input.organizationId ? "organizationId = ?" : "organizationId IS NULL"} LIMIT 1`,
+    input.organizationId ? [input.employeeId, input.organizationId] : [input.employeeId]
+  );
+  const emp = empRows?.[0];
+  if (!emp) throw new Error(`Employee ${input.employeeId} was not found in this organization`);
+  const employeeName = `${emp.firstName} ${emp.lastName}`;
+  const htmlContent = generateP9HTML(employeeName, emp.email, p9Data);
+  const [existingRows] = await pool.query(
+    `SELECT id FROM p9_forms
+     WHERE ${input.organizationId ? "organizationId = ?" : "organizationId IS NULL"}
+       AND employeeId = ? AND taxYear = ? LIMIT 1`,
+    input.organizationId ? [input.organizationId, input.employeeId, input.taxYear] : [input.employeeId, input.taxYear]
+  );
+  const existingId = existingRows?.[0]?.id;
+  const p9Id = existingId || uuidv4();
+  const values = [
+    p9Data.taxNumber,
+    p9Data.grossIncome,
+    p9Data.paye + p9Data.nssf + p9Data.shif + p9Data.housingLevy,
+    p9Data.paye,
+    p9Data.nssf,
+    p9Data.shif,
+    p9Data.housingLevy,
+    p9Data.reliefs,
+    p9Data.netTaxPayable,
+    p9Data.numberOfPayslips,
+    htmlContent,
+    generatedBy
+  ];
+  if (existingId) {
+    await pool.query(
+      `UPDATE p9_forms SET taxNumber = ?, grossIncome = ?, totalDeductions = ?, paye = ?,
+       nssf = ?, shif = ?, housingLevy = ?, reliefs = ?, netTaxPayable = ?,
+       numberOfPayslips = ?, htmlContent = ?, generatedBy = ?, generatedAt = NOW(),
+       status = IF(status IN ('sent', 'received'), status, 'generated'), updatedAt = NOW()
+       WHERE id = ? AND ${input.organizationId ? "organizationId = ?" : "organizationId IS NULL"}`,
+      input.organizationId ? [...values, p9Id, input.organizationId] : [...values, p9Id]
     );
-    const emp = empRows?.[0];
-    if (!emp) return null;
-    const employeeName = `${emp.firstName} ${emp.lastName}`;
-    const htmlContent = generateP9HTML(employeeName, emp.email, p9Data);
-    const p9Id = uuidv4();
+  } else {
     await pool.query(
       `INSERT INTO p9_forms (
         id, organizationId, employeeId, taxYear, taxNumber, grossIncome,
@@ -9422,34 +9728,21 @@ async function generateP9Form(input, generatedBy) {
         input.organizationId,
         input.employeeId,
         input.taxYear,
-        p9Data.taxNumber,
-        p9Data.grossIncome,
-        p9Data.paye + p9Data.nssf + p9Data.shif + p9Data.housingLevy,
-        p9Data.paye,
-        p9Data.nssf,
-        p9Data.shif,
-        p9Data.housingLevy,
-        p9Data.reliefs,
-        p9Data.netTaxPayable,
-        p9Data.numberOfPayslips,
-        htmlContent,
+        ...values.slice(0, 11),
         generatedBy,
         "generated"
       ]
     );
-    console.log(`[P9-GEN] Generated P9 form ${p9Id} for ${emp.email} (${input.taxYear})`);
-    return { id: p9Id, status: "generated" };
-  } catch (error) {
-    console.error("[P9-GEN] Error generating P9 form:", error);
-    return null;
   }
+  console.log(`[P9-GEN] Generated P9 form ${p9Id} for ${emp.email} (${input.taxYear})`);
+  return { id: p9Id, status: "generated" };
 }
 
 // server/jobs/payrollJobs.ts
 init_db();
 init_schema();
 import { CronJob } from "cron";
-import { eq as eq12, and as and10, inArray as inArray4 } from "drizzle-orm";
+import { eq as eq12, and as and10, inArray as inArray4, desc as desc5, lte as lte3, isNull as isNull4 } from "drizzle-orm";
 import { v4 as uuidv45 } from "uuid";
 
 // server/utils/kenyan-payroll-calculator.ts
@@ -9487,6 +9780,7 @@ var HOUSING_LEVY = {
   MAX_MONTHLY: 15e3
 };
 var PERSONAL_RELIEF_MONTHLY = 2400;
+var roundCurrency = (amount) => Math.round(amount * 100) / 100;
 function calculateNSSF(grossMonthlySalary) {
   const tier1Contribution = Math.min(grossMonthlySalary * NSSF_RATES.TIER_1_RATE, NSSF_RATES.TIER_1_MAX);
   let tier2Contribution = 0;
@@ -9495,18 +9789,18 @@ function calculateNSSF(grossMonthlySalary) {
     tier2Contribution = tier2Salary * NSSF_RATES.TIER_2_RATE;
   }
   return {
-    tier1: Math.round(tier1Contribution),
-    tier2: Math.round(tier2Contribution),
-    total: Math.round(tier1Contribution + tier2Contribution)
+    tier1: roundCurrency(tier1Contribution),
+    tier2: roundCurrency(tier2Contribution),
+    total: roundCurrency(tier1Contribution + tier2Contribution)
   };
 }
 function calculateSHIF(grossMonthlySalary) {
   const shifContribution = grossMonthlySalary * SHIF_RATES.RATE;
-  return Math.round(Math.min(shifContribution, SHIF_RATES.MAX_MONTHLY));
+  return roundCurrency(Math.min(shifContribution, SHIF_RATES.MAX_MONTHLY));
 }
 function calculateHousingLevy(grossMonthlySalary) {
   const levy = grossMonthlySalary * HOUSING_LEVY.RATE;
-  return Math.round(Math.min(levy, HOUSING_LEVY.MAX_MONTHLY));
+  return roundCurrency(Math.min(levy, HOUSING_LEVY.MAX_MONTHLY));
 }
 function calculatePAYE(taxableIncome) {
   const annualTaxableIncome = taxableIncome * 12;
@@ -9522,7 +9816,7 @@ function calculatePAYE(taxableIncome) {
       }
     }
   }
-  const monthlyTax = Math.round(tax / 12);
+  const monthlyTax = roundCurrency(tax / 12);
   const personalRelief = Math.round(PERSONAL_RELIEF_MONTHLY);
   const taxAfterRelief = Math.max(0, monthlyTax - personalRelief);
   return {
@@ -9991,6 +10285,9 @@ function resolveEmailLinks(html, baseUrl = process.env.APP_URL || process.env.PU
   const resolved = html.replace(/\b(href|src)=(['"])(.*?)\2/gi, (_match, attribute, quote, rawValue) => {
     const value = rawValue.replace(/&amp;/gi, "&").trim();
     if (!value || value.startsWith("{{") || value.startsWith("${")) return `${attribute}=${quote}${quote}`;
+    if (attribute.toLowerCase() === "src" && /^data:image\/[^;]+;base64,/i.test(value)) {
+      return `${attribute}=${quote}${normalizedBase}/logo.png${quote}`;
+    }
     if (value.startsWith("#")) return `${attribute}=${quote}${value}${quote}`;
     try {
       const parsed = new URL(value, `${normalizedBase}/`);
@@ -10148,12 +10445,13 @@ async function getEmailSetting(key) {
   }
 }
 var getSmtpConfig = async () => {
-  const host = process.env.SMTP_HOST || await getEmailSetting("smtpHost");
-  const portStr = process.env.SMTP_PORT || await getEmailSetting("smtpPort");
+  const host = await getEmailSetting("smtpHost") || process.env.SMTP_HOST;
+  const portStr = await getEmailSetting("smtpPort") || process.env.SMTP_PORT;
   const port = portStr ? parseInt(portStr, 10) : void 0;
-  const user = process.env.SMTP_USER || await getEmailSetting("smtpUser");
-  const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS || await getEmailSetting("smtpPass") || await getEmailSetting("smtpPassword");
-  const secure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : port === 465;
+  const user = await getEmailSetting("smtpUser") || process.env.SMTP_USER;
+  const pass = await getEmailSetting("smtpPass") || await getEmailSetting("smtpPassword") || process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
+  const secureSetting = await getEmailSetting("smtpSecure");
+  const secure = secureSetting ? secureSetting === "true" : process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : port === 465;
   if (!host || !port) {
     throw new Error("SMTP_HOST and SMTP_PORT must be configured to send email (set via env vars or Settings \u2192 Email)");
   }
@@ -10173,9 +10471,9 @@ async function sendEmail(opts) {
         auth: user && pass ? { user, pass } : void 0
       });
     };
-    const fromEmail = process.env.SMTP_FROM_EMAIL || await getEmailSetting("fromEmail") || await getEmailSetting("smtpFromEmail") || user || "info@kiini.africa";
+    const fromEmail = await getEmailSetting("fromEmail") || await getEmailSetting("smtpFromEmail") || process.env.SMTP_FROM_EMAIL || user || "info@kiini.africa";
     const companyInfo = await getCompanyInfo();
-    const fromName = process.env.SMTP_FROM_NAME || await getEmailSetting("fromName") || companyInfo.name;
+    const fromName = await getEmailSetting("fromName") || process.env.SMTP_FROM_NAME || companyInfo.name;
     const from = opts.from || `"${fromName}" <${fromEmail}>`;
     const html = opts.html ? buildEmailHtmlFromContent(opts.html, opts.subject, companyInfo.name, companyInfo.email, companyInfo.logo) : opts.text ? buildEmailHtmlFromContent(`<p>${escapeEmailText(opts.text)}</p>`, opts.subject, companyInfo.name, companyInfo.email, companyInfo.logo) : void 0;
     const sendWith = async (targetPort, targetSecure) => {
@@ -10725,14 +11023,14 @@ var EmailService = class {
         throw new Error("Database connection lost");
       }
       const emailQueue2 = (await Promise.resolve().then(() => (init_schema(), schema_exports))).emailQueue;
-      const { eq: eq13, and: and11, lt, isNull: isNull3, or: or2 } = await import("drizzle-orm");
+      const { eq: eq13, and: and11, lt, isNull: isNull5, or: or2 } = await import("drizzle-orm");
       const nowDate = /* @__PURE__ */ new Date();
       const now2 = nowDate.toISOString().replace("T", " ").substring(0, 19);
       const pendingEmails = await database.select().from(emailQueue2).where(
         and11(
           eq13(emailQueue2.status, "pending"),
           or2(
-            isNull3(emailQueue2.nextRetryAt),
+            isNull5(emailQueue2.nextRetryAt),
             lt(emailQueue2.nextRetryAt, now2)
           )
         )
@@ -10842,7 +11140,8 @@ var sendEmailImmediately = (input) => emailService.sendEmailImmediately(input);
 
 // server/services/payrollCostAllocationService.ts
 init_schema();
-import { and as and9, desc as desc4, eq as eq10, inArray as inArray3, lte as lte2 } from "drizzle-orm";
+init_schema_extended();
+import { and as and9, desc as desc4, eq as eq10, inArray as inArray3, isNull as isNull3, lte as lte2 } from "drizzle-orm";
 import { v4 as uuidv43 } from "uuid";
 
 // server/utils/chartOfAccountBalance.ts
@@ -10864,6 +11163,7 @@ async function adjustChartOfAccountBalance(database, accountId, delta, organizat
 }
 
 // server/services/payrollCostAllocationService.ts
+var organizationScopeCondition = (column, organizationId) => organizationId === null ? isNull3(column) : eq10(column, organizationId);
 function splitCents(totalCents, allocations) {
   if (!Number.isSafeInteger(totalCents) || totalCents < 0) throw new Error("Payroll amounts must be non-negative integer cents");
   const splits = allocations.map((allocation) => {
@@ -10893,17 +11193,35 @@ async function recordPayrollCostAllocation(database, input) {
     };
   }
   const history = await database.select().from(employeeCostAllocations).where(and9(
-    eq10(employeeCostAllocations.organizationId, input.organizationId),
+    organizationScopeCondition(employeeCostAllocations.organizationId, input.organizationId),
     eq10(employeeCostAllocations.employeeId, input.employeeId),
     lte2(employeeCostAllocations.effectiveDate, input.payrollPeriodStart.slice(0, 10))
   )).orderBy(desc4(employeeCostAllocations.effectiveDate));
-  if (history.length === 0) {
-    throw new Error(`No effective cost allocation is configured for employee ${input.employeeId}`);
+  let allocations;
+  let allocationEffectiveDate;
+  if (history.length > 0) {
+    allocationEffectiveDate = history[0].effectiveDate;
+    allocations = history.filter((row) => row.effectiveDate === allocationEffectiveDate).map((row) => ({ costCenterId: row.costCenterId, allocationBasisPoints: row.allocationBasisPoints }));
+  } else if (input.employeeDepartmentId) {
+    const departmentCenters = await database.select({
+      id: payrollCostCenters.id
+    }).from(payrollCostCenters).where(and9(
+      organizationScopeCondition(payrollCostCenters.organizationId, input.organizationId),
+      eq10(payrollCostCenters.departmentId, input.employeeDepartmentId),
+      eq10(payrollCostCenters.isActive, 1)
+    )).limit(2);
+    if (departmentCenters.length !== 1) {
+      throw new Error(
+        departmentCenters.length > 1 ? `Multiple active payroll cost centers are linked to the employee's department; configure an explicit allocation for employee ${input.employeeId}` : `No employee allocation or active payroll cost center is linked to the employee's department; configure department payroll mapping for employee ${input.employeeId}`
+      );
+    }
+    allocations = [{ costCenterId: departmentCenters[0].id, allocationBasisPoints: 1e4 }];
+  } else {
+    throw new Error(`No effective cost allocation or department is configured for employee ${input.employeeId}`);
   }
-  const effectiveDate = history[0].effectiveDate;
-  const allocations = history.filter((row) => row.effectiveDate === effectiveDate).map((row) => ({ costCenterId: row.costCenterId, allocationBasisPoints: row.allocationBasisPoints }));
   if (allocations.reduce((sum2, item) => sum2 + item.allocationBasisPoints, 0) !== 1e4) {
-    throw new Error(`Cost allocations effective ${effectiveDate} for employee ${input.employeeId} must total 100%`);
+    const allocationDate = allocationEffectiveDate ? ` effective ${allocationEffectiveDate}` : "";
+    throw new Error(`Cost allocations${allocationDate} for employee ${input.employeeId} must total 100%`);
   }
   const costCenters = await database.select({
     id: payrollCostCenters.id,
@@ -10913,7 +11231,7 @@ async function recordPayrollCostAllocation(database, input) {
     expenseAccountId: payrollCostCenters.expenseAccountId,
     payrollLiabilityAccountId: payrollCostCenters.payrollLiabilityAccountId
   }).from(payrollCostCenters).where(and9(
-    eq10(payrollCostCenters.organizationId, input.organizationId),
+    organizationScopeCondition(payrollCostCenters.organizationId, input.organizationId),
     eq10(payrollCostCenters.isActive, 1)
   ));
   const centerById = new Map(costCenters.map((center) => [center.id, center]));
@@ -10921,11 +11239,65 @@ async function recordPayrollCostAllocation(database, input) {
     throw new Error("The effective cost allocation references an inactive or unavailable cost center");
   }
   const allocatedCenters = allocations.map((allocation) => centerById.get(allocation.costCenterId));
-  const accountIds = [...new Set(allocatedCenters.flatMap(
-    (center) => [center.expenseAccountId, center.payrollLiabilityAccountId].filter(Boolean)
-  ))];
-  if (allocatedCenters.some((center) => !center.expenseAccountId || !center.payrollLiabilityAccountId)) {
-    throw new Error("Every allocated payroll cost center must be mapped to an expense account and payroll liability account in the Chart of Accounts");
+  const expenseComponents = input.expenseComponents ?? [];
+  const liabilityComponents = input.liabilityComponents ?? [];
+  const componentMappings = expenseComponents.length || liabilityComponents.length ? await database.select().from(payrollComponentMappings).where(organizationScopeCondition(payrollComponentMappings.organizationId, input.organizationId)) : [];
+  const mappingByKey = new Map(componentMappings.map((mapping) => [
+    `${mapping.componentType}:${String(mapping.componentName).trim().toLowerCase()}`,
+    mapping.accountId
+  ]));
+  const mappedLiabilityComponents = liabilityComponents.map((component) => ({
+    component,
+    accountId: component.glAccountId || (component.componentType ? mappingByKey.get(`${component.componentType}:${component.componentName.trim().toLowerCase()}`) || mappingByKey.get(`${component.componentType}:*`) : void 0)
+  }));
+  const componentsByCenter = /* @__PURE__ */ new Map();
+  const totalsByCenter = /* @__PURE__ */ new Map();
+  for (const component of expenseComponents) {
+    if (!Number.isSafeInteger(component.amountCents) || component.amountCents < 0) {
+      throw new Error(`Payroll component ${component.componentName} must be a non-negative integer number of cents`);
+    }
+    let componentAllocations = allocations;
+    if (component.departmentIdOverride) {
+      const overrideCenters = costCenters.filter((center) => center.departmentId === component.departmentIdOverride);
+      if (overrideCenters.length !== 1) {
+        throw new Error(overrideCenters.length > 1 ? `Department override for ${component.componentName} must have exactly one active payroll cost center` : `Department override for ${component.componentName} has no active payroll cost center`);
+      }
+      componentAllocations = [{ costCenterId: overrideCenters[0].id, allocationBasisPoints: 1e4 }];
+    }
+    const split = splitCents(component.amountCents, componentAllocations);
+    const mappingKey = `${component.componentType}:${component.componentName.trim().toLowerCase()}`;
+    const accountId = component.glAccountId || mappingByKey.get(mappingKey) || mappingByKey.get(`${component.componentType}:*`);
+    for (const [costCenterId, amountCents] of split) {
+      const entries = componentsByCenter.get(costCenterId) ?? [];
+      entries.push({ component, amountCents, accountId: accountId || centerById.get(costCenterId)?.expenseAccountId });
+      componentsByCenter.set(costCenterId, entries);
+      const totals = totalsByCenter.get(costCenterId) ?? { grossPayCents: 0, employerStatutoryCents: 0, employerBenefitsCents: 0 };
+      if (component.componentType === "basic_salary" || component.componentType === "allowance") totals.grossPayCents += amountCents;
+      if (component.componentType === "employer_statutory") totals.employerStatutoryCents += amountCents;
+      if (component.componentType === "employer_benefit") totals.employerBenefitsCents += amountCents;
+      totalsByCenter.set(costCenterId, totals);
+    }
+  }
+  if (expenseComponents.length) {
+    const totals = expenseComponents.reduce((sum2, component) => {
+      if (component.componentType === "basic_salary" || component.componentType === "allowance") sum2.grossPayCents += component.amountCents;
+      if (component.componentType === "employer_statutory") sum2.employerStatutoryCents += component.amountCents;
+      if (component.componentType === "employer_benefit") sum2.employerBenefitsCents += component.amountCents;
+      return sum2;
+    }, { grossPayCents: 0, employerStatutoryCents: 0, employerBenefitsCents: 0 });
+    if (totals.grossPayCents !== input.grossPayCents || totals.employerStatutoryCents !== input.employerStatutoryCents || totals.employerBenefitsCents !== input.employerBenefitsCents) {
+      throw new Error("Payroll expense components do not reconcile with the payroll totals");
+    }
+  }
+  const centersForAllocation = expenseComponents.length ? [.../* @__PURE__ */ new Set([...allocations.map((allocation) => allocation.costCenterId), ...componentsByCenter.keys()])].map((id) => centerById.get(id)) : allocatedCenters;
+  const accountIdList = centersForAllocation.flatMap((center) => [
+    center.expenseAccountId,
+    center.payrollLiabilityAccountId,
+    ...(componentsByCenter.get(center.id) ?? []).map((entry) => entry.accountId)
+  ].filter(Boolean)).concat(mappedLiabilityComponents.map((entry) => entry.accountId).filter(Boolean));
+  const accountIds = [...new Set(accountIdList)];
+  if (centersForAllocation.some((center) => !center.expenseAccountId || !center.payrollLiabilityAccountId)) {
+    throw new Error("Every payroll cost center used by the allocation must be mapped to an expense account and payroll liability account in the Chart of Accounts");
   }
   const mappedAccounts = await database.select({
     id: accounts.id,
@@ -10936,10 +11308,10 @@ async function recordPayrollCostAllocation(database, input) {
     isActive: accounts.isActive
   }).from(accounts).where(and9(
     inArray3(accounts.id, accountIds),
-    eq10(accounts.organizationId, input.organizationId)
+    organizationScopeCondition(accounts.organizationId, input.organizationId)
   ));
   const accountById = new Map(mappedAccounts.map((account) => [account.id, account]));
-  for (const center of allocatedCenters) {
+  for (const center of centersForAllocation) {
     const expenseAccount = accountById.get(center.expenseAccountId);
     const liabilityAccount = accountById.get(center.payrollLiabilityAccountId);
     if (!expenseAccount || expenseAccount.isActive !== 1 || !["expense", "operating expense", "cost of goods sold", "other expense"].includes(expenseAccount.accountType)) {
@@ -10947,6 +11319,22 @@ async function recordPayrollCostAllocation(database, input) {
     }
     if (!liabilityAccount || liabilityAccount.isActive !== 1 || liabilityAccount.accountType !== "liability") {
       throw new Error(`Cost center ${center.code} must map to an active liability account in this organization`);
+    }
+    for (const entry of componentsByCenter.get(center.id) ?? []) {
+      const componentAccount = entry.accountId ? accountById.get(entry.accountId) : void 0;
+      if (!componentAccount || componentAccount.isActive !== 1 || !["expense", "operating expense", "cost of goods sold", "other expense"].includes(componentAccount.accountType)) {
+        throw new Error(`Payroll component ${entry.component.componentName} must map to an active expense account in this organization`);
+      }
+    }
+    for (const { component, accountId } of mappedLiabilityComponents) {
+      if (!Number.isSafeInteger(component.amountCents) || component.amountCents < 0) {
+        throw new Error(`Payroll liability ${component.componentName} must be a non-negative integer number of cents`);
+      }
+      if (!accountId) continue;
+      const liabilityAccount2 = accountById.get(accountId);
+      if (!liabilityAccount2 || liabilityAccount2.isActive !== 1 || liabilityAccount2.accountType !== "liability") {
+        throw new Error(`Payroll liability ${component.componentName} must map to an active liability account in this organization`);
+      }
     }
   }
   const amountFields = {
@@ -10963,7 +11351,40 @@ async function recordPayrollCostAllocation(database, input) {
   const splitFields = Object.fromEntries(
     Object.entries(amountFields).map(([field, amount]) => [field, splitCents(amount, allocations)])
   );
-  const ledgerEntries = allocations.map((allocation) => ({
+  if (expenseComponents.length) {
+    for (const field of ["grossPayCents", "employerStatutoryCents", "employerBenefitsCents"]) {
+      splitFields[field] = new Map(centersForAllocation.map((center) => [
+        center.id,
+        totalsByCenter.get(center.id)?.[field] ?? 0
+      ]));
+    }
+    splitFields.fullyBurdenedCostCents = new Map(centersForAllocation.map((center) => {
+      const totals = totalsByCenter.get(center.id);
+      return [center.id, totals ? totals.grossPayCents + totals.employerStatutoryCents + totals.employerBenefitsCents : 0];
+    }));
+  }
+  const totalBurdened = [...splitFields.fullyBurdenedCostCents.values()].reduce((sum2, value) => sum2 + value, 0);
+  const ledgerCenters = totalBurdened > 0 ? centersForAllocation.filter((center) => (splitFields.fullyBurdenedCostCents.get(center.id) ?? 0) > 0) : centersForAllocation;
+  const ledgerAllocations = ledgerCenters.map((center) => ({
+    costCenterId: center.id,
+    allocationBasisPoints: totalBurdened > 0 ? Math.floor((splitFields.fullyBurdenedCostCents.get(center.id) ?? 0) * 1e4 / totalBurdened) : allocations.find((allocation) => allocation.costCenterId === center.id)?.allocationBasisPoints ?? 0
+  }));
+  let basisPointRemainder = 1e4 - ledgerAllocations.reduce((sum2, allocation) => sum2 + allocation.allocationBasisPoints, 0);
+  for (let index4 = 0; basisPointRemainder > 0 && ledgerAllocations.length > 0; index4++, basisPointRemainder--) {
+    ledgerAllocations[index4 % ledgerAllocations.length].allocationBasisPoints++;
+  }
+  const liabilityCreditsByCenter = /* @__PURE__ */ new Map();
+  const customLiabilityTotalsByCenter = /* @__PURE__ */ new Map();
+  for (const { component, accountId } of mappedLiabilityComponents.filter((entry) => entry.accountId && entry.component.amountCents > 0)) {
+    const split = splitCents(component.amountCents, ledgerAllocations);
+    for (const [costCenterId, amountCents] of split) {
+      const credits = liabilityCreditsByCenter.get(costCenterId) ?? /* @__PURE__ */ new Map();
+      credits.set(accountId, (credits.get(accountId) ?? 0) + amountCents);
+      liabilityCreditsByCenter.set(costCenterId, credits);
+      customLiabilityTotalsByCenter.set(costCenterId, (customLiabilityTotalsByCenter.get(costCenterId) ?? 0) + amountCents);
+    }
+  }
+  const ledgerEntries = ledgerAllocations.map((allocation) => ({
     id: uuidv43(),
     organizationId: input.organizationId,
     payrollId: input.payrollId,
@@ -10979,9 +11400,8 @@ async function recordPayrollCostAllocation(database, input) {
   }));
   await database.insert(payrollLedgerEntries).values(ledgerEntries);
   const processedAt = (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").substring(0, 19);
-  for (const allocation of allocations) {
+  for (const allocation of ledgerAllocations) {
     const center = centerById.get(allocation.costCenterId);
-    const expenseAccount = accountById.get(center.expenseAccountId);
     const liabilityAccount = accountById.get(center.payrollLiabilityAccountId);
     const amount = splitFields.fullyBurdenedCostCents.get(allocation.costCenterId) ?? 0;
     if (amount === 0) continue;
@@ -10990,6 +11410,7 @@ async function recordPayrollCostAllocation(database, input) {
     await database.insert(journalEntries).values({
       id: journalEntryId,
       organizationId: input.organizationId,
+      costCenterId: center.id,
       entryNumber: `JE-PAYROLL-${payPeriod}-${journalEntryId}`,
       entryDate: input.payrollPeriodEnd,
       entryMonth: payPeriod,
@@ -11004,37 +11425,72 @@ async function recordPayrollCostAllocation(database, input) {
       createdAt: processedAt,
       updatedAt: processedAt
     });
+    const componentDebits = /* @__PURE__ */ new Map();
+    const componentEntries = componentsByCenter.get(allocation.costCenterId) ?? [];
+    if (expenseComponents.length) {
+      for (const entry of componentEntries) {
+        if (entry.amountCents > 0 && entry.accountId) {
+          componentDebits.set(entry.accountId, (componentDebits.get(entry.accountId) ?? 0) + entry.amountCents);
+        }
+      }
+    } else {
+      componentDebits.set(center.expenseAccountId, amount);
+    }
+    const mappedLiabilityCredits = liabilityCreditsByCenter.get(allocation.costCenterId) ?? /* @__PURE__ */ new Map();
+    const defaultLiabilityCredit = amount - (customLiabilityTotalsByCenter.get(allocation.costCenterId) ?? 0);
+    if (defaultLiabilityCredit < 0) {
+      throw new Error(`Payroll liability mappings exceed the payroll cost allocated to cost center ${center.code}`);
+    }
+    const debitLines = [...componentDebits.entries()].map(([accountId, debit], index4) => ({
+      id: uuidv43(),
+      journalEntryId,
+      accountId,
+      debit,
+      credit: 0,
+      description: `Payroll component expense \u2014 ${center.code}`,
+      lineNumber: index4 + 1,
+      createdBy: input.createdBy ?? null,
+      createdAt: processedAt
+    }));
     await database.insert(journalEntryLines).values([
-      {
+      ...debitLines,
+      ...[...mappedLiabilityCredits.entries()].map(([accountId, credit], index4) => ({
         id: uuidv43(),
         journalEntryId,
-        accountId: center.expenseAccountId,
-        debit: amount,
-        credit: 0,
-        description: `Fully burdened payroll expense \u2014 ${center.code}`,
-        lineNumber: 1,
+        accountId,
+        debit: 0,
+        credit,
+        description: `Payroll component liability \u2014 ${center.code}`,
+        lineNumber: debitLines.length + index4 + 1,
         createdBy: input.createdBy ?? null,
         createdAt: processedAt
-      },
+      })),
       {
         id: uuidv43(),
         journalEntryId,
         accountId: center.payrollLiabilityAccountId,
         debit: 0,
-        credit: amount,
+        credit: defaultLiabilityCredit,
         description: `Payroll payable \u2014 ${center.code}`,
-        lineNumber: 2,
+        lineNumber: debitLines.length + mappedLiabilityCredits.size + 1,
         createdBy: input.createdBy ?? null,
         createdAt: processedAt
       }
     ]);
-    await adjustChartOfAccountBalance(database, expenseAccount.id, amount, input.organizationId);
-    await adjustChartOfAccountBalance(database, liabilityAccount.id, -amount, input.organizationId);
+    for (const [accountId, debit] of componentDebits) {
+      await adjustChartOfAccountBalance(database, accountId, debit, input.organizationId);
+    }
+    for (const [accountId, credit] of mappedLiabilityCredits) {
+      await adjustChartOfAccountBalance(database, accountId, -credit, input.organizationId);
+    }
+    if (defaultLiabilityCredit > 0) {
+      await adjustChartOfAccountBalance(database, liabilityAccount.id, -defaultLiabilityCredit, input.organizationId);
+    }
   }
   return {
     inserted: true,
-    entries: allocations.length,
-    budgetSplits: allocations.map((allocation) => ({
+    entries: ledgerAllocations.length,
+    budgetSplits: ledgerAllocations.map((allocation) => ({
       costCenterId: allocation.costCenterId,
       departmentId: centerById.get(allocation.costCenterId)?.departmentId || input.employeeDepartmentId || null,
       fullyBurdenedCostCents: splitFields.fullyBurdenedCostCents.get(allocation.costCenterId) ?? 0
@@ -11050,9 +11506,23 @@ function parseJobGroupPayrollDefaults(value) {
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter(
-      (item) => Boolean(item) && typeof item.type === "string" && (Number.isFinite(item.amount) || Number.isFinite(item.percentage))
-    ) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((item) => {
+      if (!item || typeof item.type !== "string") return [];
+      const parseNumber = (raw) => typeof raw === "number" || typeof raw === "string" && raw.trim() !== "" ? Number(raw) : void 0;
+      const amount = parseNumber(item.amount);
+      const percentage = parseNumber(item.percentage);
+      const hasAmount = amount !== void 0 && Number.isFinite(amount);
+      const hasPercentage = percentage !== void 0 && Number.isFinite(percentage);
+      if (!hasAmount && !hasPercentage) return [];
+      const frequency = ["monthly", "quarterly", "annual", "one_time"].includes(item.frequency) ? item.frequency : void 0;
+      return [{
+        type: item.type,
+        ...hasAmount ? { amount } : {},
+        ...hasPercentage ? { percentage } : {},
+        ...frequency ? { frequency } : {}
+      }];
+    });
   } catch {
     return [];
   }
@@ -11063,8 +11533,16 @@ function resolveJobGroupPayrollAmount(item, basicSalary) {
   }
   return Math.round(Number(item.amount || 0));
 }
+function resolveJobGroupPayrollBasisSalary(employeeSalary, jobGroup) {
+  if (Number(employeeSalary) > 0) return Number(employeeSalary);
+  if (Number(jobGroup?.defaultBasicSalary) > 0) return Number(jobGroup?.defaultBasicSalary);
+  const minimum = Number(jobGroup?.minimumGrossSalary || 0);
+  const maximum = Number(jobGroup?.maximumGrossSalary || 0);
+  return minimum > 0 && maximum >= minimum ? (minimum + maximum) / 2 : 0;
+}
 
 // server/jobs/payrollJobs.ts
+init_schema_extended();
 function fmt(d) {
   return d.toISOString().replace("T", " ").substring(0, 19);
 }
@@ -11075,20 +11553,41 @@ function monthlyAmount(amount, frequency) {
   return value;
 }
 async function applySavedPayslipTemplate(pool, html, values, organizationId) {
-  try {
-    const [rows] = await pool.query(
-      "SELECT content FROM documentTemplates WHERE type = 'payslip' AND isDefault = 1 AND (organizationId = ? OR organizationId IS NULL) ORDER BY organizationId IS NULL ASC LIMIT 1",
-      [organizationId || null]
+  let rows;
+  if (organizationId) {
+    [rows] = await pool.query(
+      "SELECT content FROM documentTemplates WHERE type = 'payslip' AND isDefault = 1 AND organizationId = ? LIMIT 1",
+      [organizationId]
     );
-    const template = rows?.[0]?.content;
-    if (!template) return html;
-    return template.replace(/\{\{\s*([^{}]+)\s*\}\}/g, (_match, token) => values[token.trim().toLowerCase()] ?? "");
-  } catch {
-    return html;
+    if (rows?.[0]?.content) return renderPayslipTemplateContent(rows[0].content, values);
   }
+  [rows] = await pool.query(
+    "SELECT content FROM documentTemplates WHERE type = 'payslip' AND isDefault = 1 AND organizationId IS NULL LIMIT 1"
+  );
+  const template = rows?.[0]?.content;
+  return template ? renderPayslipTemplateContent(template, values) : html;
+}
+function normalizePayslipToken(token) {
+  return token.trim().replace(/^[{\[$\s]+|[}\]$\s]+$/g, "").replace(/([a-z\d])([A-Z])/g, "$1_$2").replace(/[\s\-.]+/g, "_").replace(/_+/g, "_").toLowerCase();
+}
+function renderPayslipTemplateContent(template, values) {
+  return template.replace(
+    /\{\{\s*([^{}]+?)\s*\}\}|\$\{\s*([^{}]+?)\s*\}|\[\s*([^\]]+?)\s*\]/g,
+    (_match, moustache, dollar, bracket) => values[normalizePayslipToken(moustache || dollar || bracket)] ?? ""
+  );
 }
 function lastDay(year, month) {
-  return new Date(year, month, 0);
+  return new Date(Date.UTC(year, month, 0));
+}
+function periodStart(year, month) {
+  return `${year}-${String(month).padStart(2, "0")}-01 00:00:00`;
+}
+function periodEnd(year, month) {
+  const day = lastDay(year, month).getUTCDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")} 23:59:59`;
+}
+function periodEndDate(year, month) {
+  return new Date(Date.UTC(year, month, 0, 23, 59, 59));
 }
 async function notifyByRole(db2, orgId, roles, notification) {
   try {
@@ -11124,18 +11623,21 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
   const year = targetYear ?? now2.getFullYear();
   const month = targetMonth ?? now2.getMonth() + 1;
   const payPeriodLabel = `${year}-${String(month).padStart(2, "0")}`;
-  const payPeriodStart = fmt(new Date(year, month - 1, 1));
-  const payPeriodEnd = fmt(lastDay(year, month));
+  const payPeriodStart = periodStart(year, month);
+  const payPeriodEnd = periodEnd(year, month);
   const processedAt = fmt(now2);
   console.log(`[PAYROLL-CRON] Processing payroll for ${payPeriodLabel}...`);
   const employeeConditions = [eq12(employees.status, "active")];
-  if (organizationId) employeeConditions.push(eq12(employees.organizationId, organizationId));
+  if (organizationId !== void 0) {
+    employeeConditions.push(organizationId === null ? isNull4(employees.organizationId) : eq12(employees.organizationId, organizationId));
+  }
   const activeEmployees = await db2.select().from(employees).where(and10(...employeeConditions));
   let processed = 0;
   let skipped = 0;
   const errors = [];
   const organizationIds = [...new Set(activeEmployees.map((employee) => employee.organizationId).filter(Boolean))];
   const organizationDepartments = /* @__PURE__ */ new Map();
+  const globalDepartments = /* @__PURE__ */ new Map();
   if (organizationIds.length > 0) {
     try {
       const departmentRows = await db2.select({ id: departments.id, name: departments.name, organizationId: departments.organizationId }).from(departments).where(inArray4(departments.organizationId, organizationIds));
@@ -11151,6 +11653,20 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
       }
     } catch (error) {
       console.error("[PAYROLL-CRON] Department lookup failed; using cost-center departments for budget allocation:", error);
+    }
+  }
+  if (activeEmployees.some((employee) => !employee.organizationId)) {
+    try {
+      const departmentRows = await db2.select({
+        id: departments.id,
+        name: departments.name
+      }).from(departments).where(isNull4(departments.organizationId));
+      for (const department of departmentRows) {
+        globalDepartments.set(department.id.toLowerCase(), department.id);
+        globalDepartments.set(department.name.trim().toLowerCase(), department.id);
+      }
+    } catch (error) {
+      console.error("[PAYROLL-CRON] Global department lookup failed; using cost-center departments for budget allocation:", error);
     }
   }
   const jobGroupRows = await db2.select().from(jobGroups);
@@ -11169,7 +11685,12 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
         continue;
       }
       const jobGroup = jobGroupById.get(String(emp.jobGroupId));
-      const basicSalaryUnits = emp.salary ?? jobGroup?.defaultBasicSalary ?? 0;
+      const [salaryStructure] = await db2.select().from(salaryStructures).where(and10(
+        eq12(salaryStructures.employeeId, emp.id),
+        lte3(salaryStructures.effectiveDate, periodEndDate(year, month))
+      )).orderBy(desc5(salaryStructures.effectiveDate)).limit(1);
+      const employeeSalary = Number(emp.salary);
+      const basicSalaryUnits = Number.isFinite(employeeSalary) && employeeSalary > 0 ? employeeSalary : salaryStructure?.basicSalary != null ? Number(salaryStructure.basicSalary) / 100 : resolveJobGroupPayrollBasisSalary(void 0, jobGroup);
       const basicSalaryCents = Math.round(Number(basicSalaryUnits) * 100);
       if (basicSalaryCents === 0) {
         errors.push(`${emp.firstName} ${emp.lastName}: no salary configured`);
@@ -11187,18 +11708,18 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
         try {
           const activeWindow = `effectiveDate <= ? AND (endDate IS NULL OR endDate >= ?)`;
           const [allowanceRows] = await pool.query(
-            `SELECT allowanceType, amount, frequency FROM salaryAllowances WHERE employeeId = ? AND isActive = 1 AND ${activeWindow}`,
+            `SELECT id, allowanceType, amount, frequency, departmentIdOverride, glAccountId FROM salaryAllowances WHERE employeeId = ? AND isActive = 1 AND ${activeWindow}`,
             [emp.id, payPeriodEnd, payPeriodStart]
           );
           allowanceComponents = allowanceRows;
           allowancesCents = allowanceComponents.reduce((sum2, row) => sum2 + monthlyAmount(row.amount, row.frequency), 0);
           const [deductionRows] = await pool.query(
-            `SELECT deductionType, amount, frequency FROM salaryDeductions WHERE employeeId = ? AND isActive = 1 AND ${activeWindow}`,
+            `SELECT id, deductionType, amount, frequency, departmentIdOverride, glAccountId FROM salaryDeductions WHERE employeeId = ? AND isActive = 1 AND ${activeWindow}`,
             [emp.id, payPeriodEnd, payPeriodStart]
           );
           deductionComponents = deductionRows;
           const [benefitRows] = await pool.query(
-            `SELECT benefitType, cost, employerCost FROM employeeBenefits WHERE employeeId = ? AND isActive = 1 AND enrollDate <= ? AND (endDate IS NULL OR endDate >= ?)`,
+            `SELECT id, benefitType, cost, employerCost, departmentIdOverride, glAccountId FROM employeeBenefits WHERE employeeId = ? AND isActive = 1 AND enrollDate <= ? AND (endDate IS NULL OR endDate >= ?)`,
             [emp.id, payPeriodEnd, payPeriodStart]
           );
           benefitComponents = benefitRows.filter((row) => Number(row.cost || 0) > 0 || Number(row.employerCost || 0) > 0);
@@ -11239,6 +11760,12 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
       } else {
         employeeDeductionsCents = deductionComponents.reduce((sum2, row) => sum2 + monthlyAmount(row.amount, row.frequency), 0);
       }
+      if (allowanceComponents.length === 0) {
+        allowancesCents = Number(salaryStructure?.allowances || 0);
+      }
+      if (deductionComponents.length === 0) {
+        employeeDeductionsCents = Number(salaryStructure?.deductions || 0);
+      }
       const calc = calculateKenyanPayroll({
         basicSalary: basicSalaryCents,
         allowances: allowancesCents
@@ -11249,14 +11776,34 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
       const netSalary = calc.grossSalary - totalDeductions;
       const orgId = emp.organizationId;
       const departmentKey = String(emp.department ?? "").trim().toLowerCase();
-      const departmentId = orgId ? organizationDepartments.get(orgId)?.get(departmentKey) : void 0;
-      if (!orgId) {
-        errors.push(`${emp.firstName} ${emp.lastName}: payroll was not created because the employee is not assigned to an organization`);
-        skipped++;
-        continue;
-      }
+      const departmentId = orgId ? organizationDepartments.get(orgId)?.get(departmentKey) : globalDepartments.get(departmentKey);
       const employerStatutoryCents = calc.nssfContribution + calc.housingLevyDeduction;
-      const allocationResult = await db2.transaction(async (transaction) => {
+      const explicitAllowanceCents = allowanceComponents.reduce((sum2, row) => sum2 + monthlyAmount(row.amount, row.frequency), 0);
+      const expenseComponents = [
+        { componentType: "basic_salary", componentName: "Basic Salary", amountCents: calc.basicSalary },
+        ...allowanceComponents.map((row) => ({
+          componentType: "allowance",
+          componentName: String(row.allowanceType || "Allowance"),
+          amountCents: monthlyAmount(row.amount, row.frequency),
+          departmentIdOverride: row.departmentIdOverride || null,
+          glAccountId: row.glAccountId || null
+        })),
+        ...allowancesCents > explicitAllowanceCents ? [{
+          componentType: "allowance",
+          componentName: "Other Allowances",
+          amountCents: allowancesCents - explicitAllowanceCents
+        }] : [],
+        { componentType: "employer_statutory", componentName: "Employer NSSF", amountCents: calc.nssfContribution },
+        { componentType: "employer_statutory", componentName: "Employer Housing Levy", amountCents: calc.housingLevyDeduction },
+        ...benefitComponents.filter((row) => Number(row.employerCost || 0) > 0).map((row) => ({
+          componentType: "employer_benefit",
+          componentName: String(row.benefitType || "Employer Benefit"),
+          amountCents: Number(row.employerCost || 0),
+          departmentIdOverride: row.departmentIdOverride || null,
+          glAccountId: row.glAccountId || null
+        }))
+      ];
+      await db2.transaction(async (transaction) => {
         await transaction.insert(payroll).values({
           id,
           employeeId: emp.id,
@@ -11293,42 +11840,98 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
           createdAt: processedAt,
           updatedAt: processedAt
         });
-        const result = await recordPayrollCostAllocation(transaction, {
-          organizationId: orgId,
-          payrollId: id,
-          employeeId: emp.id,
-          createdBy: triggeredBy ?? null,
-          payrollPeriodStart: payPeriodStart,
-          payrollPeriodEnd: payPeriodEnd,
-          // Cost-center allocations are the authoritative accounting split. The
-          // employee's legacy free-text department is only a fallback for budgets.
-          employeeDepartmentId: departmentId ?? null,
-          grossPayCents: calc.grossSalary,
-          employerStatutoryCents,
-          employerBenefitsCents,
-          employeeTaxCents: calc.payeeTax,
-          netPayoutCents: netSalary
-        });
-        const budgetTotals = /* @__PURE__ */ new Map();
-        for (const split of result.budgetSplits ?? []) {
-          if (!split.departmentId) {
-            throw new Error(`Cost center ${split.costCenterId} has no department for budget charging`);
-          }
-          budgetTotals.set(split.departmentId, (budgetTotals.get(split.departmentId) ?? 0) + split.fullyBurdenedCostCents);
-        }
-        for (const [budgetDepartmentId, amountCents] of budgetTotals) {
-          const budget = await findActiveBudget(transaction, orgId, budgetDepartmentId, year);
-          if (!budget) throw new Error(`No budget found for department ${budgetDepartmentId} in FY${year}`);
-          await checkBudget(transaction, amountCents, orgId, {
-            budgetId: budget.budgetId,
-            departmentId: budgetDepartmentId,
-            fiscalYear: year,
-            label: `payroll ${payPeriodLabel}`
-          });
-          await deductFromBudget(transaction, budget.budgetId, amountCents);
-        }
-        return result;
       });
+      if (orgId) payrollOrganizationIds.add(orgId);
+      processed++;
+      if (orgId) {
+        try {
+          await db2.transaction(async (transaction) => {
+            const allocationResult = await recordPayrollCostAllocation(transaction, {
+              organizationId: orgId,
+              payrollId: id,
+              employeeId: emp.id,
+              createdBy: triggeredBy ?? null,
+              payrollPeriodStart: payPeriodStart,
+              payrollPeriodEnd: payPeriodEnd,
+              // Cost-center allocations are the authoritative accounting split. The
+              // employee's legacy free-text department is only a fallback for budgets.
+              employeeDepartmentId: departmentId ?? null,
+              grossPayCents: calc.grossSalary,
+              employerStatutoryCents,
+              employerBenefitsCents,
+              employeeTaxCents: calc.payeeTax,
+              netPayoutCents: netSalary,
+              expenseComponents,
+              liabilityComponents: [
+                ...deductionComponents.map((row) => ({
+                  componentName: String(row.deductionType || "Salary Deduction"),
+                  amountCents: monthlyAmount(row.amount, row.frequency),
+                  glAccountId: row.glAccountId || null
+                })),
+                ...benefitComponents.filter((row) => Number(row.cost || 0) > 0).map((row) => ({
+                  componentName: String(row.benefitType || "Employee Benefit"),
+                  amountCents: Number(row.cost || 0),
+                  glAccountId: row.glAccountId || null
+                })),
+                ...[
+                  { componentName: "NSSF", amountCents: calc.nssfContribution },
+                  { componentName: "PAYE", amountCents: calc.payeeTax },
+                  { componentName: "SHIF", amountCents: calc.shifContribution },
+                  { componentName: "Housing Levy", amountCents: calc.housingLevyDeduction }
+                ].map((component) => ({ ...component, componentType: "statutory_liability" }))
+              ]
+            });
+            if (allocationResult.inserted) {
+              const budgetTotals = /* @__PURE__ */ new Map();
+              for (const split of allocationResult.budgetSplits ?? []) {
+                if (!split.departmentId) {
+                  throw new Error(`Cost center ${split.costCenterId} has no department for budget charging`);
+                }
+                budgetTotals.set(split.departmentId, (budgetTotals.get(split.departmentId) ?? 0) + split.fullyBurdenedCostCents);
+              }
+              for (const [budgetDepartmentId, amountCents] of budgetTotals) {
+                const budget = await findActiveBudget(transaction, orgId, budgetDepartmentId, year);
+                if (!budget) throw new Error(`No budget found for department ${budgetDepartmentId} in FY${year}`);
+                await checkBudget(transaction, amountCents, orgId, {
+                  budgetId: budget.budgetId,
+                  departmentId: budgetDepartmentId,
+                  fiscalYear: year,
+                  label: `payroll ${payPeriodLabel}`
+                });
+                await deductFromBudget(transaction, budget.budgetId, amountCents);
+              }
+            }
+          });
+        } catch (allocationError) {
+          const message = allocationError?.message ?? String(allocationError);
+          let budgetMessage = "";
+          if (departmentId) {
+            try {
+              await db2.transaction(async (transaction) => {
+                const budget = await findActiveBudget(transaction, orgId, departmentId, year);
+                if (!budget) throw new Error(`No budget found for department ${departmentId} in FY${year}`);
+                const fullyBurdenedCostCents = calc.grossSalary + employerStatutoryCents + employerBenefitsCents;
+                await checkBudget(transaction, fullyBurdenedCostCents, orgId, {
+                  budgetId: budget.budgetId,
+                  departmentId,
+                  fiscalYear: year,
+                  label: `payroll ${payPeriodLabel}`
+                });
+                await deductFromBudget(transaction, budget.budgetId, fullyBurdenedCostCents);
+              });
+              budgetMessage = "; department budget was charged using the employee's department";
+            } catch (budgetError) {
+              const budgetErrorMessage = budgetError?.message ?? String(budgetError);
+              budgetMessage = `; budget deduction also failed: ${budgetErrorMessage}`;
+              console.error("[PAYROLL-CRON] Department budget fallback failed:", budgetError);
+            }
+          } else {
+            budgetMessage = "; budget could not be charged because the employee has no matching department";
+          }
+          errors.push(`${emp.firstName} ${emp.lastName}: payroll was created${budgetMessage}, but accounting allocation failed: ${message}`);
+          console.error("[PAYROLL-CRON] Payroll created but accounting allocation failed:", allocationError);
+        }
+      }
       if (pool) {
         const components = [
           ...allowanceComponents.map((item) => ["allowance", item.allowanceType, Number(item.amount || 0)]),
@@ -11348,8 +11951,6 @@ async function processMonthlyPayroll(targetYear, targetMonth, triggeredBy, organ
           ).catch((detailErr) => console.warn("[PAYROLL-CRON] Payroll detail insert failed:", detailErr?.message));
         }
       }
-      if (orgId) payrollOrganizationIds.add(orgId);
-      processed++;
     } catch (err) {
       errors.push(`${emp.firstName} ${emp.lastName}: ${err?.message ?? err}`);
       console.error("[PAYROLL-CRON] Error processing employee payroll:", err);
@@ -11395,15 +11996,15 @@ async function dispatchPayslips(targetYear, targetMonth, organizationId) {
   const year = targetYear ?? now2.getFullYear();
   const month = targetMonth ?? now2.getMonth() + 1;
   const payPeriodLabel = `${year}-${String(month).padStart(2, "0")}`;
-  const payPeriodStart = fmt(new Date(year, month - 1, 1));
-  const payPeriodEnd = fmt(lastDay(year, month));
+  const payPeriodStart = periodStart(year, month);
+  const payPeriodEnd = periodEnd(year, month);
   console.log(`[PAYROLL-CRON] Dispatching payslips for ${payPeriodLabel}...`);
   const payrollConditions = [
     eq12(payroll.payPeriodStart, payPeriodStart),
     inArray4(payroll.status, ["processed", "paid"])
   ];
-  if (organizationId) {
-    const orgEmployees = await db2.select({ id: employees.id }).from(employees).where(eq12(employees.organizationId, organizationId));
+  if (organizationId !== void 0) {
+    const orgEmployees = await db2.select({ id: employees.id }).from(employees).where(organizationId === null ? isNull4(employees.organizationId) : eq12(employees.organizationId, organizationId));
     if (orgEmployees.length === 0) {
       return { dispatched: 0, errors: ["No employees found in this organization"] };
     }
@@ -11514,7 +12115,35 @@ async function dispatchPayslips(targetYear, targetMonth, organizationId) {
         allowances: formatMinorCurrencyAmount(payslipData.earnings.allowances.reduce((sum2, item) => sum2 + item.amount, 0), "KES", { symbol: "KES", minimumFractionDigits: 2 }),
         gross_salary: formatMinorCurrencyAmount(payslipData.earnings.grossSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
         total_deductions: formatMinorCurrencyAmount(payslipData.deductions.total, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
-        net_salary: formatMinorCurrencyAmount(payslipData.netSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 })
+        net_salary: formatMinorCurrencyAmount(payslipData.netSalary, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        paye: formatMinorCurrencyAmount(payslipData.deductions.paye, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        nssf: formatMinorCurrencyAmount(payslipData.deductions.nssf, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        nhif: formatMinorCurrencyAmount(payslipData.deductions.shif, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        loan_deduction: formatMinorCurrencyAmount(
+          deductionsBreakdown.filter((item) => /loan/i.test(item.name)).reduce((sum2, item) => sum2 + item.amount, 0),
+          "KES",
+          { symbol: "KES", minimumFractionDigits: 2 }
+        ),
+        other_deductions: formatMinorCurrencyAmount(
+          deductionsBreakdown.filter((item) => item.type === "deduction" && !/loan/i.test(item.name)).reduce((sum2, item) => sum2 + item.amount, 0),
+          "KES",
+          { symbol: "KES", minimumFractionDigits: 2 }
+        ),
+        employer_nssf: formatMinorCurrencyAmount(details.nssf ?? 0, "KES", { symbol: "KES", minimumFractionDigits: 2 }),
+        employer_benefits: formatMinorCurrencyAmount(
+          employerContributions.reduce((sum2, item) => sum2 + item.amount, 0),
+          "KES",
+          { symbol: "KES", minimumFractionDigits: 2 }
+        ),
+        total_company_contribution: formatMinorCurrencyAmount(
+          employerContributions.reduce((sum2, item) => sum2 + item.amount, 0),
+          "KES",
+          { symbol: "KES", minimumFractionDigits: 2 }
+        ),
+        ...Object.fromEntries(allowancesBreakdown.slice(0, 4).flatMap((item, index4) => [
+          [`allowance_${index4 + 1}_name`, item.name],
+          [`allowance_${index4 + 1}_amount`, formatMinorCurrencyAmount(item.amount, "KES", { symbol: "KES", minimumFractionDigits: 2 })]
+        ]))
       }, emp.organizationId);
       if (pool) {
         const [existing] = await pool.query(
@@ -11569,21 +12198,34 @@ async function dispatchPayslips(targetYear, targetMonth, organizationId) {
         }
       }
       if (emp.email) {
+        let emailSent = false;
         try {
           await sendEmailImmediately({
             toEmail: emp.email,
             subject: `Your Payslip for ${payPeriodLabel} \u2014 ${companyName}`,
             htmlContent
           });
-          if (pool) {
+          emailSent = true;
+          dispatched++;
+        } catch (emailErr) {
+          const message = `Failed to deliver payslip to ${emp.email}: ${emailErr?.message || "Unknown email error"}`;
+          errors.push(message);
+          console.error("[PAYROLL-CRON]", message);
+        }
+        if (emailSent && pool) {
+          try {
             await pool.query(
               `UPDATE payslips SET status = 'sent', sentAt = NOW(), updatedAt = NOW() WHERE employeeId = ? AND payPeriod = ?`,
               [emp.id, payPeriodLabel]
             );
+          } catch (statusErr) {
+            const message = `Payslip was emailed to ${emp.email}, but its sent status could not be saved: ${statusErr?.message || "Unknown database error"}`;
+            errors.push(message);
+            console.error("[PAYROLL-CRON]", message);
           }
-        } catch (emailErr) {
-          console.warn(`[PAYROLL-CRON] Failed to email payslip to ${emp.email}:`, emailErr?.message);
         }
+      } else {
+        errors.push(`Payslip generated for ${emp.firstName} ${emp.lastName}, but no email address is configured`);
       }
       try {
         let empUserId = emp.userId ?? null;
@@ -11610,14 +12252,17 @@ async function dispatchPayslips(targetYear, targetMonth, organizationId) {
       } catch (notifErr) {
         console.warn("[PAYROLL-CRON] Failed to notify employee:", notifErr);
       }
-      dispatched++;
     } catch (err) {
       errors.push(`Payslip error for employee ${record.employeeId}: ${err?.message}`);
       console.error("[PAYROLL-CRON] Payslip dispatch error:", err);
     }
   }
   try {
-    const organizationIds = [...new Set(empData.map((employee) => employee.organizationId).filter(Boolean))];
+    const organizationIds = [
+      ...new Set(
+        empData.map((employee) => employee.organizationId).filter((organizationId2) => typeof organizationId2 === "string" && organizationId2.length > 0)
+      )
+    ];
     for (const organizationId2 of organizationIds) {
       await notifyByRole(db2, organizationId2, ["admin", "hr_manager", "hr", "superadmin", "super_admin"], {
         title: "\u{1F4E4} Payslips Dispatched",

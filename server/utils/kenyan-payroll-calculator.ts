@@ -85,6 +85,7 @@ const HOUSING_LEVY = {
  * Fixed monthly relief to reduce tax burden
  */
 const PERSONAL_RELIEF_MONTHLY = 2400; // Monthly personal relief
+const roundCurrency = (amount: number) => Math.round(amount * 100) / 100;
 
 /**
  * Calculate NSSF Contribution (Tier 1 and Tier 2)
@@ -105,9 +106,9 @@ function calculateNSSF(grossMonthlySalary: number): {
   }
 
   return {
-    tier1: Math.round(tier1Contribution),
-    tier2: Math.round(tier2Contribution),
-    total: Math.round(tier1Contribution + tier2Contribution),
+    tier1: roundCurrency(tier1Contribution),
+    tier2: roundCurrency(tier2Contribution),
+    total: roundCurrency(tier1Contribution + tier2Contribution),
   };
 }
 
@@ -116,7 +117,7 @@ function calculateNSSF(grossMonthlySalary: number): {
  */
 function calculateSHIF(grossMonthlySalary: number): number {
   const shifContribution = grossMonthlySalary * SHIF_RATES.RATE;
-  return Math.round(Math.min(shifContribution, SHIF_RATES.MAX_MONTHLY));
+  return roundCurrency(Math.min(shifContribution, SHIF_RATES.MAX_MONTHLY));
 }
 
 /**
@@ -124,7 +125,7 @@ function calculateSHIF(grossMonthlySalary: number): number {
  */
 function calculateHousingLevy(grossMonthlySalary: number): number {
   const levy = grossMonthlySalary * HOUSING_LEVY.RATE;
-  return Math.round(Math.min(levy, HOUSING_LEVY.MAX_MONTHLY));
+  return roundCurrency(Math.min(levy, HOUSING_LEVY.MAX_MONTHLY));
 }
 
 /**
@@ -156,7 +157,7 @@ function calculatePAYE(taxableIncome: number): {
   }
 
   // Convert back to monthly
-  const monthlyTax = Math.round(tax / 12);
+  const monthlyTax = roundCurrency(tax / 12);
   const personalRelief = Math.round(PERSONAL_RELIEF_MONTHLY);
   const taxAfterRelief = Math.max(0, monthlyTax - personalRelief);
 
@@ -170,10 +171,10 @@ function calculatePAYE(taxableIncome: number): {
 
 /**
  * Main calculation function for complete payroll
- * Converts cents to whole numbers for calculation, then back to cents for output
+ * Calculates in major currency units with cent precision, then returns minor units.
  */
 export function calculateKenyanPayroll(payrollInfo: EmployeePayrollInfo): PayrollCalculationResult {
-  // Convert from cents to whole numbers
+  // Convert stored minor units to major units without discarding cents.
   const basicSalary = payrollInfo.basicSalary / 100;
   const allowances = (payrollInfo.allowances || 0) / 100;
   const housingAllowance = (payrollInfo.housingAllowance || 0) / 100;

@@ -5,11 +5,13 @@
  */
 
 import { getDb, getPool } from '../db';
-import { invoices, invoiceItems, clients, settings, receipts, lineItems, estimates, estimateItems, contracts, proposals, payslips, employees, warranties } from '../../drizzle/schema';
-import { eq, and } from 'drizzle-orm';
+import { invoices, invoiceItems, clients, settings, organizationSettings, organizations, receipts, lineItems, estimates, estimateItems, contracts, proposals, payslips, employees, warranties } from '../../drizzle/schema';
+import { eq, and, isNull } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { formatMinorCurrencyAmount, toMajorCurrencyAmount } from '../../shared/currency';
+import sanitizeHtml from 'sanitize-html';
+import { injectDocumentLetterhead } from './document-branding';
 
 // Map document type to template type name in documentTemplates table
 const TYPE_MAP: Record<string, string> = {
@@ -90,6 +92,12 @@ async function getTemplateContent(documentType: string, organizationId?: string 
     if (arr.length) return arr[0].content;
   }
 
+  if (documentType === 'proposal' || documentType === 'contract') {
+    const templateFile = TEMPLATE_FILE_MAP[documentType];
+    const filePath = templateFile ? path.resolve(process.cwd(), 'templates', templateFile) : '';
+    if (filePath && fs.existsSync(filePath)) return fs.readFileSync(filePath, 'utf-8');
+  }
+
   // 3. Try any default template for this type
   const [rows] = await pool.query(
     "SELECT content FROM documentTemplates WHERE type = ? AND isDefault = 1 LIMIT 1",
@@ -119,14 +127,59 @@ async function getTemplateContent(documentType: string, organizationId?: string 
   return null;
 }
 
+async function getSavedAgreementTemplateContent(
+  table: "contractTemplates" | "proposalTemplates",
+  templateId: string,
+  organizationId?: string | null,
+): Promise<string | null> {
+  const pool = getPool();
+  if (!pool) return null;
+  const [rows] = organizationId
+    ? await pool.query(`SELECT content FROM ${table} WHERE id = ? AND organizationId = ? LIMIT 1`, [templateId, organizationId])
+    : await pool.query(`SELECT content FROM ${table} WHERE id = ? AND organizationId IS NULL LIMIT 1`, [templateId]);
+  const matches = rows as Array<{ content?: string | null }>;
+  return matches[0]?.content || null;
+}
+
 /**
  * Fetch common company info from settings
  */
-async function fetchCompanyInfo(db: any): Promise<Record<string, string>> {
+async function fetchCompanyInfo(db: any, organizationId?: string | null): Promise<Record<string, string>> {
   const company: Record<string, string> = {};
 
-  const companyRows = await db.select().from(settings).where(eq(settings.category, 'company'));
+  if (organizationId) {
+    const organizationRows = await db.select().from(organizations).where(eq(organizations.id, organizationId)).limit(1);
+    const organization = organizationRows[0];
+    if (organization) {
+      Object.assign(company, {
+        companyName: organization.name,
+        companyEmail: organization.contactEmail,
+        companyPhone: organization.contactPhone,
+        companyWebsite: organization.website,
+        companyAddress: organization.address,
+        companyCountry: organization.country,
+        taxId: organization.taxId,
+        registrationNumber: organization.registrationNumber,
+        companyLogo: organization.logoUrl,
+      });
+    }
+  }
+
+  const companyRows = organizationId
+    ? await db.select().from(organizationSettings).where(and(
+      eq(organizationSettings.organizationId, organizationId),
+      eq(organizationSettings.category, 'company'),
+    ))
+    : await db.select().from(settings).where(eq(settings.category, 'company'));
   companyRows.forEach((s: any) => { if (s.key) company[s.key] = s.value ?? ''; });
+
+  const brandingRows = organizationId
+    ? await db.select().from(organizationSettings).where(and(
+      eq(organizationSettings.organizationId, organizationId),
+      eq(organizationSettings.category, 'document_branding'),
+    ))
+    : await db.select().from(settings).where(eq(settings.category, 'document_branding'));
+  brandingRows.forEach((s: any) => { if (s.key) company[s.key] = s.value ?? ''; });
 
   const pickFirst = (...values: Array<string | undefined | null>): string => {
     for (const value of values) {
@@ -156,6 +209,8 @@ async function fetchCompanyInfo(db: any): Promise<Record<string, string>> {
   company.address = pickFirst(company.address, company.companyAddress, company.contactAddress, company.businessAddress);
   company.website = pickFirst(company.website, company.companyWebsite, company.websiteUrl);
   company.tagline = pickFirst(company.tagline, company.slogan, company.companyTagline);
+  company.taxId = pickFirst(company.taxId, company.kraPin);
+  company.registrationNumber = pickFirst(company.registrationNumber);
 
   return company;
 }
@@ -222,11 +277,40 @@ async function fetchInvoiceTerms(db: any): Promise<string> {
 /**
  * Bind data to template HTML by replacing placeholders
  */
-function bindDataToTemplate(html: string, data: Record<string, any>): string {
+function bindDataToTemplate(html: string, data: Record<string, any>, companyInfo?: Record<string, string>): string {
   let result = html;
 
-  const companyInfo = data.companyInfo || {};
-  const companyLogo = companyInfo.logo || companyInfo.logoUrl || companyInfo.companyLogo || companyInfo.company_logo || companyInfo.logo_url || '';
+  const company = data.companyInfo || companyInfo || {};
+  const companyLogo = company.logo || company.logoUrl || company.companyLogo || company.company_logo || company.logo_url || '';
+  const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]!);
+  const richTextTokens = new Set([
+    'DESCRIPTION', 'DELIVERABLES', 'TIMELINE', 'ASSUMPTIONS', 'EXCLUSIONS', 'TERMS', 'NOTES',
+    'SCOPE_OF_WORK', 'PAYMENT_TERMS', 'CONFIDENTIALITY_TERMS', 'TERMINATION_TERMS',
+    'DISPUTE_RESOLUTION', 'COVERAGE', 'CLAIM_TERMS', 'description', 'deliverables', 'timeline',
+    'assumptions', 'exclusions', 'terms', 'notes', 'scope_of_work', 'payment_terms',
+    'confidentiality_terms', 'termination_terms', 'dispute_resolution', 'coverage', 'claim_terms',
+  ]);
+  const htmlTokens = new Set([
+    'LINE_ITEMS_HTML', 'ITEMS_TABLE_HTML', 'ITEMS_TABLE', 'TOTALS_HTML', 'TOTALS_SECTION',
+    'PAYMENT_HTML', 'PAYMENT_INSTRUCTIONS_HTML', 'LINE_ITEMS',
+  ]);
+  const replaceValue = (key: string, value: unknown): string => {
+    if (value === null || value === undefined || typeof value === 'object') return '';
+    if (htmlTokens.has(key)) return String(value);
+    if (richTextTokens.has(key)) {
+      return sanitizeHtml(String(value), {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'table', 'thead', 'tbody', 'tr', 'th', 'td']),
+        allowedAttributes: { ...sanitizeHtml.defaults.allowedAttributes, img: ['src', 'alt', 'width', 'height'], '*': ['class'] },
+      });
+    }
+    return escapeHtml(value);
+  };
   const logoTokens: Record<string, string> = {
     'company.logo': companyLogo,
     'company.logoUrl': companyLogo,
@@ -239,17 +323,29 @@ function bindDataToTemplate(html: string, data: Record<string, any>): string {
     'companyInfo.company_logo': companyLogo,
     'companyInfo.logo_url': companyLogo,
   };
+  const letterheadTokens: Record<string, string> = {
+    COMPANY_NAME: company.name || '',
+    COMPANY_ADDRESS: company.address || '',
+    COMPANY_EMAIL: company.email || '',
+    COMPANY_PHONE: company.phone || '',
+    COMPANY_WEBSITE: company.website || '',
+  };
+  const letterheadHtml = (company.letterheadHtml || '').replace(
+    /\{\{\s*(COMPANY_NAME|COMPANY_ADDRESS|COMPANY_EMAIL|COMPANY_PHONE|COMPANY_WEBSITE)\s*\}\}|\[(COMPANY_NAME|COMPANY_ADDRESS|COMPANY_EMAIL|COMPANY_PHONE|COMPANY_WEBSITE)\]/g,
+    (_match: string, token?: string, bracketToken?: string) => escapeHtml(letterheadTokens[token || bracketToken || ''] || ''),
+  );
   for (const [token, value] of Object.entries(logoTokens)) {
-    result = result.split(`{{${token}}}`).join(value);
-    result = result.split(`{{ ${token} }}`).join(value);
-    result = result.split(`\${${token}}`).join(value);
-    result = result.split(`[${token}]`).join(value);
+    const safeLogo = escapeHtml(value);
+    result = result.split(`{{${token}}}`).join(safeLogo);
+    result = result.split(`{{ ${token} }}`).join(safeLogo);
+    result = result.split(`\${${token}}`).join(safeLogo);
+    result = result.split(`[${token}]`).join(safeLogo);
   }
 
   // Replace ${companyInfo.*} placeholders
-  if (data.companyInfo) {
+  if (company) {
     result = result.replace(/\$\{companyInfo\.(\w+)\}/g, (_m: string, key: string) => {
-      return data.companyInfo[key] || '';
+      return escapeHtml(company[key] || '');
     });
   }
 
@@ -257,7 +353,7 @@ function bindDataToTemplate(html: string, data: Record<string, any>): string {
   for (const [key, value] of Object.entries(data)) {
     if (value !== null && value !== undefined && typeof value !== 'object') {
       const placeholder = `[${key}]`;
-      result = result.split(placeholder).join(String(value));
+      result = result.split(placeholder).join(replaceValue(key, value));
     }
   }
 
@@ -265,11 +361,11 @@ function bindDataToTemplate(html: string, data: Record<string, any>): string {
   for (const [key, value] of Object.entries(data)) {
     if (value !== null && value !== undefined && typeof value !== 'object') {
       const placeholder = `{{${key}}}`;
-      result = result.split(placeholder).join(String(value));
+      result = result.split(placeholder).join(replaceValue(key, value));
     }
   }
 
-  return result;
+  return injectDocumentLetterhead(result, letterheadHtml, company.letterheadImage || '');
 }
 
 /**
@@ -393,7 +489,7 @@ export async function renderInvoiceTemplate(invoiceId: string, organizationId?: 
   const items = await db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId));
 
   // Fetch settings
-  const company = await fetchCompanyInfo(db);
+  const company = await fetchCompanyInfo(db, organizationId);
   const payment = await fetchPaymentSettings(db);
   const currency = await fetchCurrency(db);
   const defaultTerms = await fetchInvoiceTerms(db);
@@ -575,7 +671,7 @@ export async function renderReceiptTemplate(receiptId: string, organizationId?: 
     and(eq(lineItems.documentId, receiptId), eq(lineItems.documentType, 'receipt'))
   );
 
-  const company = await fetchCompanyInfo(db);
+  const company = await fetchCompanyInfo(db, organizationId);
   const currency = await fetchCurrency(db);
 
   const templateHtml = await getTemplateContent('receipt', organizationId, templateId);
@@ -702,7 +798,7 @@ export async function renderEstimateTemplate(estimateId: string, organizationId?
   const items = await db.select().from(estimateItems).where(eq(estimateItems.estimateId, estimateId));
 
   // Fetch settings
-  const company = await fetchCompanyInfo(db);
+  const company = await fetchCompanyInfo(db, organizationId);
   const payment = await fetchPaymentSettings(db);
   const currency = await fetchCurrency(db);
   const defaultTerms = await fetchInvoiceTerms(db);
@@ -871,13 +967,35 @@ export async function renderContractTemplate(contractId: string, organizationId?
   const db = await getDb();
   if (!db) return null;
 
-  const rows = await db.select().from(contracts).where(eq(contracts.id, contractId)).limit(1);
+  const ownerFilter = organizationId
+    ? eq(contracts.organizationId, organizationId)
+    : isNull(contracts.organizationId);
+  const rows = await db.select().from(contracts)
+    .where(and(eq(contracts.id, contractId), ownerFilter)).limit(1);
   const contract = rows[0];
   if (!contract) return null;
 
-  const company = await fetchCompanyInfo(db);
-  const templateHtml = await getTemplateContent('contract', organizationId, templateId);
-  if (!templateHtml) return null;
+  const company = await fetchCompanyInfo(db, organizationId);
+  const templateHtml = (templateId
+    ? await getSavedAgreementTemplateContent("contractTemplates", templateId, organizationId)
+    : null) || await getTemplateContent('contract', organizationId, templateId) || `<!doctype html>
+<html><head><meta charset="utf-8"><title>{{CONTRACT_NAME}}</title><style>
+body{font:14px Arial,sans-serif;color:#17202a;line-height:1.55;margin:48px auto;max-width:850px;padding:0 36px}
+header{border-bottom:3px solid #176b87;padding-bottom:20px;margin-bottom:28px}h1{font-size:25px}h2{font-size:17px;margin-top:28px;color:#176b87}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#f5f7fa;padding:18px}
+section{break-inside:avoid}footer{margin-top:40px;color:#58616b;font-size:12px}
+</style></head><body>
+<header><p>{{COMPANY_NAME}}</p><h1>{{CONTRACT_NAME}}</h1><p>Contract {{CONTRACT_NUMBER}}</p></header>
+<div class="meta"><div><strong>Contracting entity</strong><br>{{COMPANY_NAME}}<br>{{COMPANY_ADDRESS}}</div>
+<div><strong>Counterparty</strong><br>{{CLIENT_COMPANY}}<br>{{COUNTERPARTY_CONTACT_NAME}}<br>{{COUNTERPARTY_ADDRESS}}<br>{{COUNTERPARTY_EMAIL}}<br>{{COUNTERPARTY_REGISTRATION_NUMBER}}</div>
+<div><strong>Term</strong><br>{{START_DATE}} – {{END_DATE}}</div><div><strong>Contract value</strong><br>{{CONTRACT_VALUE}} {{CURRENCY}}</div></div>
+<section><h2>Scope of work</h2>{{SCOPE_OF_WORK}}</section>
+<section><h2>Payment terms</h2>{{PAYMENT_TERMS}}</section>
+<section><h2>Confidentiality</h2>{{CONFIDENTIALITY_TERMS}}</section>
+<section><h2>Termination</h2>{{TERMINATION_TERMS}}</section>
+<section><h2>Dispute resolution and governing law</h2>{{DISPUTE_RESOLUTION}}<p>Governing law: {{GOVERNING_LAW}}</p></section>
+<footer>Prepared {{CONTRACT_DATE}} · {{COMPANY_EMAIL}} · {{COMPANY_PHONE}}</footer>
+</body></html>`;
 
   const data = {
     COMPANY_NAME: company.name,
@@ -886,50 +1004,105 @@ export async function renderContractTemplate(contractId: string, organizationId?
     COMPANY_PHONE: company.phone,
     COMPANY_WEBSITE: company.website,
     COMPANY_LOGO: company.logo,
+    COMPANY_REGISTRATION_NUMBER: company.registrationNumber || '',
+    COMPANY_TAX_ID: company.taxId || '',
+    CONTRACT_NAME: contract.name,
+    CONTRACT_TYPE: contract.contractType || 'Service',
     CONTRACT_ID: contract.contractNumber || contract.id,
     CONTRACT_NUMBER: contract.contractNumber || contract.id,
     CONTRACT_DATE: formatTemplateDate(contract.createdAt),
-    CONTRACT_VALUE: formatTemplateAmount(contract.value, 'KES'),
+    CONTRACT_VALUE: formatTemplateAmount(contract.value, contract.currency || 'KES'),
+    CURRENCY: contract.currency || 'KES',
     START_DATE: contract.startDate || '',
     END_DATE: contract.endDate || '',
     SCOPE_OF_WORK: contract.description || '',
-    PAYMENT_TERMS: contract.notes || '',
+    PAYMENT_TERMS: contract.paymentTerms || contract.notes || '',
+    CONFIDENTIALITY_TERMS: contract.confidentialityTerms || '',
+    TERMINATION_TERMS: contract.terminationTerms || '',
+    DISPUTE_RESOLUTION: contract.disputeResolution || '',
+    GOVERNING_LAW: contract.governingLaw || 'Kenya',
     CLIENT_NAME: contract.vendor,
     CLIENT_COMPANY: contract.vendor,
-    CLIENT_ADDRESS: '',
+    CLIENT_ADDRESS: contract.counterpartyAddress || '',
+    COUNTERPARTY_CONTACT_NAME: contract.counterpartyContactName || '',
+    COUNTERPARTY_EMAIL: contract.counterpartyEmail || '',
+    COUNTERPARTY_ADDRESS: contract.counterpartyAddress || '',
+    COUNTERPARTY_REGISTRATION_NUMBER: contract.counterpartyRegistrationNumber || '',
     TERMS: contract.notes || '',
     NOTES: contract.notes || '',
     company_name: company.name,
     company_address: company.address,
     contract_id: contract.contractNumber || contract.id,
     contract_date: formatTemplateDate(contract.createdAt),
-    contract_value: formatTemplateAmount(contract.value, 'KES'),
+    contract_value: formatTemplateAmount(contract.value, contract.currency || 'KES'),
     start_date: contract.startDate || '',
     end_date: contract.endDate || '',
     scope_of_work: contract.description || '',
-    payment_terms: contract.notes || '',
+    payment_terms: contract.paymentTerms || contract.notes || '',
+    confidentiality_terms: contract.confidentialityTerms || '',
+    termination_terms: contract.terminationTerms || '',
+    dispute_resolution: contract.disputeResolution || '',
     client_name: contract.vendor,
   };
 
-  return { html: bindDataToTemplate(templateHtml, data), title: `${contract.contractNumber || contract.id} - Contract` };
+  return { html: bindDataToTemplate(templateHtml, data, company), title: `${contract.contractNumber || contract.id} - Contract` };
 }
 
 export async function renderProposalTemplate(proposalId: string, organizationId?: string | null, templateId?: string): Promise<RenderResult | null> {
   const db = await getDb();
   if (!db) return null;
 
-  const rows = await db.select().from(proposals).where(eq(proposals.id, proposalId)).limit(1);
+  const ownerFilter = organizationId
+    ? eq(proposals.organizationId, organizationId)
+    : isNull(proposals.organizationId);
+  const rows = await db.select().from(proposals)
+    .where(and(eq(proposals.id, proposalId), ownerFilter)).limit(1);
   const proposal = rows[0];
   if (!proposal) return null;
 
   const clientRows = await db.select().from(clients).where(eq(clients.id, proposal.clientId)).limit(1);
   const client = clientRows[0] as any;
-  const company = await fetchCompanyInfo(db);
+  const company = await fetchCompanyInfo(db, organizationId);
   const currency = await fetchCurrency(db);
-  const templateHtml = await getTemplateContent('proposal', organizationId, templateId);
-  if (!templateHtml) return null;
+  const templateHtml = (templateId
+    ? await getSavedAgreementTemplateContent("proposalTemplates", templateId, organizationId)
+    : null) || await getTemplateContent('proposal', organizationId, templateId) || `<!doctype html>
+<html><head><meta charset="utf-8"><title>{{TITLE}}</title><style>
+body{font:14px Arial,sans-serif;color:#17202a;line-height:1.55;margin:42px auto;max-width:850px;padding:0 36px}
+header{border-bottom:4px solid #168b82;padding:24px 0;margin-bottom:26px}h1{font-size:28px}
+h2{font-size:17px;margin:26px 0 8px;color:#176b87}table{width:100%;border-collapse:collapse;margin:14px 0}
+th,td{text-align:left;border-bottom:1px solid #d8dee6;padding:10px}th:last-child,td:last-child{text-align:right}
+.summary{margin-left:auto;width:55%;background:#f5f7fa;padding:14px}.summary p{display:flex;justify-content:space-between}
+.cover{padding:32px 0}footer{border-top:1px solid #d8dee6;margin-top:36px;padding-top:18px;color:#58616b}
+</style></head><body>
+<header><div>{{COMPANY_NAME}}</div><h1>{{TITLE}}</h1><div>Proposal {{PROPOSAL_NUMBER}} · {{PROPOSAL_DATE}}</div></header>
+<p>Prepared for <strong>{{CLIENT_COMPANY}}</strong> · {{CLIENT_NAME}} · {{CLIENT_EMAIL}}</p>
+<p>Valid until {{VALID_UNTIL}}</p><section><h2>Project overview</h2>{{DESCRIPTION}}</section>
+<section><h2>Scope and deliverables</h2>{{DELIVERABLES}}</section><section><h2>Approach and schedule</h2>{{TIMELINE}}</section>
+<section><h2>Investment</h2><table><thead><tr><th>Item</th><th>Quantity</th><th>Unit price</th><th>Total</th></tr></thead><tbody>{{LINE_ITEMS_HTML}}</tbody></table>
+<div class="summary"><p><span>Subtotal</span><strong>{{SUBTOTAL}}</strong></p><p><span>Discount</span><strong>{{DISCOUNT_AMOUNT}}</strong></p><p><span>Tax</span><strong>{{TAX_AMOUNT}}</strong></p><p><span>Total</span><strong>{{TOTAL_AMOUNT}}</strong></p></div></section>
+<section><h2>Assumptions</h2>{{ASSUMPTIONS}}</section><section><h2>Exclusions</h2>{{EXCLUSIONS}}</section>
+<section><h2>Terms and acceptance</h2>{{TERMS}}</section><footer>{{COMPANY_ADDRESS}} · {{COMPANY_EMAIL}} · {{COMPANY_PHONE}}</footer>
+</body></html>`;
 
   const clientName = resolveClientContactName(client) || resolveClientCompanyName(client);
+  const proposalItems = Array.isArray(proposal.lineItems)
+    ? proposal.lineItems as Array<{ description?: string; quantity?: number; unitPrice?: number; total?: number }>
+    : [];
+  const escapeCell = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]!);
+  const lineItemsHtml = proposalItems.length
+    ? proposalItems.map((item) => {
+      const unitPrice = formatTemplateAmount(item.unitPrice ?? 0, proposal.currency || currency);
+      const lineTotal = formatTemplateAmount(item.total ?? 0, proposal.currency || currency);
+      return `<tr><td>${escapeCell(item.description)}</td><td>${escapeCell(item.quantity ?? 1)}</td><td>${unitPrice}</td><td>${lineTotal}</td></tr>`;
+    }).join("")
+    : `<tr><td colspan="3">Project fee</td><td>${formatTemplateAmount(proposal.total, proposal.currency || currency)}</td></tr>`;
   const data = {
     companyInfo: company,
     COMPANY_NAME: company.name,
@@ -938,11 +1111,14 @@ export async function renderProposalTemplate(proposalId: string, organizationId?
     COMPANY_PHONE: company.phone,
     COMPANY_WEBSITE: company.website,
     COMPANY_LOGO: company.logo,
+    COMPANY_REGISTRATION_NUMBER: company.registrationNumber || '',
+    COMPANY_TAX_ID: company.taxId || '',
+    COMPANY_TAGLINE: company.tagline || '',
     DOCUMENT_TYPE: 'PROPOSAL',
     DOCUMENT_NUMBER: proposal.proposalNumber,
     DOCUMENT_DATE: formatTemplateDate(proposal.issueDate),
     DUE_DATE: formatTemplateDate(proposal.expiryDate),
-    CURRENCY: currency,
+    CURRENCY: proposal.currency || currency,
     PROPOSAL_NUMBER: proposal.proposalNumber,
     PROPOSAL_DATE: formatTemplateDate(proposal.issueDate),
     VALID_UNTIL: formatTemplateDate(proposal.expiryDate),
@@ -951,10 +1127,17 @@ export async function renderProposalTemplate(proposalId: string, organizationId?
     CLIENT_EMAIL: client?.email || '',
     CLIENT_ADDRESS: client?.address || '',
     TITLE: proposal.title || '',
-    TOTAL_AMOUNT: formatTemplateAmount(proposal.total, currency),
-    SUBTOTAL: formatTemplateAmount(proposal.subtotal, currency),
-    TAX_AMOUNT: formatTemplateAmount(proposal.taxAmount, currency),
-    DISCOUNT_AMOUNT: formatTemplateAmount(proposal.discountAmount, currency),
+    DESCRIPTION: proposal.description || '',
+    DELIVERABLES: proposal.deliverables || '',
+    TIMELINE: proposal.timeline || '',
+    ASSUMPTIONS: proposal.assumptions || '',
+    EXCLUSIONS: proposal.exclusions || '',
+    TERMS: proposal.terms || '',
+    LINE_ITEMS_HTML: lineItemsHtml,
+    TOTAL_AMOUNT: formatTemplateAmount(proposal.total, proposal.currency || currency),
+    SUBTOTAL: formatTemplateAmount(proposal.subtotal, proposal.currency || currency),
+    TAX_AMOUNT: formatTemplateAmount(proposal.taxAmount, proposal.currency || currency),
+    DISCOUNT_AMOUNT: formatTemplateAmount(proposal.discountAmount, proposal.currency || currency),
     NOTES: proposal.notes || '',
     company_name: company.name,
     company_address: company.address,
@@ -980,7 +1163,7 @@ export async function renderProposalTemplate(proposalId: string, organizationId?
     notes: proposal.notes || '',
   };
 
-  return { html: bindDataToTemplate(templateHtml, data), title: `${proposal.proposalNumber} - Proposal` };
+  return { html: bindDataToTemplate(templateHtml, data, company), title: `${proposal.proposalNumber} - Proposal` };
 }
 
 export async function renderPayslipTemplate(payslipId: string, organizationId?: string | null, templateId?: string): Promise<RenderResult | null> {
@@ -993,7 +1176,7 @@ export async function renderPayslipTemplate(payslipId: string, organizationId?: 
 
   const employeeRows = await db.select().from(employees).where(eq(employees.id, payslip.employeeId)).limit(1);
   const employee = employeeRows[0];
-  const company = await fetchCompanyInfo(db);
+  const company = await fetchCompanyInfo(db, organizationId);
   const templateHtml = await getTemplateContent('payslip', organizationId, templateId);
   if (!templateHtml) return null;
 
@@ -1037,7 +1220,7 @@ export async function renderPayslipTemplate(payslipId: string, organizationId?: 
     net_salary: formatTemplateAmount(payslip.netSalary, currency),
   };
 
-  return { html: bindDataToTemplate(templateHtml, data), title: `${payslip.payslipNumber} - Payslip` };
+  return { html: bindDataToTemplate(templateHtml, data, company), title: `${payslip.payslipNumber} - Payslip` };
 }
 
 export async function renderWarrantyTemplate(warrantyId: string, organizationId?: string | null, templateId?: string): Promise<RenderResult | null> {
@@ -1048,7 +1231,7 @@ export async function renderWarrantyTemplate(warrantyId: string, organizationId?
   const warranty = rows[0];
   if (!warranty) return null;
 
-  const company = await fetchCompanyInfo(db);
+  const company = await fetchCompanyInfo(db, organizationId);
   const templateHtml = await getTemplateContent('warranty', organizationId, templateId);
   if (!templateHtml) return null;
 
@@ -1081,13 +1264,13 @@ export async function renderWarrantyTemplate(warrantyId: string, organizationId?
     notes: warranty.notes || '',
   };
 
-  return { html: bindDataToTemplate(templateHtml, data), title: `${warranty.serialNumber || warranty.id} - Warranty` };
+  return { html: bindDataToTemplate(templateHtml, data, company), title: `${warranty.serialNumber || warranty.id} - Warranty` };
 }
 
 async function renderGenericTemplate(documentType: string, documentId: string, organizationId?: string | null, templateId?: string): Promise<RenderResult | null> {
   const db = await getDb();
   if (!db) return null;
-  const company = await fetchCompanyInfo(db);
+  const company = await fetchCompanyInfo(db, organizationId);
   const templateHtml = await getTemplateContent(documentType, organizationId, templateId);
   if (!templateHtml) return null;
 
@@ -1110,7 +1293,7 @@ async function renderGenericTemplate(documentType: string, documentId: string, o
     todays_date: formatTemplateDate(new Date()),
   };
 
-  return { html: bindDataToTemplate(templateHtml, data), title: `${documentId} - ${documentType}` };
+  return { html: bindDataToTemplate(templateHtml, data, company), title: `${documentId} - ${documentType}` };
 }
 
 function formatTemplateDate(value: unknown): string {

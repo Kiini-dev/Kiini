@@ -594,7 +594,7 @@ export const clientsRouter = router({
           name: clientName,
           role: "client",
           clientId: input.clientId,
-          organizationId: null,
+          organizationId: clientRecord[0].organizationId || null,
           loginMethod: "local",
           lastSignedIn: new Date().toISOString().replace('T', ' ').substring(0, 19),
         });

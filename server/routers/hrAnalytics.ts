@@ -95,7 +95,7 @@ export const hrAnalyticsRouter = router({
         }
 
         return Object.entries(deptMap).map(([dept, salaries]) => {
-          const avg = salaries.length > 0 ? Math.round(salaries.reduce((a, b) => a + b, 0) / salaries.length) : 0;
+          const avg = salaries.length > 0 ? Math.round((salaries.reduce((a, b) => a + b, 0) / salaries.length) * 100) / 100 : 0;
           return {
             department: dept,
             avgSalary: avg,
@@ -245,7 +245,7 @@ export const hrAnalyticsRouter = router({
           name,
           employees: data.salaries.length,
           avgSalary: data.salaries.length > 0
-            ? Math.round(data.salaries.reduce((a, b) => a + b, 0) / data.salaries.length)
+            ? Math.round((data.salaries.reduce((a, b) => a + b, 0) / data.salaries.length) * 100) / 100
             : 0,
         }));
       } catch (error: any) {

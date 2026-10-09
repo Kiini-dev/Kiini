@@ -21,6 +21,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { toast } from "sonner";
 import { DollarSign, Printer, Loader2, ChevronDown, ChevronUp, Building2 } from "lucide-react";
 import { APP_TITLE } from "@/const";
@@ -170,17 +172,8 @@ export default function CreatePayment() {
               {clientMode === "existing" ? (
                 <div className="grid gap-3">
                   <div className="grid grid-cols-[140px_1fr] items-center gap-3">
-                    <Label className="text-right text-sm">Client *</Label>
-                    <Select value={formData.clientId} onValueChange={(v) => setFormData({ ...formData, clientId: v })}>
-                      <SelectTrigger><SelectValue placeholder="Search or select client..." /></SelectTrigger>
-                      <SelectContent>
-                        {Array.isArray(clients) && clients.map((c: any) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            <span className="flex items-center gap-2"><Building2 className="h-3 w-3 text-muted-foreground" />{c.companyName || c.name || "Unnamed Client"}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="clientId" className="text-right text-sm">Client *</Label>
+                    <ClientSelector id="clientId" value={formData.clientId} onChange={(value) => setFormData({ ...formData, clientId: value })} required placeholder="Search or select client..." label="" />
                   </div>
                 </div>
               ) : (
@@ -239,17 +232,7 @@ export default function CreatePayment() {
               </div>
               <div className="grid grid-cols-[140px_1fr] items-center gap-3">
                 <Label className="text-right text-sm">Account</Label>
-                <Select value={formData.chartOfAccountId} onValueChange={(v) => setFormData({ ...formData, chartOfAccountId: v })}>
-                  <SelectTrigger className="max-w-xs"><SelectValue placeholder="Select account (optional)" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {Array.isArray(chartOfAccounts) && chartOfAccounts.map((account: any) => (
-                      <SelectItem key={account.id} value={account.id.toString()}>
-                        {account.accountCode} - {account.accountName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ChartOfAccountsSelector accounts={chartOfAccounts} value={formData.chartOfAccountId} onChange={(chartOfAccountId) => setFormData({ ...formData, chartOfAccountId })} placeholder="Select account (optional)" noneLabel="None" />
               </div>
               <div className="grid grid-cols-[140px_1fr] items-center gap-3">
                 <Label className="text-right text-sm">Reference #</Label>

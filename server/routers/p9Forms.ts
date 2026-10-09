@@ -9,6 +9,7 @@ import { getPool } from "../db";
 import { TRPCError } from "@trpc/server";
 import { generateP9Form } from "../utils/p9-forms";
 import { sendEmailImmediately } from "../routers/emailQueue";
+import { resolveP9OrganizationScope } from "../services/p9OrganizationScope";
 
 function pool() {
   const p = getPool();
@@ -25,48 +26,52 @@ export const p9FormRouter = router({
     .input(z.object({ taxYear: z.number().min(2000).max(2100) }))
     .mutation(async ({ ctx, input }) => {
       const p = pool();
-      const orgId = ctx.user.organizationId;
+      const orgId = resolveP9OrganizationScope(ctx.user);
 
       try {
-        // Get all active employees
         const [empRows] = await p.query(
-          `SELECT id FROM employees WHERE organizationId = ? AND status = 'active'`,
-          [orgId]
+          `SELECT id, organizationId, firstName, lastName FROM employees
+           WHERE ${orgId ? "organizationId = ?" : "organizationId IS NULL"}
+           ORDER BY lastName, firstName`,
+          orgId ? [orgId] : []
         ) as [any[], any];
 
         const employees = empRows || [];
         let generated = 0;
-        let errors: string[] = [];
+        const errors: string[] = [];
+        const skipped: string[] = [];
 
-        // Generate P9 for each employee
         for (const emp of employees as any[]) {
-          const result = await generateP9Form(
-            {
+          const employeeName = `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || emp.id;
+          try {
+            const result = await generateP9Form({
               employeeId: emp.id,
-              organizationId: orgId,
+              organizationId: emp.organizationId ?? null,
               taxYear: input.taxYear,
-            },
-            ctx.user.id
-          );
+            }, ctx.user.id);
 
-          if (result) {
-            generated++;
-          } else {
-            errors.push(`Failed to generate P9 for employee ${emp.id}`);
+            if (result) generated++;
+            else skipped.push(`${employeeName}: no processed payroll or generated payslips found for ${input.taxYear}`);
+          } catch (error: any) {
+            const reason = error?.message || "Unknown generation error";
+            errors.push(`${employeeName}: ${reason}`);
+            console.error(`[P9-ROUTER] Failed to generate P9 for ${employeeName} (${input.taxYear}):`, error);
           }
         }
 
-        console.log(
-          `[P9-ROUTER] Generated ${generated} P9 forms for ${input.taxYear}, errors: ${errors.length}`
-        );
+        const message = `Generated or refreshed ${generated} of ${employees.length} P9 forms for ${input.taxYear}; ${skipped.length} skipped; ${errors.length} failed.`;
+        console.log(`[P9-ROUTER] ${message}`);
 
         return {
           generated,
           total: employees.length,
           errors,
-          message: `Generated ${generated} of ${employees.length} P9 forms`,
+          skipped,
+          message,
         };
       } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+        console.error(`[P9-ROUTER] Failed to generate P9 forms for ${input.taxYear}:`, error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: `Failed to generate P9 forms: ${error?.message}`,
@@ -87,29 +92,34 @@ export const p9FormRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const p = pool();
-      const orgId = ctx.user.organizationId;
+      const orgId = resolveP9OrganizationScope(ctx.user);
 
       try {
+        const conditions: string[] = [orgId ? "p.organizationId = ?" : "p.organizationId IS NULL"];
+        const params: any[] = [];
+        if (orgId) {
+          params.push(orgId);
+        }
+        if (input.taxYear) {
+          conditions.push("p.taxYear = ?");
+          params.push(input.taxYear);
+        }
+        if (input.employeeId) {
+          conditions.push("p.employeeId = ?");
+          params.push(input.employeeId);
+        }
+        if (input.status) {
+          conditions.push("p.status = ?");
+          params.push(input.status);
+        }
+        const countParams = [...params];
+
         let query = `
           SELECT p.*, e.firstName, e.lastName, e.email, e.employeeNumber
           FROM p9_forms p
           LEFT JOIN employees e ON p.employeeId = e.id
-          WHERE p.organizationId = ?
         `;
-        const params: any[] = [orgId];
-
-        if (input.taxYear) {
-          query += ` AND p.taxYear = ?`;
-          params.push(input.taxYear);
-        }
-        if (input.employeeId) {
-          query += ` AND p.employeeId = ?`;
-          params.push(input.employeeId);
-        }
-        if (input.status) {
-          query += ` AND p.status = ?`;
-          params.push(input.status);
-        }
+        if (conditions.length) query += ` WHERE ${conditions.join(" AND ")}`;
 
         query += ` ORDER BY p.taxYear DESC, e.lastName ASC LIMIT ? OFFSET ?`;
         params.push(input.limit, input.offset);
@@ -117,22 +127,10 @@ export const p9FormRouter = router({
         const [rows] = await p.query(query, params) as [any[], any];
 
         // Get total count
-        let countQuery = `SELECT COUNT(*) as total FROM p9_forms WHERE organizationId = ?`;
-        const countParams: any[] = [orgId];
-
-        if (input.taxYear) {
-          countQuery += ` AND taxYear = ?`;
-          countParams.push(input.taxYear);
+        let countQuery = `SELECT COUNT(*) as total FROM p9_forms`;
+        if (conditions.length) {
+          countQuery += ` WHERE ${conditions.map((condition) => condition.replace(/^p\./, "")).join(" AND ")}`;
         }
-        if (input.employeeId) {
-          countQuery += ` AND employeeId = ?`;
-          countParams.push(input.employeeId);
-        }
-        if (input.status) {
-          countQuery += ` AND status = ?`;
-          countParams.push(input.status);
-        }
-
         const [countRows] = await p.query(countQuery, countParams) as [any[], any];
         const total = Number((countRows as any[])?.[0]?.total ?? 0);
 
@@ -162,15 +160,15 @@ export const p9FormRouter = router({
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const p = pool();
-      const orgId = ctx.user.organizationId;
+      const orgId = resolveP9OrganizationScope(ctx.user);
 
       try {
         const [rows] = await p.query(
           `SELECT p.*, e.firstName, e.lastName, e.email, e.department
            FROM p9_forms p
            LEFT JOIN employees e ON p.employeeId = e.id
-           WHERE p.id = ? AND p.organizationId = ? LIMIT 1`,
-          [input.id, orgId]
+           WHERE p.id = ? AND ${orgId ? "p.organizationId = ?" : "p.organizationId IS NULL"} LIMIT 1`,
+          orgId ? [input.id, orgId] : [input.id]
         ) as [any[], any];
 
         const p9 = (rows as any[])?.[0];
@@ -200,14 +198,14 @@ export const p9FormRouter = router({
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const p = pool();
-      const orgId = ctx.user.organizationId;
+      const orgId = resolveP9OrganizationScope(ctx.user);
 
       try {
         const [rows] = await p.query(
           `SELECT p.*, e.firstName, e.lastName FROM p9_forms p
            LEFT JOIN employees e ON p.employeeId = e.id
-           WHERE p.id = ? AND p.organizationId = ? LIMIT 1`,
-          [input.id, orgId]
+           WHERE p.id = ? AND ${orgId ? "p.organizationId = ?" : "p.organizationId IS NULL"} LIMIT 1`,
+          orgId ? [input.id, orgId] : [input.id]
         );
 
         const p9 = (rows as any[])?.[0];
@@ -232,15 +230,15 @@ export const p9FormRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const p = pool();
-      const orgId = ctx.user.organizationId;
+      const orgId = resolveP9OrganizationScope(ctx.user);
 
       try {
         const [rows] = await p.query(
           `SELECT p.*, e.firstName, e.lastName, e.email
            FROM p9_forms p
            LEFT JOIN employees e ON p.employeeId = e.id
-           WHERE p.id = ? AND p.organizationId = ? LIMIT 1`,
-          [input.id, orgId]
+           WHERE p.id = ? AND ${orgId ? "p.organizationId = ?" : "p.organizationId IS NULL"} LIMIT 1`,
+          orgId ? [input.id, orgId] : [input.id]
         ) as [any[], any];
 
         const p9 = (rows as any[])?.[0];
@@ -270,8 +268,8 @@ export const p9FormRouter = router({
         // Update status to sent
         await p.query(
           `UPDATE p9_forms SET status = 'sent', sentTo = ?, sentAt = NOW(), updatedAt = NOW()
-           WHERE id = ?`,
-          [p9.email, input.id]
+           WHERE id = ? AND ${orgId ? "organizationId = ?" : "organizationId IS NULL"}`,
+          orgId ? [p9.email, input.id, orgId] : [p9.email, input.id]
         );
 
         console.log(`[P9-ROUTER] Sent P9 form to ${p9.email}`);
@@ -291,13 +289,14 @@ export const p9FormRouter = router({
     .input(z.object({ taxYear: z.number().optional() }))
     .query(async ({ ctx, input }) => {
       const p = pool();
-      const orgId = ctx.user.organizationId;
+      const orgId = ctx.user.organizationId || null;
 
       try {
         // Get employee ID
         const [empRows] = await p.query(
-          `SELECT id FROM employees WHERE userId = ? AND organizationId = ? LIMIT 1`,
-          [ctx.user.id, orgId]
+          `SELECT id FROM employees
+           WHERE userId = ? AND ${orgId ? "organizationId = ?" : "organizationId IS NULL"} LIMIT 1`,
+          orgId ? [ctx.user.id, orgId] : [ctx.user.id]
         ) as [any[], any];
 
         const emp = (empRows as any[])?.[0];
@@ -305,9 +304,9 @@ export const p9FormRouter = router({
 
         let query = `
           SELECT * FROM p9_forms
-          WHERE employeeId = ? AND organizationId = ?
+          WHERE employeeId = ? AND ${orgId ? "organizationId = ?" : "organizationId IS NULL"}
         `;
-        const params: any[] = [emp.id, orgId];
+        const params: any[] = orgId ? [emp.id, orgId] : [emp.id];
 
         if (input.taxYear) {
           query += ` AND taxYear = ?`;

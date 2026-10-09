@@ -18,13 +18,29 @@ export function parseJobGroupPayrollDefaults(value: string | null | undefined): 
   if (!value) return [];
   try {
     const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed)
-      ? parsed.filter((item): item is JobGroupPayrollDefault =>
-          Boolean(item)
-          && typeof item.type === "string"
-          && (Number.isFinite(item.amount) || Number.isFinite(item.percentage))
-        )
-      : [];
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.flatMap((item): JobGroupPayrollDefault[] => {
+      if (!item || typeof item.type !== "string") return [];
+      const parseNumber = (raw: unknown) =>
+        typeof raw === "number" || (typeof raw === "string" && raw.trim() !== "")
+          ? Number(raw)
+          : undefined;
+      const amount = parseNumber(item.amount);
+      const percentage = parseNumber(item.percentage);
+      const hasAmount = amount !== undefined && Number.isFinite(amount);
+      const hasPercentage = percentage !== undefined && Number.isFinite(percentage);
+      if (!hasAmount && !hasPercentage) return [];
+      const frequency = ["monthly", "quarterly", "annual", "one_time"].includes(item.frequency)
+        ? item.frequency as JobGroupPayrollDefault["frequency"]
+        : undefined;
+      return [{
+        type: item.type,
+        ...(hasAmount ? { amount } : {}),
+        ...(hasPercentage ? { percentage } : {}),
+        ...(frequency ? { frequency } : {}),
+      }];
+    });
   } catch {
     return [];
   }
@@ -38,6 +54,34 @@ export function resolveJobGroupPayrollAmount(
     return Math.round(Number(basicSalary || 0) * Number(item.percentage) / 100 * 100);
   }
   return Math.round(Number(item.amount || 0));
+}
+
+export function resolveJobGroupPayrollBasisSalary(
+  employeeSalary: number | null | undefined,
+  jobGroup: {
+    defaultBasicSalary?: number | null;
+    minimumGrossSalary?: number | null;
+    maximumGrossSalary?: number | null;
+  } | null | undefined,
+): number {
+  if (Number(employeeSalary) > 0) return Number(employeeSalary);
+  if (Number(jobGroup?.defaultBasicSalary) > 0) return Number(jobGroup?.defaultBasicSalary);
+  const minimum = Number(jobGroup?.minimumGrossSalary || 0);
+  const maximum = Number(jobGroup?.maximumGrossSalary || 0);
+  return minimum > 0 && maximum >= minimum ? (minimum + maximum) / 2 : 0;
+}
+
+export function resolveJobGroupPayrollTaxRate(
+  salaryStructureTaxRate: number | null | undefined,
+  defaultDeductions: string | null | undefined,
+): number {
+  const configuredRate = Number(salaryStructureTaxRate || 0);
+  if (configuredRate > 0) return configuredRate;
+
+  const jobGroupRate = parseJobGroupPayrollDefaults(defaultDeductions)
+    .find((item) => /tax|paye/i.test(item.type) && Number.isFinite(item.percentage))
+    ?.percentage;
+  return jobGroupRate == null ? configuredRate : Math.round(jobGroupRate * 100);
 }
 
 export function toPayrollStorageAmount(value: number | null | undefined): number | null {

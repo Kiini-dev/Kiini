@@ -239,7 +239,7 @@ export default function ServiceInvoices() {
                       }}
                     />
                   </TableHead>
-                  {visibleColumns.map(col => (
+                  {SERVICE_INVOICE_COLUMNS.filter(col => visibleColumns.has(col.key)).map(col => (
                     <TableHead key={col.key} className="cursor-pointer hover:bg-gray-100">
                       <div className="flex items-center gap-2">
                         {col.label}
@@ -264,6 +264,7 @@ export default function ServiceInvoices() {
                         }}
                       />
                     </TableCell>
+                    {isVisible("id") && <TableCell className="font-mono text-xs text-muted-foreground">{inv.id}</TableCell>}
                     {isVisible("serviceInvoiceNumber") && <TableCell className="font-medium">{inv.serviceInvoiceNumber}</TableCell>}
                     {isVisible("issueDate") && <TableCell>{format(new Date(inv.issueDate), "MMM dd, yyyy")}</TableCell>}
                     {isVisible("dueDate") && <TableCell>{format(new Date(inv.dueDate), "MMM dd, yyyy")}</TableCell>}

@@ -74,7 +74,7 @@ export default function HRAnalyticsDashboard() {
     const activeEmployees = employees.filter((e: any) => e.isActive || e.isActive !== 0).length;
     const avgSalary =
       salaryDistribution.length > 0
-        ? Math.round(salaryDistribution.reduce((sum: number, dept: any) => sum + (dept.avgSalary || 0), 0) / salaryDistribution.length)
+        ? salaryDistribution.reduce((sum: number, dept: any) => sum + (dept.avgSalary || 0), 0) / salaryDistribution.length
         : 0;
     const avgAttendance =
       attendancePatterns.length > 0
@@ -443,4 +443,3 @@ export default function HRAnalyticsDashboard() {
     </ModuleLayout>
   );
 }
-

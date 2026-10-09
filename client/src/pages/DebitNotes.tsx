@@ -41,7 +41,6 @@ type SortField = "debitNoteNumber" | "supplierName" | "total" | "issueDate" | "s
 type SortOrder = "asc" | "desc";
 
 const DEBIT_NOTE_COLUMNS: ColumnConfig[] = [
-  { key: "id", label: "ID", defaultVisible: true },
   { key: "debitNoteNumber", label: "Debit Note #", defaultVisible: true },
   { key: "issueDate", label: "Issue Date", defaultVisible: true },
   { key: "supplierName", label: "Supplier", defaultVisible: true },
@@ -59,7 +58,7 @@ export default function DebitNotes() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
   const { page, pageSize, setPage, setPageSize, paginate } = usePagination(25);
-  const { visibleColumns, toggleColumn, isVisible } = useColumnVisibility(DEBIT_NOTE_COLUMNS, "debitnotes");
+  const { isVisible } = useColumnVisibility(DEBIT_NOTE_COLUMNS, "debitnotes");
 
   const listQuery = trpc.debitNotes.list.useQuery({}, {
     onError: (error) => {
@@ -147,16 +146,6 @@ export default function DebitNotes() {
   if (permLoading) return <Spinner />;
   if (!allowed) return <div className="text-center py-10">Access Denied</div>;
 
-  const rowActions = [
-    { icon: Eye, label: "View", onClick: (id: string) => setLocation(`/debit-notes/${id}`) },
-    { icon: Edit, label: "Edit", onClick: (id: string) => setLocation(`/debit-notes/${id}/edit`) },
-    { icon: Download, label: "Download", onClick: (id: string) => {
-      const note = (listQuery.data || []).find(n => n.id === id);
-      if (note) generateDebitNotePDF(note as any);
-    }},
-    { icon: Trash2, label: "Delete", onClick: handleDelete, destructive: true },
-  ];
-
   return (
     <ModuleLayout
       title="Debit Notes"
@@ -215,7 +204,7 @@ export default function DebitNotes() {
                       }}
                     />
                   </TableHead>
-                  {visibleColumns.map(col => (
+                  {DEBIT_NOTE_COLUMNS.filter((col) => isVisible(col.key)).map(col => (
                     <TableHead key={col.key} className="cursor-pointer hover:bg-gray-100">
                       <div className="flex items-center gap-2">
                         {col.label}
@@ -261,7 +250,12 @@ export default function DebitNotes() {
                     <TableCell>
                       <RowActionsMenu
                         id={note.id}
-                        actions={rowActions}
+                        actions={[
+                          { icon: <Eye className="h-4 w-4" />, label: "View", onClick: () => setLocation(`/debit-notes/${note.id}`) },
+                          { icon: <Edit className="h-4 w-4" />, label: "Edit", onClick: () => setLocation(`/debit-notes/${note.id}/edit`) },
+                          { icon: <Download className="h-4 w-4" />, label: "Download", onClick: () => generateDebitNotePDF(note as any) },
+                          { icon: <Trash2 className="h-4 w-4" />, label: "Delete", variant: "destructive", onClick: () => handleDelete(note.id) },
+                        ]}
                       />
                     </TableCell>
                   </TableRow>

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Building2, Plus, Trash2 } from "lucide-react";
+import { Building2, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ModuleLayout } from "@/components/ModuleLayout";
+import { parseCSV } from "@/utils/csvGenerator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,14 +29,25 @@ export default function PayrollCostAllocations() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
   const hasOrganization = Boolean(user?.organizationId);
-  const isGlobalAdmin = user?.role === "super_admin" && !hasOrganization;
+  const isGlobalWorkspace = Boolean(user && !hasOrganization);
   const [employeeId, setEmployeeId] = useState("");
   const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().slice(0, 10));
+  const [allocationImportRows, setAllocationImportRows] = useState<Array<{
+    employeeIdentifier: string;
+    costCenterCode: string;
+    budgetCode: string;
+    allocationPercentage: number;
+  }>>([]);
+  const [importFileName, setImportFileName] = useState("");
+  const [budgetCode, setBudgetCode] = useState("");
+  const [annualBudget, setAnnualBudget] = useState("");
+  const [budgetYear, setBudgetYear] = useState(String(new Date().getFullYear()));
   const [allocations, setAllocations] = useState<AllocationRow[]>([]);
   const [newCode, setNewCode] = useState("");
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<(typeof centerTypes)[number]>("G&A");
   const [newDepartmentId, setNewDepartmentId] = useState("");
+  const [budgetDepartmentId, setBudgetDepartmentId] = useState("");
   const [newExpenseAccountId, setNewExpenseAccountId] = useState("");
   const [newPayrollLiabilityAccountId, setNewPayrollLiabilityAccountId] = useState("");
   const [centerAccountMappings, setCenterAccountMappings] = useState<Record<string, {
@@ -44,27 +57,33 @@ export default function PayrollCostAllocations() {
   const [exportStartDate, setExportStartDate] = useState(`${new Date().getFullYear()}-01-01`);
   const [exportEndDate, setExportEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [exportFormat, setExportFormat] = useState<"CSV" | "XLSX" | "PDF">("CSV");
-  const employeesQuery = trpc.employees.list.useQuery({ limit: 500 }, { enabled: hasOrganization });
-  const departmentsQuery = trpc.departments.list.useQuery({}, { enabled: hasOrganization });
-  const accountsQuery = trpc.chartOfAccounts.list.useQuery({ limit: 500 }, { enabled: hasOrganization });
+  const employeesQuery = trpc.payrollAllocations.listEmployees.useQuery(undefined, {
+    enabled: isGlobalWorkspace || hasOrganization,
+  });
+  const departmentsQuery = trpc.departments.list.useQuery({}, { enabled: isGlobalWorkspace || hasOrganization });
+  const accountsQuery = trpc.chartOfAccounts.list.useQuery({ limit: 500 }, { enabled: isGlobalWorkspace || hasOrganization });
   const centersQuery = trpc.payrollAllocations.listCostCenters.useQuery(
     { includeInactive: true },
     { enabled: !authLoading && Boolean(user) },
   );
   const historyQuery = trpc.payrollAllocations.getEmployeeAllocations.useQuery(
     { employeeId },
-    { enabled: hasOrganization && Boolean(employeeId) },
+    { enabled: (isGlobalWorkspace || hasOrganization) && Boolean(employeeId) },
   );
-  const ledgerQuery = trpc.payrollAllocations.getLedger.useQuery({ limit: 100 }, { enabled: hasOrganization });
-  const summaryQuery = trpc.payrollAllocations.getCostCenterSummary.useQuery({}, { enabled: hasOrganization });
+  const ledgerQuery = trpc.payrollAllocations.getLedger.useQuery({ limit: 100 }, { enabled: isGlobalWorkspace || hasOrganization });
+  const summaryQuery = trpc.payrollAllocations.getCostCenterSummary.useQuery({}, { enabled: isGlobalWorkspace || hasOrganization });
   const utils = trpc.useUtils();
   const saveAllocations = trpc.payrollAllocations.setEmployeeAllocations.useMutation();
   const createCenter = trpc.payrollAllocations.createCostCenter.useMutation();
   const updateCenter = trpc.payrollAllocations.updateCostCenter.useMutation();
+  const setPayrollBudget = trpc.payrollAllocations.setDepartmentPayrollBudget.useMutation();
+  const importAllocations = trpc.payrollAllocations.importEmployeeAllocations.useMutation();
   const exportLedger = trpc.payrollAllocations.exportLedger.useMutation();
   const employees = employeesQuery.data ?? [];
   const centers = centersQuery.data ?? [];
-  const departments = departmentsQuery.data ?? [];
+  const departments = (departmentsQuery.data ?? []).filter((department: any) =>
+    department.organizationId === (user?.organizationId ?? null)
+  );
   const accounts = accountsQuery.data ?? [];
   const expenseAccounts = accounts.filter((account: any) =>
     ["expense", "operating expense", "cost of goods sold", "other expense"].includes(account.accountType)
@@ -114,8 +133,8 @@ export default function PayrollCostAllocations() {
       toast.error("Enter a cost-center code and name.");
       return;
     }
-    if (hasOrganization && (!newExpenseAccountId || !newPayrollLiabilityAccountId)) {
-      toast.error("Map the cost center to an expense account and payroll liability account.");
+    if (!newDepartmentId || !newExpenseAccountId || !newPayrollLiabilityAccountId) {
+      toast.error("Select a department and map the cost center to payroll expense and liability accounts.");
       return;
     }
     createCenter.mutate({
@@ -183,6 +202,74 @@ export default function PayrollCostAllocations() {
     });
   };
 
+  const handleBudgetSave = () => {
+    const parsedYear = Number(budgetYear);
+    const parsedBudget = Number(annualBudget);
+    if (!budgetDepartmentId || !budgetCode.trim() ||
+      !Number.isInteger(parsedYear) || parsedYear < 2000 || parsedYear > 2200 ||
+      !Number.isFinite(parsedBudget) || parsedBudget <= 0) {
+      toast.error("Select a department and enter a budget code, valid fiscal year, and positive annual budget.");
+      return;
+    }
+    setPayrollBudget.mutate({
+      departmentId: budgetDepartmentId,
+      year: parsedYear,
+      budgetCode: budgetCode.trim(),
+      annualBudget: parsedBudget,
+    }, {
+      onSuccess: () => {
+        toast.success("Annual payroll budget and code saved.");
+        setBudgetCode("");
+        setAnnualBudget("");
+        utils.payrollAllocations.getBudgetPreview.invalidate();
+      },
+      onError: (error) => toast.error(error.message),
+    });
+  };
+
+  const handleAllocationCsv = async (file?: File) => {
+    if (!file) return;
+    try {
+      const rows = parseCSV((await file.text()).replace(/^\uFEFF/, "")).map((row, index) => {
+        const normalizedRow = Object.fromEntries(
+          Object.entries(row).map(([header, value]) => [header.trim().toLowerCase(), value])
+        );
+        const employeeIdentifier = String(normalizedRow.employee_id ?? normalizedRow.employee_number ?? "").trim();
+        const costCenterCode = String(normalizedRow.cost_center_code ?? "").trim();
+        const rowBudgetCode = String(normalizedRow.budget_code ?? "").trim();
+        const allocationPercentage = Number(normalizedRow.allocation_pct);
+        if (!employeeIdentifier || !costCenterCode || !rowBudgetCode ||
+          !Number.isFinite(allocationPercentage) || allocationPercentage <= 0 || allocationPercentage > 100) {
+          throw new Error(`Invalid CSV data on row ${index + 2}. Check employee_id, cost_center_code, budget_code, and allocation_pct.`);
+        }
+        return { employeeIdentifier, costCenterCode, budgetCode: rowBudgetCode, allocationPercentage };
+      });
+      if (!rows.length) throw new Error("The CSV has no allocation data rows.");
+      setAllocationImportRows(rows);
+      setImportFileName(file.name);
+    } catch (error) {
+      setAllocationImportRows([]);
+      setImportFileName("");
+      toast.error(error instanceof Error ? error.message : "Could not read payroll allocation CSV.");
+    }
+  };
+
+  const handleImportAllocations = () => {
+    if (!allocationImportRows.length) {
+      toast.error("Choose a valid payroll allocation CSV file first.");
+      return;
+    }
+    importAllocations.mutate({ effectiveDate, rows: allocationImportRows }, {
+      onSuccess: (result) => {
+        toast.success(`Imported ${result.importedAllocations} allocation rows for ${result.importedEmployees} employees.`);
+        setAllocationImportRows([]);
+        setImportFileName("");
+        void utils.payrollAllocations.getEmployeeAllocations.invalidate();
+      },
+      onError: (error) => toast.error(error.message),
+    });
+  };
+
   return (
     <ModuleLayout
       title="Payroll Cost Allocations"
@@ -199,11 +286,13 @@ export default function PayrollCostAllocations() {
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">
-          {hasOrganization && (
+          {(isGlobalWorkspace || hasOrganization) && (
           <Card>
             <CardHeader>
               <CardTitle>Employee allocation</CardTitle>
-              <CardDescription>Each effective-date snapshot must allocate 100% across active cost centers.</CardDescription>
+              <CardDescription>
+                Each effective-date snapshot must allocate 100%. If no split is set, payroll uses the single active cost center linked to the employee's department.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Select value={employeeId} onValueChange={setEmployeeId}>
@@ -267,9 +356,9 @@ export default function PayrollCostAllocations() {
             <CardHeader>
               <CardTitle>Cost centers</CardTitle>
               <CardDescription>
-                {isGlobalAdmin
+                {isGlobalWorkspace
                   ? "Manage global cost centers, isolated from organization records."
-                  : "Map each cost center to a payroll expense and liability account. Its department determines which annual budget is charged."}
+                  : "Link each cost center to a department and map its payroll expense and liability accounts. Payroll uses the department's active annual budget."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -280,28 +369,16 @@ export default function PayrollCostAllocations() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{centerTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
                 </Select>
-                {hasOrganization && (
+                {(isGlobalWorkspace || hasOrganization) && (
                   <>
-                    <Select value={newExpenseAccountId || "none"} onValueChange={(value) => setNewExpenseAccountId(value === "none" ? "" : value)}>
-                      <SelectTrigger><SelectValue placeholder="Payroll expense account" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Select expense account</SelectItem>
-                        {expenseAccounts.map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} — {account.accountName}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Select value={newPayrollLiabilityAccountId || "none"} onValueChange={(value) => setNewPayrollLiabilityAccountId(value === "none" ? "" : value)}>
-                      <SelectTrigger><SelectValue placeholder="Payroll liability account" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Select liability account</SelectItem>
-                        {liabilityAccounts.map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} — {account.accountName}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <ChartOfAccountsSelector accounts={expenseAccounts} value={newExpenseAccountId} onChange={setNewExpenseAccountId} noneLabel="Select expense account" placeholder="Payroll expense account" ariaLabel="Payroll expense account" />
+                    <ChartOfAccountsSelector accounts={liabilityAccounts} value={newPayrollLiabilityAccountId} onChange={setNewPayrollLiabilityAccountId} noneLabel="Select liability account" placeholder="Payroll liability account" ariaLabel="Payroll liability account" />
                   </>
                 )}
-                {hasOrganization && <Select value={newDepartmentId || "none"} onValueChange={(value) => setNewDepartmentId(value === "none" ? "" : value)}>
-                  <SelectTrigger><SelectValue placeholder="Department (optional)" /></SelectTrigger>
+                {(isGlobalWorkspace || hasOrganization) && <Select value={newDepartmentId || "none"} onValueChange={(value) => setNewDepartmentId(value === "none" ? "" : value)}>
+                  <SelectTrigger aria-label="Department for payroll budget tagging"><SelectValue placeholder="Select department" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No linked department</SelectItem>
+                    <SelectItem value="none">Select department</SelectItem>
                     {departments.map((department: any) => <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>)}
                   </SelectContent>
                 </Select>}
@@ -314,43 +391,42 @@ export default function PayrollCostAllocations() {
                   <div className="space-y-2 px-3 py-3 text-sm" key={center.id}>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <span><strong>{center.code}</strong> — {center.name}</span>
-                      <span className="text-muted-foreground">{center.type}{center.isActive !== 1 ? " · inactive" : ""}</span>
+                      <span className="text-muted-foreground">
+                        {center.type} · {departments.find((department: any) => department.id === center.departmentId)?.name || (center.departmentId ? "Department linked" : "Department missing")}
+                        {center.isActive !== 1 ? " · inactive" : ""}
+                      </span>
                     </div>
-                    {hasOrganization && (
+                    {(isGlobalWorkspace || hasOrganization) && (
                       <>
                         <div className="grid gap-2 sm:grid-cols-2">
-                          <Select
-                            value={centerAccountMappings[center.id]?.expenseAccountId ?? center.expenseAccountId ?? "none"}
-                            onValueChange={(value) => setCenterAccountMappings((current) => ({
+                          <ChartOfAccountsSelector
+                            accounts={expenseAccounts}
+                            value={centerAccountMappings[center.id]?.expenseAccountId ?? center.expenseAccountId ?? ""}
+                            onChange={(value) => setCenterAccountMappings((current) => ({
                               ...current,
                               [center.id]: {
-                                expenseAccountId: value === "none" ? "" : value,
+                                expenseAccountId: value,
                                 payrollLiabilityAccountId: current[center.id]?.payrollLiabilityAccountId ?? center.payrollLiabilityAccountId ?? "",
                               },
                             }))}
-                          >
-                            <SelectTrigger aria-label={`Expense account for ${center.name}`}><SelectValue placeholder={accountLabel(center.expenseAccountId)} /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Select expense account</SelectItem>
-                              {expenseAccounts.map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} — {account.accountName}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            value={centerAccountMappings[center.id]?.payrollLiabilityAccountId ?? center.payrollLiabilityAccountId ?? "none"}
-                            onValueChange={(value) => setCenterAccountMappings((current) => ({
+                            noneLabel="Select expense account"
+                            placeholder={accountLabel(center.expenseAccountId)}
+                            ariaLabel={`Expense account for ${center.name}`}
+                          />
+                          <ChartOfAccountsSelector
+                            accounts={liabilityAccounts}
+                            value={centerAccountMappings[center.id]?.payrollLiabilityAccountId ?? center.payrollLiabilityAccountId ?? ""}
+                            onChange={(value) => setCenterAccountMappings((current) => ({
                               ...current,
                               [center.id]: {
                                 expenseAccountId: current[center.id]?.expenseAccountId ?? center.expenseAccountId ?? "",
-                                payrollLiabilityAccountId: value === "none" ? "" : value,
+                                payrollLiabilityAccountId: value,
                               },
                             }))}
-                          >
-                            <SelectTrigger aria-label={`Payroll liability account for ${center.name}`}><SelectValue placeholder={accountLabel(center.payrollLiabilityAccountId)} /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Select liability account</SelectItem>
-                              {liabilityAccounts.map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} — {account.accountName}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
+                            noneLabel="Select liability account"
+                            placeholder={accountLabel(center.payrollLiabilityAccountId)}
+                            ariaLabel={`Payroll liability account for ${center.name}`}
+                          />
                         </div>
                         <div className="flex justify-end">
                           <Button size="sm" variant="outline" disabled={updateCenter.isPending} onClick={() => saveCenterAccounts(center)}>
@@ -367,7 +443,60 @@ export default function PayrollCostAllocations() {
           </Card>
         </div>
 
-        {hasOrganization && (
+        {(isGlobalWorkspace || hasOrganization) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Payroll budget codes and CSV allocation import</CardTitle>
+              <CardDescription>
+                Configure annual department payroll caps in your workspace currency, then import effective-dated employee splits. CSV headers: employee_id (or employee_number), cost_center_code, budget_code, allocation_pct. Each employee&apos;s split must total 100%, and its budget code must belong to the cost-center department and fiscal year.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-3 md:grid-cols-5 md:items-end">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="payroll-budget-department">Department</label>
+                  <Select value={budgetDepartmentId} onValueChange={setBudgetDepartmentId}>
+                    <SelectTrigger id="payroll-budget-department"><SelectValue placeholder="Select department" /></SelectTrigger>
+                    <SelectContent>{departments.map((department: any) => (
+                      <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
+                    ))}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="payroll-budget-year">Fiscal year</label>
+                  <Input id="payroll-budget-year" type="number" min="2000" max="2200" value={budgetYear} onChange={(event) => setBudgetYear(event.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="payroll-budget-code">Budget code</label>
+                  <Input id="payroll-budget-code" value={budgetCode} onChange={(event) => setBudgetCode(event.target.value)} placeholder="e.g. SALES-Q4-2026" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="payroll-annual-budget">Annual payroll budget</label>
+                  <Input id="payroll-annual-budget" type="number" min="0.01" step="0.01" value={annualBudget} onChange={(event) => setAnnualBudget(event.target.value)} placeholder="KES" />
+                </div>
+                <Button onClick={handleBudgetSave} disabled={setPayrollBudget.isPending}>
+                  {setPayrollBudget.isPending ? "Saving..." : "Save annual budget"}
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 border-t pt-4">
+                <Input
+                  aria-label="Payroll allocation CSV"
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="max-w-md"
+                  onChange={(event) => void handleAllocationCsv(event.target.files?.[0])}
+                />
+                <Button variant="outline" onClick={handleImportAllocations} disabled={!allocationImportRows.length || importAllocations.isPending}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  {importAllocations.isPending ? "Importing..." : `Import allocations${allocationImportRows.length ? ` (${allocationImportRows.length} rows)` : ""}`}
+                </Button>
+                {importFileName && <span className="text-sm text-muted-foreground">{importFileName}</span>}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {(isGlobalWorkspace || hasOrganization) && (
         <Card>
           <CardHeader>
             <CardTitle>Cost-center ledger</CardTitle>

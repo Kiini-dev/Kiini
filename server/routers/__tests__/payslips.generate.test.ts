@@ -295,6 +295,6 @@ describe("payslips.generate", () => {
     ]);
     expect(JSON.parse(String(insertCalls[0].values[21])).find((item: any) => item.name === "Staff loan"))
       .toMatchObject({ amount: 50000 });
-    expect(processMonthlyPayrollMock).toHaveBeenCalledWith(2026, 6, "admin-1", undefined);
+    expect(processMonthlyPayrollMock).toHaveBeenCalledWith(2026, 6, "admin-1", null);
   });
 });

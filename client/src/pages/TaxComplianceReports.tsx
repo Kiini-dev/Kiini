@@ -47,7 +47,24 @@ export default function TaxComplianceReportsPage() {
     offset: 0,
   };
   const p9 = trpc.p9Forms.list.useQuery(p9QueryInput);
-  const generateP9 = trpc.p9Forms.generateForTaxYear.useMutation({ onSuccess: (result) => { toast.success(result.message); p9.refetch(); }, onError: (error) => toast.error(error.message) });
+  const generateP9 = trpc.p9Forms.generateForTaxYear.useMutation({
+    onSuccess: (result) => {
+      void p9.refetch();
+      const details = [...result.errors, ...result.skipped].slice(0, 3).join(" · ");
+      if (result.errors.length > 0 || result.generated === 0) {
+        console.error("[P9] Generation completed with issues", result);
+        toast.error(`${result.message}${details ? ` ${details}` : ""}`);
+      } else if (result.skipped.length > 0) {
+        toast.warning(`${result.message}${details ? ` ${details}` : ""}`);
+      } else {
+        toast.success(result.message);
+      }
+    },
+    onError: (error) => {
+      console.error("[P9] Generation request failed", error);
+      toast.error(error.message || "Failed to generate P9 forms");
+    },
+  });
   const refresh = () => { paye.refetch(); nssf.refetch(); shif.refetch(); housing.refetch(); ytd.refetch(); p9.refetch(); employees.refetch(); };
   const exportKra = async () => {
     const result = await kraExport.refetch();

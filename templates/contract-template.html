@@ -2,69 +2,86 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Contract {{CONTRACT_NUMBER}}</title>
+<title>{{CONTRACT_NAME}} — {{CONTRACT_NUMBER}}</title>
 <style>
-@page { size: A4; margin: 16mm; }
+@page { size: A4; margin: 18mm; }
 * { box-sizing: border-box; }
-body { margin: 0; font-family: Arial, sans-serif; color: #263238; font-size: 12px; line-height: 1.55; }
+body { margin: 0; color: #18243a; font: 11pt/1.55 Arial, sans-serif; }
 .document { max-width: 820px; margin: 0 auto; }
-.header { display: flex; justify-content: space-between; gap: 24px; border-bottom: 3px solid #1f6f78; padding-bottom: 18px; }
-.company h1 { margin: 0; font-size: 22px; color: #1f6f78; }
-.company p { margin: 3px 0; color: #607d8b; }
-.logo { max-width: 110px; max-height: 70px; object-fit: contain; }
-.title { text-align: center; margin: 26px 0 18px; }
-.title h2 { margin: 0; font-size: 24px; letter-spacing: 1px; color: #163b40; }
-.meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
-.box { border: 1px solid #cfd8dc; border-radius: 4px; padding: 12px; }
-.label { display: block; color: #607d8b; font-size: 10px; text-transform: uppercase; letter-spacing: .6px; }
+.cover { min-height: 255mm; display: flex; flex-direction: column; justify-content: center; padding: 18mm; color: #fff; background: linear-gradient(145deg,#11142f,#143d5b 70%,#176b87); page-break-after: always; }
+.cover .logo { max-width: 48mm; max-height: 28mm; object-fit: contain; object-position: left; margin-bottom: 28mm; }
+.cover .eyebrow { color: #b9d9e8; letter-spacing: .16em; text-transform: uppercase; font-size: 10pt; }
+.cover h1 { max-width: 155mm; margin: 7mm 0; font-size: 30pt; line-height: 1.15; }
+.cover .cover-meta { margin-top: 16mm; padding-top: 6mm; border-top: 1px solid rgba(255,255,255,.4); }
+.cover .company-name { margin-top: auto; color: #d4e6ed; }
+.header { display: flex; justify-content: space-between; gap: 10mm; align-items: center; border-bottom: 2px solid #176b87; padding-bottom: 5mm; }
+.header img { max-width: 36mm; max-height: 22mm; object-fit: contain; }
+.header h2 { margin: 0; color: #176b87; font-size: 15pt; }
+.meta { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin: 8mm 0; }
+.box { border: 1px solid #d5dee5; padding: 4mm; }
+.label { display: block; color: #5d7181; font-size: 8pt; letter-spacing: .08em; text-transform: uppercase; }
 .value { font-weight: 700; }
-.section { margin: 18px 0; }
-.section h3 { margin: 0 0 8px; color: #1f6f78; font-size: 13px; border-bottom: 1px solid #b2dfdb; padding-bottom: 5px; }
-.signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 42px; margin-top: 55px; }
-.signature { border-top: 1px solid #455a64; padding-top: 7px; }
-.footer { border-top: 1px solid #cfd8dc; margin-top: 35px; padding-top: 10px; text-align: center; color: #78909c; font-size: 10px; }
+.section { margin: 8mm 0; break-inside: avoid; }
+.section h3 { margin: 0 0 3mm; color: #176b87; font-size: 12pt; border-bottom: 1px solid #d5e5ea; padding-bottom: 2mm; }
+.signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 12mm; margin: 25mm 0 10mm; }
+.signature { min-height: 25mm; border-top: 1px solid #43515e; padding-top: 3mm; }
+.footer { margin-top: 15mm; border-top: 1px solid #d5dee5; padding-top: 3mm; color: #60717d; font-size: 8pt; text-align: center; }
+.back-cover { min-height: 255mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: #fff; background: linear-gradient(145deg,#11142f,#143d5b 70%,#176b87); page-break-before: always; padding: 18mm; }
+.back-cover img { max-width: 50mm; max-height: 30mm; object-fit: contain; margin-bottom: 14mm; }
+.back-cover h2 { font-size: 22pt; }
+.back-cover p { color: #d4e6ed; margin: 2mm 0; }
 @media print { .document { max-width: none; } }
 </style>
 </head>
 <body>
-<div class="document">
-  <header class="header">
-    <div class="company">
-      <h1>{{COMPANY_NAME}}</h1>
-      <p>{{COMPANY_ADDRESS}}</p>
-      <p>{{COMPANY_EMAIL}} | {{COMPANY_PHONE}}</p>
+<main class="document">
+  <section class="cover">
+    <img class="logo" src="{{COMPANY_LOGO}}" alt="{{COMPANY_NAME}}">
+    <p class="eyebrow">{{CONTRACT_TYPE}} agreement</p>
+    <h1>{{CONTRACT_NAME}}</h1>
+    <p>Prepared for <strong>{{CLIENT_COMPANY}}</strong></p>
+    <div class="cover-meta">
+      <p>Contract {{CONTRACT_NUMBER}}</p>
+      <p>{{START_DATE}} — {{END_DATE}}</p>
+      <p>{{CONTRACT_VALUE}}</p>
     </div>
-    <img class="logo" src="{{COMPANY_LOGO}}" alt="Company logo">
+    <p class="company-name">{{COMPANY_NAME}}</p>
+  </section>
+
+  <header class="header">
+    <div><h2>{{COMPANY_NAME}}</h2><div>{{COMPANY_ADDRESS}}</div><div>{{COMPANY_EMAIL}} · {{COMPANY_PHONE}}</div></div>
+    <img src="{{COMPANY_LOGO}}" alt="{{COMPANY_NAME}}">
   </header>
-  <div class="title"><h2>SERVICE CONTRACT AGREEMENT</h2></div>
-  <div class="meta">
+  <section class="meta">
     <div class="box"><span class="label">Contract number</span><span class="value">{{CONTRACT_NUMBER}}</span></div>
-    <div class="box"><span class="label">Contract date</span><span class="value">{{CONTRACT_DATE}}</span></div>
-    <div class="box"><span class="label">Start date</span><span class="value">{{START_DATE}}</span></div>
-    <div class="box"><span class="label">End date</span><span class="value">{{END_DATE}}</span></div>
-  </div>
-  <section class="section">
-    <h3>Parties</h3>
-    <p>This agreement is between <strong>{{COMPANY_NAME}}</strong> and <strong>{{CLIENT_NAME}}</strong>.</p>
-    <p>Contract value: <strong>{{CONTRACT_VALUE}}</strong></p>
+    <div class="box"><span class="label">Date prepared</span><span class="value">{{CONTRACT_DATE}}</span></div>
+    <div class="box"><span class="label">Contracting company</span><span class="value">{{COMPANY_NAME}}</span></div>
+    <div class="box"><span class="label">Counterparty</span><span class="value">{{CLIENT_COMPANY}}</span></div>
+    <div class="box"><span class="label">Contact</span><span class="value">{{COUNTERPARTY_CONTACT_NAME}} · {{COUNTERPARTY_EMAIL}}</span></div>
+    <div class="box"><span class="label">Term</span><span class="value">{{START_DATE}} — {{END_DATE}}</span></div>
+    <div class="box"><span class="label">Value</span><span class="value">{{CONTRACT_VALUE}}</span></div>
+    <div class="box"><span class="label">Governing law</span><span class="value">{{GOVERNING_LAW}}</span></div>
   </section>
-  <section class="section">
-    <h3>Scope of Work</h3>
-    <div>{{SCOPE_OF_WORK}}</div>
+  <section class="section"><h3>Parties and scope of agreement</h3><p>This agreement is between <strong>{{COMPANY_NAME}}</strong> and <strong>{{CLIENT_COMPANY}}</strong>.</p><div>{{SCOPE_OF_WORK}}</div></section>
+  <section class="section"><h3>Payment terms</h3><div>{{PAYMENT_TERMS}}</div></section>
+  <section class="section"><h3>Confidentiality</h3><div>{{CONFIDENTIALITY_TERMS}}</div></section>
+  <section class="section"><h3>Termination</h3><div>{{TERMINATION_TERMS}}</div></section>
+  <section class="section"><h3>Dispute resolution</h3><div>{{DISPUTE_RESOLUTION}}</div><p>Governing law: {{GOVERNING_LAW}}</p></section>
+  <section class="section"><h3>Additional terms</h3><div>{{TERMS}}</div></section>
+  <section class="signatures">
+    <div class="signature">For {{COMPANY_NAME}}<br><br>Name: {{COMPANY_NAME}}<br>Signature: __________________________<br>Date: ___________________</div>
+    <div class="signature">For {{CLIENT_COMPANY}}<br><br>Name: {{COUNTERPARTY_CONTACT_NAME}}<br>Signature: __________________________<br>Date: ___________________</div>
   </section>
-  <section class="section">
-    <h3>Payment Terms</h3>
-    <div>{{PAYMENT_TERMS}}</div>
+  <footer class="footer">{{COMPANY_NAME}} · {{COMPANY_EMAIL}} · {{COMPANY_PHONE}} · {{COMPANY_WEBSITE}}</footer>
+
+  <section class="back-cover">
+    <img src="{{COMPANY_LOGO}}" alt="{{COMPANY_NAME}}">
+    <h2>{{COMPANY_NAME}}</h2>
+    <p>{{COMPANY_ADDRESS}}</p>
+    <p>{{COMPANY_EMAIL}} · {{COMPANY_PHONE}}</p>
+    <p>{{COMPANY_WEBSITE}}</p>
+    <p>Contract {{CONTRACT_NUMBER}}</p>
   </section>
-  <section class="section">
-    <h3>Terms and Conditions</h3>
-    <div>{{TERMS}}</div>
-  </section>
-  <div class="signatures">
-    <div class="signature">For {{COMPANY_NAME}}<br><br>Name and signature</div>
-    <div class="signature">For {{CLIENT_NAME}}<br><br>Name and signature</div>
-  </div>
-  <footer class="footer">{{COMPANY_NAME}} | {{COMPANY_EMAIL}} | {{COMPANY_PHONE}}</footer>
-</div>
+</main>
 </body>
 </html>

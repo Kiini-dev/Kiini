@@ -1,13 +1,6 @@
 import { useMemo } from "react";
 import { trpc } from "@/lib/trpc";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
+import { SearchableSelect } from "@/components/SearchableSelect";
 
 interface EmployeeSelectorProps {
   value: string;
@@ -17,6 +10,7 @@ interface EmployeeSelectorProps {
   filter?: (employee: any) => boolean;
   label?: string;
   required?: boolean;
+  id?: string;
 }
 
 /**
@@ -31,6 +25,7 @@ export function EmployeeSelector({
   filter,
   label,
   required = false,
+  id,
 }: EmployeeSelectorProps) {
   // Fetch employees from backend
   const { data: employees = [], isLoading } = trpc.employees.list.useQuery({});
@@ -40,44 +35,32 @@ export function EmployeeSelector({
     if (!employees) return [];
     return filter ? employees.filter(filter) : employees;
   }, [employees, filter]);
-
-  // Get the display name for selected employee
-  const selectedEmployee = employees.find((e) => e.id === value);
-  const displayValue = selectedEmployee
-    ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}`
-    : undefined;
+  const options = filteredEmployees.map((employee: any) => ({
+    value: employee.id,
+    label: `${employee.firstName} ${employee.lastName}`,
+    keywords: [employee.department, employee.email, employee.employeeNumber].filter(Boolean).join(" "),
+  }));
 
   return (
     <div className="space-y-2">
       {label && (
-        <label className="text-sm font-medium">
+        <label htmlFor={id} className="text-sm font-medium">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      <Select value={value} onValueChange={onChange} disabled={disabled || isLoading}>
-        <SelectTrigger>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center p-4">
-              <Spinner className="h-4 w-4" />
-            </div>
-          ) : filteredEmployees.length === 0 ? (
-            <div className="text-center p-4 text-muted-foreground text-sm">
-              No employees found
-            </div>
-          ) : (
-            filteredEmployees.map((employee) => (
-              <SelectItem key={employee.id} value={employee.id}>
-                {employee.firstName} {employee.lastName}
-                {employee.department && ` - ${employee.department}`}
-              </SelectItem>
-            ))
-          )}
-        </SelectContent>
-      </Select>
+      <SearchableSelect
+        value={value}
+        id={id}
+        options={options}
+        onValueChange={onChange}
+        placeholder={placeholder}
+        searchPlaceholder="Search employees..."
+        emptyMessage="No employees found."
+        disabled={disabled}
+        isLoading={isLoading}
+        required={required}
+      />
     </div>
   );
 }

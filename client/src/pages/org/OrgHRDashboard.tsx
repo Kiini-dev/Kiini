@@ -170,21 +170,9 @@ export default function HRDashboard() {
               <div className="text-sm text-muted-foreground">Create a new employee record</div>
             </div>
           </Button>
-          <Button
-            variant="outline"
-            className="h-auto p-4 justify-start"
-            onClick={() => navigate("/attendance/create")}
-          >
-            <Calendar className="h-5 w-5 mr-3" />
-            <div className="text-left">
-              <div className="font-semibold">Record Attendance</div>
-              <div className="text-sm text-muted-foreground">Mark attendance for today</div>
-            </div>
-          </Button>
         </div>
       </div>
     </div>
     </ModuleLayout>
   );
 }
-

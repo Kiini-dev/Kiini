@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { toast } from "sonner";
 import { TrendingUp, ArrowLeft, Trash2, Loader2, Save } from "lucide-react";
 
@@ -159,18 +160,7 @@ export default function EditOpportunity() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="clientId">Client *</Label>
-                  <Select value={formData.clientId} onValueChange={(value) => setFormData({ ...formData, clientId: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client: any) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.companyName || client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ClientSelector id="clientId" value={formData.clientId} onChange={(value) => setFormData({ ...formData, clientId: value })} required placeholder="Select a client" label="" />
                 </div>
 
                 <div className="space-y-2">
@@ -325,4 +315,3 @@ export default function EditOpportunity() {
     </ModuleLayout>
   );
 }
-

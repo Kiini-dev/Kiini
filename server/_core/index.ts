@@ -28,6 +28,7 @@ import {
 import { appObservability, observabilityMiddleware } from "../services/observability";
 import customFieldsRouter from "../routers/customFields";
 import { unsubscribeMarketingToken } from "../services/emailMarketing";
+import { getSignedDocumentPdfForToken } from "../routers/eSignatures";
 
 const sessionTimeoutCache = new Map<string, { minutes: number; checkedAt: number }>();
 const SESSION_TIMEOUT_CACHE_TTL = 30_000;
@@ -254,6 +255,22 @@ async function startServer() {
       );
     } catch (error) {
       next(error);
+    }
+  });
+
+  app.get("/api/esignatures/:token/signed-document.pdf", async (req, res) => {
+    try {
+      const { filename, pdf } = await getSignedDocumentPdfForToken(req.params.token);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.send(pdf);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not retrieve the signed document";
+      const notReady = /not available|not fully completed/i.test(message);
+      if (!notReady) console.error("[ESignatures] Signed document download failed", error);
+      res.status(notReady ? 404 : 500).type("text").send(notReady ? "Signed document not found" : "Could not generate the signed PDF");
     }
   });
 

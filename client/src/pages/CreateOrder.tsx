@@ -17,6 +17,7 @@ import {
 import { ArrowLeft, Plus, Trash2, Loader2, SaveIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { SupplierSelector } from "@/components/SupplierSelector";
 import { ModuleLayout } from "@/components/ModuleLayout";
 
 interface OrderLineItem {
@@ -144,19 +145,8 @@ export default function CreateOrder() {
 
           <div className="space-y-3">
             <div className="grid grid-cols-[140px_1fr] items-center gap-3">
-              <Label className="text-sm font-medium">Vendor <span className="text-red-500">*</span></Label>
-              <Select value={vendorId} onValueChange={setVendorId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select vendor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.map((supplier: any) => (
-                    <SelectItem key={supplier.id} value={supplier.id}>
-                      {supplier.name || supplier.companyName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="vendorId" className="text-sm font-medium">Vendor <span className="text-red-500">*</span></Label>
+              <SupplierSelector id="vendorId" value={vendorId} onChange={setVendorId} required valueMode="id" label="" placeholder="Select vendor" />
             </div>
 
             <div className="grid grid-cols-[140px_1fr] items-center gap-3">
@@ -330,4 +320,3 @@ export default function CreateOrder() {
     </ModuleLayout>
   );
 }
-

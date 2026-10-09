@@ -4,6 +4,8 @@ import { ModuleLayout } from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SupplierSelector } from "@/components/SupplierSelector";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -396,12 +398,13 @@ export default function EditExpense() {
               </div>
 
               <div className="grid grid-cols-[140px_1fr] items-center gap-3">
-                <Label className="text-right text-sm">Vendor</Label>
-                <Input
-                  placeholder="e.g., ABC Supplies Ltd"
+                <Label htmlFor="vendorName" className="text-right text-sm">Vendor</Label>
+                <SupplierSelector
+                  id="vendorName"
+                  label=""
                   value={formData.vendor}
-                  onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                  className="max-w-xs"
+                  onChange={(vendor) => setFormData({ ...formData, vendor })}
+                  placeholder="Select or enter a vendor..."
                 />
               </div>
 
@@ -459,16 +462,7 @@ export default function EditExpense() {
 
               <div className="grid grid-cols-[140px_1fr] items-center gap-3">
                 <Label className="text-right text-sm">Account *</Label>
-                <Select value={formData.chartOfAccountId} onValueChange={(value) => setFormData({ ...formData, chartOfAccountId: value })}>
-                  <SelectTrigger className="max-w-xs"><SelectValue placeholder="Select account" /></SelectTrigger>
-                  <SelectContent>
-                    {chartOfAccounts.map((account: any) => (
-                      <SelectItem key={account.id} value={account.id.toString()}>
-                        {account.accountCode} - {account.accountName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ChartOfAccountsSelector accounts={chartOfAccounts} value={formData.chartOfAccountId} onChange={(chartOfAccountId) => setFormData({ ...formData, chartOfAccountId })} placeholder="Select account" />
               </div>
 
               <div className="space-y-2">

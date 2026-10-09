@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearch, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -373,15 +374,7 @@ export default function Subscriptions() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Client</Label>
-              <Select value={form.clientId} onValueChange={v => setForm(f => ({ ...f, clientId: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-                <SelectContent>
-                  {(clients as any[]).map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name || c.businessName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientSelector value={form.clientId} onChange={clientId => setForm(f => ({ ...f, clientId }))} required placeholder="Select client" />
             </div>
             <div>
               <Label>Frequency</Label>
@@ -556,4 +549,3 @@ export default function Subscriptions() {
     </ModuleLayout>
   );
 }
-

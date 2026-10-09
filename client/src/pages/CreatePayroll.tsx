@@ -15,8 +15,12 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
+import { EmployeeSelector } from "@/components/EmployeeSelector";
 import { toast } from "sonner";
 import { DollarSign, Calculator } from "lucide-react";
+import { toMinorCurrencyAmount } from "../../../shared/currency";
+
+const roundCurrency = (value: number) => Math.round(value * 100) / 100;
 
 // Kenyan payroll calculator function
 function calculateKenyanPayroll(info: {
@@ -31,10 +35,10 @@ function calculateKenyanPayroll(info: {
   // NSSF Calculation
   const nssfTier1 = Math.min(grossSalary * 0.06, 18000);
   const nssfTier2 = grossSalary > 300000 ? (grossSalary - 300000) * 0.06 : 0;
-  const nssfTotal = Math.round(nssfTier1 + nssfTier2);
+  const nssfTotal = roundCurrency(nssfTier1 + nssfTier2);
 
   // Housing Levy
-  const housingLevy = Math.round(Math.min(grossSalary * 0.015, 15000));
+  const housingLevy = roundCurrency(Math.min(grossSalary * 0.015, 15000));
 
   // Taxable Income
   const taxableIncome = grossSalary - nssfTotal - housingLevy;
@@ -55,33 +59,33 @@ function calculateKenyanPayroll(info: {
     tax = 288000 * 0.1 + 100000 * 0.15 + 5612000 * 0.2 + 3600000 * 0.25 + (annualTaxable - 9600000) * 0.3;
   }
 
-  const monthlyTaxBefore = Math.round(tax / 12);
+  const monthlyTaxBefore = roundCurrency(tax / 12);
   const personalRelief = 2400;
   const monthlyTaxAfter = Math.max(0, monthlyTaxBefore - personalRelief);
 
   // SHIF Calculation
   const shifBefore = grossSalary * 0.025;
-  const shifTotal = Math.round(Math.min(shifBefore, 15000));
+  const shifTotal = roundCurrency(Math.min(shifBefore, 15000));
 
   // Net Salary
   const totalDeductions = nssfTotal + monthlyTaxAfter + shifTotal + housingLevy;
   const netSalary = grossSalary - totalDeductions;
 
   return {
-    basicSalary: Math.round(basicSalary),
-    grossSalary: Math.round(grossSalary),
+    basicSalary: roundCurrency(basicSalary),
+    grossSalary: roundCurrency(grossSalary),
     nssfContribution: nssfTotal,
     payeeTax: monthlyTaxAfter,
     shifContribution: shifTotal,
     housingLevyDeduction: housingLevy,
     personalRelief,
-    netSalary: Math.round(netSalary),
+    netSalary: roundCurrency(netSalary),
     totalDeductions: totalDeductions,
     details: {
-      nssfTier1: Math.round(nssfTier1),
-      nssfTier2: Math.round(nssfTier2),
-      taxableIncome: Math.round(taxableIncome),
-      payeBeforeRelief: Math.round(monthlyTaxBefore),
+      nssfTier1: roundCurrency(nssfTier1),
+      nssfTier2: roundCurrency(nssfTier2),
+      taxableIncome: roundCurrency(taxableIncome),
+      payeBeforeRelief: roundCurrency(monthlyTaxBefore),
       personalRelief,
       shif: shifTotal,
       housingLevy,
@@ -107,7 +111,6 @@ export default function CreatePayroll() {
   });
   const [calculation, setCalculation] = useState<any>(null);
 
-  const { data: employees = [] } = trpc.employees.list.useQuery({});
   const packageQuery = trpc.payroll.employeePackage.useQuery(
     { employeeId: formData.employeeId },
     { enabled: !!formData.employeeId }
@@ -187,6 +190,25 @@ export default function CreatePayroll() {
       return;
     }
 
+    if (payrollMode === "manual") {
+      if (!formData.netSalary) {
+        toast.error("Please enter a net salary");
+        return;
+      }
+      createPayrollMutation.mutate({
+        employeeId: formData.employeeId,
+        payPeriodStart: new Date(formData.payPeriodStart),
+        payPeriodEnd: new Date(formData.payPeriodEnd),
+        basicSalary: toMinorCurrencyAmount(formData.basicSalary),
+        allowances: toMinorCurrencyAmount(formData.allowances),
+        deductions: toMinorCurrencyAmount(formData.deductions),
+        tax: toMinorCurrencyAmount(formData.tax),
+        netSalary: toMinorCurrencyAmount(formData.netSalary),
+        status: formData.status as any,
+      });
+      return;
+    }
+
     createFromPackageMutation.mutate({
       employeeId: formData.employeeId,
       payPeriodStart: new Date(formData.payPeriodStart),
@@ -228,23 +250,13 @@ export default function CreatePayroll() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="employeeId">Employee *</Label>
-                    <Select
+                    <EmployeeSelector
+                      id="employeeId"
+                      label=""
                       value={formData.employeeId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, employeeId: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an employee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.isArray(employees) && employees.map((emp: any) => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {(emp.firstName || "")} {(emp.lastName || "")}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      onChange={(employeeId) => setFormData({ ...formData, employeeId })}
+                      required
+                    />
                   </div>
 
                   {packageQuery.data?.package && (
@@ -306,7 +318,7 @@ export default function CreatePayroll() {
                           onChange={(e) =>
                             setFormData({ ...formData, basicSalary: e.target.value })
                           }
-                          step="1"
+                          step="0.01"
                           min="0"
                         />
                       </div>
@@ -321,7 +333,7 @@ export default function CreatePayroll() {
                           onChange={(e) =>
                             setFormData({ ...formData, allowances: e.target.value })
                           }
-                          step="1"
+                          step="0.01"
                           min="0"
                         />
                       </div>
@@ -336,7 +348,7 @@ export default function CreatePayroll() {
                           onChange={(e) =>
                             setFormData({ ...formData, housingAllowance: e.target.value })
                           }
-                          step="1"
+                          step="0.01"
                           min="0"
                         />
                       </div>
@@ -349,32 +361,32 @@ export default function CreatePayroll() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
                           <p className="text-gray-600">Gross Salary</p>
-                          <p className="font-bold text-lg">Ksh {(calculation.grossSalary || 0).toLocaleString()}</p>
+                          <p className="font-bold text-lg">Ksh {(calculation.grossSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
-                        <div><p className="text-gray-600">NSSF Tier 1</p><p className="font-bold">-Ksh {(calculation.details.nssfTier1 || 0).toLocaleString()}</p></div>
-                        <div><p className="text-gray-600">NSSF Tier 2</p><p className="font-bold">-Ksh {(calculation.details.nssfTier2 || 0).toLocaleString()}</p></div>
+                        <div><p className="text-gray-600">NSSF Tier 1</p><p className="font-bold">-Ksh {(calculation.details.nssfTier1 || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
+                        <div><p className="text-gray-600">NSSF Tier 2</p><p className="font-bold">-Ksh {(calculation.details.nssfTier2 || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
                         <div>
                           <p className="text-gray-600">PAYE Tax</p>
-                          <p className="font-bold">-Ksh {(calculation.payeeTax || 0).toLocaleString()}</p>
+                          <p className="font-bold">-Ksh {(calculation.payeeTax || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-gray-600">Housing Levy</p>
-                          <p className="font-bold">-Ksh {(calculation.housingLevyDeduction || 0).toLocaleString()}</p>
+                          <p className="font-bold">-Ksh {(calculation.housingLevyDeduction || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <p className="text-gray-600">SHIF</p>
-                          <p className="font-bold">-Ksh {(calculation.shifContribution || 0).toLocaleString()}</p>
+                          <p className="font-bold">-Ksh {(calculation.shifContribution || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
-                        <div><p className="text-gray-600">Taxable income</p><p className="font-bold">Ksh {(calculation.details.taxableIncome || 0).toLocaleString()}</p></div>
-                        <div><p className="text-gray-600">Personal relief</p><p className="font-bold">-Ksh {(calculation.details.personalRelief || 0).toLocaleString()}</p></div>
+                        <div><p className="text-gray-600">Taxable income</p><p className="font-bold">Ksh {(calculation.details.taxableIncome || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
+                        <div><p className="text-gray-600">Personal relief</p><p className="font-bold">-Ksh {(calculation.details.personalRelief || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
                         <div>
                           <p className="text-gray-600">Total Deductions</p>
-                          <p className="font-bold">-Ksh {(calculation.totalDeductions || 0).toLocaleString()}</p>
+                          <p className="font-bold">-Ksh {(calculation.totalDeductions || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                       </div>
                       <div className="pt-2 border-t border-green-200">
                         <p className="text-gray-600">Net Salary</p>
-                        <p className="font-bold text-xl text-green-700">Ksh {(calculation.netSalary || 0).toLocaleString()}</p>
+                        <p className="font-bold text-xl text-green-700">Ksh {(calculation.netSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </div>
                       <div className="border-t border-green-200 pt-3">
                         <h4 className="font-semibold text-green-900">Employer Contributions</h4>
@@ -425,23 +437,13 @@ export default function CreatePayroll() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="employeeId">Employee *</Label>
-                    <Select
+                    <EmployeeSelector
+                      id="employeeId"
+                      label=""
                       value={formData.employeeId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, employeeId: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an employee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.isArray(employees) && employees.map((emp: any) => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {(emp.firstName || "")} {(emp.lastName || "")}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      onChange={(employeeId) => setFormData({ ...formData, employeeId })}
+                      required
+                    />
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
@@ -481,7 +483,7 @@ export default function CreatePayroll() {
                         onChange={(e) =>
                           setFormData({ ...formData, basicSalary: e.target.value })
                         }
-                        step="1"
+                        step="0.01"
                         min="0"
                       />
                     </div>
@@ -496,7 +498,7 @@ export default function CreatePayroll() {
                         onChange={(e) =>
                           setFormData({ ...formData, allowances: e.target.value })
                         }
-                        step="1"
+                        step="0.01"
                         min="0"
                       />
                     </div>
@@ -513,7 +515,7 @@ export default function CreatePayroll() {
                         onChange={(e) =>
                           setFormData({ ...formData, deductions: e.target.value })
                         }
-                        step="1"
+                        step="0.01"
                         min="0"
                       />
                     </div>
@@ -528,7 +530,7 @@ export default function CreatePayroll() {
                         onChange={(e) =>
                           setFormData({ ...formData, tax: e.target.value })
                         }
-                        step="1"
+                        step="0.01"
                         min="0"
                       />
                     </div>
@@ -544,7 +546,7 @@ export default function CreatePayroll() {
                       onChange={(e) =>
                         setFormData({ ...formData, netSalary: e.target.value })
                       }
-                      step="1"
+                      step="0.01"
                       min="0"
                     />
                   </div>
@@ -587,4 +589,3 @@ export default function CreatePayroll() {
     </ModuleLayout>
   );
 }
-

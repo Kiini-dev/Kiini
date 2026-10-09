@@ -51,6 +51,12 @@ const parseOptionalIntString = (value: string): number | undefined => {
   const parsed = Number.parseInt(trimmed, 10);
   return Number.isNaN(parsed) ? undefined : parsed;
 };
+const parseOptionalNumberString = (value: string): number | undefined => {
+  const trimmed = value.trim();
+  if (trimmed === "") return undefined;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
 
 const parseRequiredIntString = (value: string): number => {
   const trimmed = value.trim();
@@ -411,7 +417,7 @@ export const csvImportExportRouter = router({
         department: z.string().optional(),
         position: z.string().optional(),
         jobGroupId: z.string().optional(),
-        salary: z.number().optional().or(z.string().transform(parseOptionalIntString)),
+        salary: z.number().optional().or(z.string().transform(parseOptionalNumberString)),
         employmentType: z.enum(['full_time', 'part_time', 'contract', 'intern']).optional(),
         status: z.enum(['active', 'on_leave', 'terminated', 'suspended']).optional(),
         address: z.string().optional(),
@@ -485,7 +491,7 @@ export const csvImportExportRouter = router({
             department: empData.department || null,
             position: empData.position || null,
             jobGroupId: empData.jobGroupId || uuidv4(), // Default job group
-            salary: empData.salary ? parseInt(empData.salary.toString()) : 0,
+            salary: empData.salary ? Number(empData.salary) : 0,
             employmentType: empData.employmentType || 'full_time',
             status: empData.status || 'active',
             address: empData.address || null,

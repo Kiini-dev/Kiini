@@ -16,6 +16,7 @@ import {
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { UserPlus, Loader2, RefreshCw, Copy, Check } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import mutateAsync from "@/lib/mutationHelpers";
 import { toast } from "sonner";
 import { resolveInitialPassword } from "../../../utils/accountSecurity";
@@ -51,7 +52,6 @@ export default function CreateUser() {
   const { data: workflowOptions } = trpc.departments.getWorkflowOptions.useQuery();
   const departments = workflowOptions?.departments || [];
   const { data: employees = [] } = trpc.employees.list.useQuery({});
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
   const roles = workflowOptions?.roles || [];
   
   const [formData, setFormData] = useState({
@@ -438,14 +438,7 @@ export default function CreateUser() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="clientId">Link to Client (Optional)</Label>
-                    <Select value={formData.clientId || "__unassigned__"} onValueChange={(value) => setFormData({ ...formData, clientId: value === "__unassigned__" ? "" : value })}>
-                      <SelectTrigger id="clientId"><SelectValue placeholder="Select client" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__unassigned__">No client link</SelectItem>
-                        {clients.map((client: any) => <SelectItem key={client.id} value={client.id}>{client.companyName || client.name || client.contactPerson}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <ClientSelector id="clientId" label="Link to Client (Optional)" value={formData.clientId} onChange={(clientId) => setFormData({ ...formData, clientId })} includeUnassigned placeholder="Select client" />
                   </div>
                 </div>
               </div>

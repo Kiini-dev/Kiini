@@ -22,7 +22,7 @@ import {
   Printer,
   Upload,
 } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useAuthWithPersistence } from "@/_core/hooks/useAuthWithPersistence";
 import { trpc } from "@/lib/trpc";
 import { useUserLookup } from "@/hooks/useUserLookup";
@@ -52,6 +52,10 @@ import {
  */
 export default function ClientPortal() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const requestedTab = new URLSearchParams(search).get("tab");
+  const portalTabs = ["projects", "invoices", "payments", "documents", "tickets", "profile"] as const;
+  const activeTab = portalTabs.includes(requestedTab as (typeof portalTabs)[number]) ? requestedTab! : "projects";
   const { getUserName } = useUserLookup();
   const [searchQuery, setSearchQuery] = useState("");
   const clientUploadInputRef = useRef<HTMLInputElement>(null);
@@ -306,7 +310,11 @@ export default function ClientPortal() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="projects" className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={(tab) => setLocation(`/crm/client-portal?tab=${tab}`)}
+          className="space-y-6"
+        >
           <TabsList>
             <TabsTrigger value="projects">My Projects</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>

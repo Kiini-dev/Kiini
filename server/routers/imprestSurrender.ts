@@ -1,35 +1,12 @@
 import { router, createFeatureRestrictedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
-import { imprestSurrenders, imprests } from "../../drizzle/schema-extended";
+import { imprestSurrenders, imprests } from "../../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 const readProcedure = createFeatureRestrictedProcedure("procurement:imprest:view");
 const writeProcedure = createFeatureRestrictedProcedure("procurement:imprest:edit");
-
-/**
- * Generate next imprest surrender number
- * Example: "IMPS-000001", "IMPS-000002"
- */
-async function generateNextSurrenderNumber(db: any): Promise<string> {
-  try {
-    const result = await db.select({ id: imprestSurrenders.id, createdAt: imprestSurrenders.createdAt })
-      .from(imprestSurrenders)
-      .orderBy(desc(imprestSurrenders.createdAt))
-      .limit(1);
-    let seq = 0;
-    if (result && result.length > 0 && result[0].id) {
-      const match = result[0].id.match(/(\d+)$/);
-      if (match) seq = parseInt(match[1]);
-    }
-    seq++;
-    return `IMPS-${String(seq).padStart(6, '0')}`;
-  } catch (err) {
-    console.warn("imprest surrender number generator error", err);
-    return `IMPS-000001`;
-  }
-}
 
 export const imprestSurrenderRouter = router({
   list: readProcedure
@@ -50,7 +27,7 @@ export const imprestSurrenderRouter = router({
       const db = await getDb();
       if (!db) throw new Error("DB not available");
       const id = uuidv4();
-      const surrenderNumber = await generateNextSurrenderNumber(db);
+      const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
       await db.insert(imprestSurrenders).values({
         id,
         imprestId: input.imprestId,
@@ -59,13 +36,13 @@ export const imprestSurrenderRouter = router({
         returnedAmount: input.amount,
         status: 'settled',
         settledBy: ctx.user.id,
-        settledAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        settledAt: now,
+        createdAt: now,
       } as any);
 
       // mark imprest settled
       await db.update(imprests)
-        .set({ status: 'settled', updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 19) as any })
+        .set({ status: 'settled', updatedAt: now })
         .where(eq(imprests.id, input.imprestId));
       return { id };
     }),

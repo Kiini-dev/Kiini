@@ -1,337 +1,240 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, X, Users, FileText, DollarSign, Briefcase, Clock, TrendingUp } from 'lucide-react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useLocation } from "wouter";
+import {
+  BriefcaseBusiness,
+  ClipboardList,
+  FileText,
+  Receipt,
+  Search,
+  ShoppingBag,
+  UserRound,
+  Users,
+  X,
+} from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 
 interface SearchResult {
   id: string;
+  type: string;
   title: string;
-  type: 'client' | 'invoice' | 'user' | 'project' | 'task' | 'contact';
-  description?: string;
-  icon?: React.ReactNode;
-  href?: string;
+  description?: string | null;
+  href: string;
 }
 
 interface HeaderSearchModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  onNavigate?: (href: string) => void;
 }
 
-/**
- * Global Header Search Modal
- * Searchable index of all major entities: clients, invoices, projects, users, tasks, contacts
- * Shows autocomplete results as user types
- */
-export default function HeaderSearchModal({ isOpen, onClose }: HeaderSearchModalProps) {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
+const resultIcons: Record<string, typeof Search> = {
+  client: Users,
+  contact: UserRound,
+  employee: UserRound,
+  invoice: FileText,
+  estimate: FileText,
+  proposal: FileText,
+  contract: FileText,
+  expense: Receipt,
+  payment: Receipt,
+  project: BriefcaseBusiness,
+  task: ClipboardList,
+  product: ShoppingBag,
+  service: BriefcaseBusiness,
+  supplier: ShoppingBag,
+  order: ShoppingBag,
+  lpo: ShoppingBag,
+};
+
+export default function HeaderSearchModal({ onNavigate }: HeaderSearchModalProps) {
+  const [, navigate] = useLocation();
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Example data - TODO: Replace with actual API calls
-  const allItems: SearchResult[] = [
-    // Clients
-    {
-      id: 'cli_001',
-      title: 'Acme Corporation',
-      type: 'client',
-      description: 'Tech solutions provider',
-      icon: <Briefcase size={16} className="text-blue-500" />,
-    },
-    {
-      id: 'cli_002',
-      title: 'Global Retail Ltd',
-      type: 'client',
-      description: 'Retail and e-commerce',
-      icon: <Briefcase size={16} className="text-blue-500" />,
-    },
-
-    // Invoices
-    {
-      id: 'inv_001',
-      title: 'Invoice #INV-2024-001',
-      type: 'invoice',
-      description: 'Amount: $5,000 | Due: 2025-04-01',
-      icon: <DollarSign size={16} className="text-green-500" />,
-    },
-    {
-      id: 'inv_002',
-      title: 'Invoice #INV-2024-002',
-      type: 'invoice',
-      description: 'Amount: $8,750 | Due: 2025-04-15',
-      icon: <DollarSign size={16} className="text-green-500" />,
-    },
-
-    // Users
-    {
-      id: 'usr_001',
-      title: 'John Kipchoge',
-      type: 'user',
-      description: 'CEO | john@example.com',
-      icon: <Users size={16} className="text-purple-500" />,
-    },
-    {
-      id: 'usr_002',
-      title: 'Sarah Mwangi',
-      type: 'user',
-      description: 'Finance Manager | sarah@example.com',
-      icon: <Users size={16} className="text-purple-500" />,
-    },
-
-    // Projects
-    {
-      id: 'prj_001',
-      title: 'Q2 Product Launch',
-      type: 'project',
-      description: '12 tasks | 80% complete',
-      icon: <TrendingUp size={16} className="text-orange-500" />,
-    },
-    {
-      id: 'prj_002',
-      title: 'Website Redesign',
-      type: 'project',
-      description: '8 tasks | 50% complete',
-      icon: <TrendingUp size={16} className="text-orange-500" />,
-    },
-
-    // Tasks
-    {
-      id: 'tsk_001',
-      title: 'Follow up with client',
-      type: 'task',
-      description: 'Due: 2025-03-28 | High priority',
-      icon: <Clock size={16} className="text-red-500" />,
-    },
-    {
-      id: 'tsk_002',
-      title: 'Prepare monthly report',
-      type: 'task',
-      description: 'Due: 2025-04-05 | Medium priority',
-      icon: <Clock size={16} className="text-red-500" />,
-    },
-
-    // Contacts
-    {
-      id: 'cnt_001',
-      title: 'Jane Smith',
-      type: 'contact',
-      description: 'Contact | Acme Corporation | jane@acme.com',
-      icon: <FileText size={16} className="text-pink-500" />,
-    },
-    {
-      id: 'cnt_002',
-      title: 'Mike Johnson',
-      type: 'contact',
-      description: 'Contact | Global Retail Ltd | mike@global.com',
-      icon: <FileText size={16} className="text-pink-500" />,
-    },
-  ];
-
-  // Perform search with debounce
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
-
-    setLoading(true);
-    const timer = setTimeout(() => {
-      const lowerQuery = query.toLowerCase();
-
-      // Filter and score results
-      const filtered = allItems
-        .filter(
-          (item) =>
-            item.title.toLowerCase().includes(lowerQuery) ||
-            item.description?.toLowerCase().includes(lowerQuery) ||
-            item.type.includes(lowerQuery)
-        )
-        .sort((a, b) => {
-          // Score by relevance: title match > description match
-          const aMatchesTitle = a.title.toLowerCase().includes(lowerQuery);
-          const bMatchesTitle = b.title.toLowerCase().includes(lowerQuery);
-          if (aMatchesTitle && !bMatchesTitle) return -1;
-          if (!aMatchesTitle && bMatchesTitle) return 1;
-          return 0;
-        })
-        .slice(0, 10); // Limit to top 10 results
-
-      setResults(filtered);
-      setSelectedIndex(0);
-      setLoading(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 250);
+    return () => window.clearTimeout(timer);
   }, [query]);
 
-  // Keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex((prev) => Math.max(prev - 1, 0));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (results[selectedIndex]) {
-          handleSelectResult(results[selectedIndex]);
-        }
-        break;
-      case 'Escape':
-        onClose();
-        break;
-      default:
-        break;
+  const searchQuery = trpc.search.global.useQuery(
+    { query: debouncedQuery, limit: 20 },
+    { enabled: isOpen && debouncedQuery.length >= 2, retry: false },
+  );
+  const results = useMemo(
+    () => (searchQuery.data || []) as SearchResult[],
+    [searchQuery.data],
+  );
+
+  useEffect(() => setSelectedIndex(0), [results]);
+
+  const closeSearch = () => {
+    setIsOpen(false);
+    setMobileOpen(false);
+  };
+
+  const selectResult = (result: SearchResult) => {
+    if (onNavigate) onNavigate(result.href);
+    else navigate(result.href);
+    setQuery("");
+    closeSearch();
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeSearch();
+    } else if (event.key === "ArrowDown" && results.length) {
+      event.preventDefault();
+      setSelectedIndex((index) => Math.min(index + 1, results.length - 1));
+    } else if (event.key === "ArrowUp" && results.length) {
+      event.preventDefault();
+      setSelectedIndex((index) => Math.max(index - 1, 0));
+    } else if (event.key === "Enter" && results[selectedIndex]) {
+      event.preventDefault();
+      selectResult(results[selectedIndex]);
     }
   };
 
-  const handleSelectResult = (result: SearchResult) => {
-    // TODO: Route to the selected item
-    console.log('Selected:', result);
-    // Example: navigate(`/crm/clients/${result.id}`);
-    onClose();
-  };
+  const resultList = (
+    <div className="max-h-[min(65vh,28rem)] overflow-y-auto py-1">
+      {query.trim().length < 2 ? (
+        <p className="px-4 py-5 text-sm text-muted-foreground">Type at least 2 characters to search your workspace.</p>
+      ) : query.trim() !== debouncedQuery || searchQuery.isFetching ? (
+        <div className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-muted-foreground">
+          <Spinner className="size-4" /> Searching records…
+        </div>
+      ) : searchQuery.error ? (
+        <p role="alert" className="px-4 py-5 text-sm text-destructive">
+          Search failed: {searchQuery.error.message}
+        </p>
+      ) : results.length === 0 ? (
+        <p className="px-4 py-5 text-sm text-muted-foreground">No matching records found.</p>
+      ) : (
+        results.map((result, index) => {
+          const Icon = resultIcons[result.type] || Search;
+          return (
+            <button
+              key={`${result.type}-${result.id}`}
+              type="button"
+              role="option"
+              aria-selected={index === selectedIndex}
+              onMouseEnter={() => setSelectedIndex(index)}
+              onClick={() => selectResult(result)}
+              className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                index === selectedIndex ? "bg-accent" : "hover:bg-accent/60"
+              }`}
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{result.title}</span>
+                {result.description && (
+                  <span className="block truncate text-xs text-muted-foreground">{result.description}</span>
+                )}
+              </span>
+              <Badge variant="outline" className="shrink-0 capitalize">{result.type}</Badge>
+            </button>
+          );
+        })
+      )}
+    </div>
+  );
 
-  const getTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      client: 'Client',
-      invoice: 'Invoice',
-      user: 'User',
-      project: 'Project',
-      task: 'Task',
-      contact: 'Contact',
-    };
-    return labels[type] || type;
-  };
-
-  const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      client: 'bg-blue-100 text-blue-700',
-      invoice: 'bg-green-100 text-green-700',
-      user: 'bg-purple-100 text-purple-700',
-      project: 'bg-orange-100 text-orange-700',
-      task: 'bg-red-100 text-red-700',
-      contact: 'bg-pink-100 text-pink-700',
-    };
-    return colors[type] || 'bg-gray-100 text-gray-700';
-  };
-
-  if (!isOpen) return null;
+  const input = (autoFocus = false, resultsId = "header-search-results") => (
+    <input
+      autoFocus={autoFocus}
+      type="search"
+      role="combobox"
+      aria-label="Search workspace records"
+      aria-expanded={isOpen}
+      aria-autocomplete="list"
+      aria-controls={resultsId}
+      placeholder="Search all records"
+      value={query}
+      onChange={(event) => setQuery(event.target.value)}
+      onFocus={() => setIsOpen(true)}
+      onKeyDown={handleKeyDown}
+      className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-9 text-sm outline-none transition focus:ring-2 focus:ring-ring"
+    />
+  );
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/30 z-40"
-        onClick={onClose}
-      />
+      <div className="relative z-50 ml-1 hidden w-40 items-center sm:flex md:w-56">
+        <Search className="pointer-events-none absolute left-2.5 z-10 h-4 w-4 text-muted-foreground" />
+        {input()}
+        {query && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => setQuery("")}
+            className="absolute right-2 z-10 rounded p-1 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+        {isOpen && (
+          <>
+            <button
+              type="button"
+              aria-label="Close search suggestions"
+              className="fixed inset-0 z-40 cursor-default"
+              onClick={closeSearch}
+            />
+            <div
+              id="header-search-results"
+              role="listbox"
+              className="absolute left-0 top-full z-50 mt-2 w-[min(90vw,36rem)] overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-xl"
+            >
+              {resultList}
+              <div className="border-t px-4 py-2 text-[11px] text-muted-foreground">
+                ↑↓ to navigate <span className="mx-2">·</span> Enter to open <span className="mx-2">·</span> Esc to close
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
-        <div className="w-full max-w-2xl">
-          {/* Search Input */}
-          <div className="bg-white rounded-t-lg shadow-lg p-4 border-b">
-            <div className="flex items-center gap-3">
-              <Search size={20} className="text-gray-400" />
-              <input
-                autoFocus
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Search clients, invoices, projects, users, tasks..."
-                className="flex-1 outline-none text-lg"
-              />
+      <button
+        type="button"
+        aria-label="Search workspace records"
+        className="absolute left-14 top-1/2 z-40 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 sm:hidden"
+        onClick={() => {
+          setMobileOpen(true);
+          setIsOpen(true);
+        }}
+      >
+        <Search className="h-4 w-4" />
+      </button>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/40 p-3 pt-[10vh] sm:hidden" onMouseDown={closeSearch}>
+          <div
+            className="mx-auto max-w-xl overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-xl"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="relative p-3">
+              <Search className="pointer-events-none absolute left-6 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              {input(true, "header-search-results-mobile")}
               <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600"
+                type="button"
+                aria-label="Close search"
+                onClick={closeSearch}
+                className="absolute right-5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
               >
-                <X size={20} />
+                <X className="h-4 w-4" />
               </button>
             </div>
-
-            {/* Search Tips */}
-            {!query && (
-              <div className="mt-4 p-2 bg-blue-50 rounded text-sm text-gray-600">
-                💡 Try searching by: Client name, Invoice number, User name, Project title, or Task description
-              </div>
-            )}
-          </div>
-
-          {/* Results */}
-          <div className="bg-white rounded-b-lg shadow-lg max-h-96 overflow-y-auto">
-            {loading ? (
-              <div className="p-8 text-center text-gray-500">
-                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                <p className="mt-2">Searching...</p>
-              </div>
-            ) : results.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                {query ? '❌ No results found' : '👋 Start typing to search'}
-              </div>
-            ) : (
-              <div className="divide-y">
-                {results.map((result, index) => (
-                  <button
-                    key={result.id}
-                    onClick={() => handleSelectResult(result)}
-                    className={`w-full text-left px-4 py-3 transition ${
-                      index === selectedIndex
-                        ? 'bg-blue-50 border-l-4 border-blue-500'
-                        : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      {/* Icon */}
-                      <div className="mt-1">{result.icon}</div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold text-gray-900 truncate">
-                            {result.title}
-                          </p>
-                          <span
-                            className={`text-xs font-medium px-2 py-1 rounded whitespace-nowrap ${getTypeColor(
-                              result.type
-                            )}`}
-                          >
-                            {getTypeLabel(result.type)}
-                          </span>
-                        </div>
-                        {result.description && (
-                          <p className="text-sm text-gray-600 truncate">
-                            {result.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Arrow */}
-                      <div className="text-gray-300 mt-1">
-                        →
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Footer Tips */}
-          {results.length > 0 && (
-            <div className="bg-gray-50 rounded-b-lg px-4 py-3 text-xs text-gray-500 border-t">
-              <kbd className="px-2 py-1 bg-white border rounded text-gray-700">↑↓</kbd>
-              <span className="mx-2">to navigate</span>
-              <kbd className="px-2 py-1 bg-white border rounded text-gray-700">⏎</kbd>
-              <span className="mx-2">to select</span>
-              <kbd className="px-2 py-1 bg-white border rounded text-gray-700">Esc</kbd>
-              <span className="mx-2">to close</span>
+            <div id="header-search-results-mobile" role="listbox" className="border-t">
+              {resultList}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

@@ -1,0 +1,1 @@
+import{j as o,n as t,o as s,p as a}from"./vendor-react-ui-CDYEcUL0.js";function n({...l}){return o.jsx(t,{"data-slot":"collapsible",...l})}function i({...l}){return o.jsx(s,{"data-slot":"collapsible-trigger",...l})}function r({...l}){return o.jsx(a,{"data-slot":"collapsible-content",...l})}export{n as C,i as a,r as b};

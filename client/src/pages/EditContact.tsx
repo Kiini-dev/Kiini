@@ -18,6 +18,7 @@ import {
 import { CountrySelect, CitySelect } from "@/components/LocationSelects";
 import { PhoneInput } from "@/components/PhoneInput";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { UserCog } from "lucide-react";
@@ -46,7 +47,6 @@ export default function EditContact() {
   });
 
   const { data: contact, isLoading: isLoadingContact } = trpc.contacts.getById.useQuery(id || "", { enabled: !!id });
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
   const utils = trpc.useUtils();
 
   useEffect(() => {
@@ -190,17 +190,7 @@ export default function EditContact() {
             </div>
             <div>
               <Label htmlFor="clientId">Associated Client</Label>
-              <select
-                id="clientId"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={formData.clientId}
-                onChange={(e) => update("clientId", e.target.value)}
-              >
-                <option value="">-- No client --</option>
-                {(clients as any[]).map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.companyName || `${c.firstName} ${c.lastName}`}</option>
-                ))}
-              </select>
+              <ClientSelector id="clientId" label="" value={formData.clientId} onChange={(clientId) => update("clientId", clientId)} includeUnassigned placeholder="-- No client --" />
             </div>
           </CardContent>
         </Card>

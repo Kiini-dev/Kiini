@@ -49,6 +49,26 @@ interface EmailTemplate {
   isSystem?: boolean;
 }
 
+function PageShell({
+  embedded,
+  title,
+  description,
+  breadcrumbs,
+  children,
+}: {
+  embedded: boolean;
+  title: string;
+  description: string;
+  breadcrumbs: Array<{ label: string; href?: string }>;
+  children: React.ReactNode;
+}) {
+  return embedded ? <>{children}</> : (
+    <ModuleLayout title={title} description={description} icon={<Mail className="h-5 w-5" />} breadcrumbs={breadcrumbs}>
+      {children}
+    </ModuleLayout>
+  );
+}
+
 const TEMPLATE_CATEGORIES = [
   "alert", "estimate", "estimate_created", "estimate_expired", "estimate_expiring", "general", "hr",
   "invoice", "invoice_created", "invoice_overdue", "invoice_reminder_1d", "invoice_reminder_3d",
@@ -248,22 +268,6 @@ export default function AdminEmailTemplates({ embedded = false }: { embedded?: b
   });
   const [editorMode, setEditorMode] = useState<"block" | "html" | "richtext">("richtext");
 
-  const PageShell = ({
-    title,
-    description,
-    breadcrumbs,
-    children,
-  }: {
-    title: string;
-    description: string;
-    breadcrumbs: Array<{ label: string; href?: string }>;
-    children: React.ReactNode;
-  }) => embedded ? <>{children}</> : (
-    <ModuleLayout title={title} description={description} icon={<Mail className="h-5 w-5" />} breadcrumbs={breadcrumbs}>
-      {children}
-    </ModuleLayout>
-  );
-
   const filteredTemplates = templates.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -352,6 +356,7 @@ export default function AdminEmailTemplates({ embedded = false }: { embedded?: b
   if (view === "builder") {
     return (
       <PageShell
+        embedded={embedded}
         title={editingTemplate ? "Edit Email Template" : "Create Email Template"}
         description="Design your HTML email template with the visual builder"
         breadcrumbs={[
@@ -649,6 +654,7 @@ export default function AdminEmailTemplates({ embedded = false }: { embedded?: b
   // List view
   return (
     <PageShell
+      embedded={embedded}
       title="Email Templates"
       description="Manage HTML email templates for system-wide use"
       breadcrumbs={[

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useAuthWithPersistence } from "@/_core/hooks/useAuthWithPersistence";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSystemSettings } from "@/contexts/SystemSettingsContext";
@@ -33,6 +33,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { NotificationBell } from "./NotificationBell";
+import HeaderSearchModal from "./HeaderSearchModal";
 import { FloatingAIChat } from "./FloatingAIChat";
 import FloatingChatNotifications from "./FloatingChatNotifications";
 import ProductGuidance from "./ProductGuidance";
@@ -201,16 +202,12 @@ const NAV_SUPER_ADMIN: NavItem[] = [
   { title: "HR", icon: UserCog, children: [
     { title: "Employees", href: "/employees", icon: Users },
     { title: "Departments", href: "/departments", icon: Building2 },
-    { title: "Attendance", href: "/attendance", icon: Clock },
     { title: "Time Sheets", href: "/timesheets", icon: Clock },
     { title: "Payroll", href: "/payroll", icon: DollarSign },
     { title: "Payslips", href: "/payslips", icon: DollarSign },
     { title: "Tax Compliance", href: "/payroll/tax-compliance", icon: Shield },
     { title: "Leave Management", href: "/leave-management", icon: Users },
     { title: "Job Groups", href: "/job-groups", icon: Briefcase },
-    { title: "Performance Reviews", href: "/performance-reviews", icon: BarChart3 },
-    { title: "Holidays", href: "/holidays", icon: CalendarDays },
-    { title: "Training", href: "/training", icon: GraduationCap },
   ]},
   { title: "Communications & Mailing", icon: Mail, children: [
     { title: "Staff Chat", href: "/staff-chat", icon: MessageSquare },
@@ -317,14 +314,10 @@ const NAV_ADMIN: NavItem[] = [
   { title: "HR", icon: UserCog, children: [
     { title: "Employees", href: "/employees", icon: Users },
     { title: "Departments", href: "/departments", icon: Building2 },
-    { title: "Attendance", href: "/attendance", icon: Clock },
     { title: "Leave Management", href: "/leave-management", icon: Users },
     { title: "Job Groups", href: "/job-groups", icon: Briefcase },
     { title: "Time sheets", href: "/timesheets", icon: Clock },
     { title: "Onboarding", href: "/onboarding", icon: UserPlus },
-    { title: "Holidays", href: "/holidays", icon: CalendarDays },
-    { title: "Training", href: "/training", icon: GraduationCap },
-    { title: "Performance Reviews", href: "/performance-reviews", icon: BarChart3 },
   ]},
   { title: "Support", icon: Ticket, children: [
     { title: "Tickets", href: "/tickets", icon: Ticket },
@@ -425,14 +418,10 @@ const NAV_HR: NavItem[] = [
   { title: "HR", icon: UserCog, children: [
     { title: "Employees", href: "/employees", icon: Users },
     { title: "Departments", href: "/departments", icon: Building2 },
-    { title: "Attendance", href: "/attendance", icon: Clock },
     { title: "Payslips", href: "/payslips", icon: FileText },
     { title: "Leave Management", href: "/leave-management", icon: Users },
     { title: "Job Groups", href: "/job-groups", icon: Briefcase },
     { title: "Onboarding", href: "/onboarding", icon: UserPlus },
-    { title: "Holidays", href: "/holidays", icon: CalendarDays },
-    { title: "Training", href: "/training", icon: GraduationCap },
-    { title: "Performance Reviews", href: "/performance-reviews", icon: BarChart3 },
   ]},
   { title: "Projects", href: "/projects", icon: FolderKanban },
   { title: "Tasks", href: "/tasks", icon: CheckSquare },
@@ -644,7 +633,6 @@ const NAV_STAFF: NavItem[] = [
     { title: "Estimates", href: "/estimates", icon: FileText },
   ]},
   { title: "HR", icon: UserCog, children: [
-    { title: "Attendance", href: "/attendance", icon: Clock },
     { title: "Leave", href: "/leave-management", icon: Users },
     { title: "My Payslips", href: "/my-payslips", icon: DollarSign },
   ]},
@@ -662,23 +650,20 @@ const NAV_STAFF: NavItem[] = [
 
 const NAV_CLIENT: NavItem[] = [
   { title: "Dashboard", href: "/crm/client-portal", icon: Home },
-  { title: "Projects", href: "/projects", icon: FolderKanban },
+  { title: "Projects", href: "/crm/client-portal?tab=projects", icon: FolderKanban },
   { title: "Billing", icon: CreditCard, children: [
-    { title: "Invoices", href: "/invoices", icon: FileText },
-    { title: "Payments", href: "/payments", icon: DollarSign },
+    { title: "Invoices", href: "/crm/client-portal?tab=invoices", icon: FileText },
+    { title: "Payments", href: "/crm/client-portal?tab=payments", icon: DollarSign },
   ]},
   { title: "Services", icon: Briefcase, children: [
-    { title: "Proposals", href: "/proposals", icon: FileText },
-    { title: "Contracts", href: "/contracts", icon: FileText },
-    { title: "Documents", href: "/documents", icon: FileText },
-    { title: "Warranty", href: "/warranty", icon: Briefcase },
+    { title: "Documents", href: "/crm/client-portal?tab=documents", icon: FileText },
   ]},
   { title: "Support", icon: Ticket, children: [
-    { title: "Tickets", href: "/tickets", icon: Ticket },
+    { title: "Tickets", href: "/crm/client-portal?tab=tickets", icon: Ticket },
   ]},
   { title: "Knowledgebase", href: "/knowledge-base", icon: BookOpen },
   { title: "Account", icon: User, children: [
-    { title: "Profile", href: "/account", icon: User },
+    { title: "Profile", href: "/crm/client-portal?tab=profile", icon: User },
     { title: "Change Password", href: "/change-password", icon: Lock },
   ]},
 ];
@@ -727,6 +712,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
 function GlobalDashboardLayout({ children }: DashboardLayoutProps) {
   const [location, navigate] = useLocation();
+  const search = useSearch();
   const { user, logout, loading, isAuthenticated } = useAuthWithPersistence();
   const { theme, setTheme } = useTheme();
   const handleThemeToggle = () => {
@@ -764,8 +750,6 @@ function GlobalDashboardLayout({ children }: DashboardLayoutProps) {
   const appTitle = brandConfig.companyName || brandConfig.brandName || APP_TITLE;
 
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  const [headerSearchQuery, setHeaderSearchQuery] = useState("");
-  const [headerSearchOpen, setHeaderSearchOpen] = useState(false);
   
   // Mini-sidebar states
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -906,7 +890,14 @@ function GlobalDashboardLayout({ children }: DashboardLayoutProps) {
 
   const isActive = (href?: string) => {
     if (!href) return false;
-    return location === href || location.startsWith(href + "/");
+    const [path, query] = href.split("?", 2);
+    const pathMatches = location === path || location.startsWith(path + "/");
+    if (!pathMatches) return false;
+    if (query) {
+      const targetTab = new URLSearchParams(query).get("tab");
+      return targetTab === new URLSearchParams(search).get("tab");
+    }
+    return path !== "/crm/client-portal" || !new URLSearchParams(search).has("tab");
   };
 
   const hasActiveChild = (item: NavItem) => {
@@ -1415,39 +1406,7 @@ function GlobalDashboardLayout({ children }: DashboardLayoutProps) {
             </Tooltip>
           </TooltipProvider>
 
-          {/* Global Search Bar */}
-          <form
-            data-tour="global-search"
-            className={cn("relative hidden sm:flex items-center ml-1", isClient && "hidden")}
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (headerSearchQuery.trim()) {
-                navigate(`/search?q=${encodeURIComponent(headerSearchQuery.trim())}`);
-                setHeaderSearchQuery("");
-              }
-            }}
-          >
-            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={headerSearchQuery}
-              onChange={(e) => setHeaderSearchQuery(e.target.value)}
-              className="h-8 w-40 md:w-52 rounded-md border border-input bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </form>
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            data-tour="global-search"
-            aria-label="Open search"
-            className="absolute left-14 top-1/2 z-40 h-9 w-9 -translate-y-1/2 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-600 dark:hover:text-slate-50 sm:hidden"
-            onClick={() => navigate('/search')}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
+          {!isClient && <HeaderSearchModal />}
 
           <div className="flex-1" />
 

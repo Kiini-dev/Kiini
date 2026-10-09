@@ -115,11 +115,59 @@ describe('legacy schema compatibility', () => {
     expect(getRuntimeSchemaCheckTargets()).toContain('projects');
   });
 
+  it('repairs contract signing columns for legacy contract tables', () => {
+    expect(getMissingColumnsForTable('contracts', ['id', 'name', 'vendor', 'value'])).toContainEqual({
+      name: 'counterpartyContactName',
+      definition: 'varchar(255) NULL',
+    });
+    expect(getRuntimeSchemaCheckTargets()).toContain('contracts');
+  });
+
+  it('repairs proposal columns required by the proposal list query', () => {
+    expect(getMissingColumnsForTable('proposals', ['id', 'proposalNumber', 'clientId', 'status'])).toEqual(
+      expect.arrayContaining([
+        { name: 'organizationId', definition: 'varchar(64) NULL' },
+        { name: 'signingWorkflowId', definition: 'varchar(64) NULL' },
+        { name: 'signedDocumentHtml', definition: 'longtext NULL' },
+      ]),
+    );
+    expect(getRuntimeSchemaCheckTargets()).toContain('proposals');
+  });
+
+  it('repairs the organization scope column required by signature request inserts', () => {
+    expect(getMissingColumnsForTable('eSignatureRequests', [
+      'id',
+      'workflowId',
+      'documentType',
+      'documentId',
+      'documentHash',
+      'sequence',
+      'title',
+      'documentContent',
+      'signerName',
+      'signerEmail',
+      'signingToken',
+      'status',
+      'expiresAt',
+      'createdBy',
+    ])).toContainEqual({
+      name: 'organizationId',
+      definition: 'varchar(64) NULL',
+    });
+    expect(getRuntimeSchemaCheckTargets()).toContain('eSignatureRequests');
+  });
+
+  it('stores contract values as bigint cents', () => {
+    const valueColumn = getTableConfig(schema.contracts).columns.find((column) => column.name === 'value');
+    expect(valueColumn?.columnType).toBe('MySqlBigInt53');
+  });
+
   it('keeps business module repairs aligned with Drizzle schema and runtime checks', () => {
     const tables = {
       clients: schema.clients,
       estimates: schema.estimates,
       invoices: schema.invoices,
+      proposals: schema.proposals,
       projects: schema.projects,
       projecttasks: schema.projectTasks,
       expenses: schema.expenses,

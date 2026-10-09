@@ -16,6 +16,7 @@ import {
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { ArrowLeft, Loader2, Trash2, Edit } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import mutateAsync from "@/lib/mutationHelpers";
 import { toast } from "sonner";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
@@ -50,7 +51,6 @@ export default function EditUser() {
   const roles = workflowOptions?.roles || [];
   const departments = workflowOptions?.departments || [];
   const { data: employees = [] } = trpc.employees.list.useQuery({});
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
 
   // Update user mutation
   const updateUserMutation = trpc.users.update.useMutation({
@@ -389,14 +389,7 @@ export default function EditUser() {
 
               {/* Employee Linking */}
               <div className="space-y-2">
-                <Label htmlFor="clientId">Link Client</Label>
-                <Select value={formData.clientId || "__unassigned__"} onValueChange={(value) => setFormData({ ...formData, clientId: value === "__unassigned__" ? "" : value })}>
-                  <SelectTrigger id="clientId"><SelectValue placeholder="Select a client (optional)" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__unassigned__">No client link</SelectItem>
-                    {clients.map((client: any) => <SelectItem key={client.id} value={client.id}>{client.companyName || client.name || client.contactPerson}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <ClientSelector id="clientId" label="Link Client" value={formData.clientId} onChange={(clientId) => setFormData({ ...formData, clientId })} includeUnassigned placeholder="Select a client (optional)" />
               </div>
 
               {/* Employee Linking */}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { trpc } from '@/lib/trpc';
+import { ChartOfAccountsSelector } from '@/components/ChartOfAccountsSelector';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -220,18 +221,7 @@ export default function PaymentWithCOADialog({
           {/* Chart of Accounts */}
           <div className="space-y-2">
             <Label htmlFor="accountId">Chart of Accounts</Label>
-            <Select value={formData.accountId} onValueChange={handleAccountChange}>
-              <SelectTrigger id="accountId">
-                <SelectValue placeholder="Select COA account" />
-              </SelectTrigger>
-              <SelectContent>
-                {coaAccounts?.map(acc => (
-                  <SelectItem key={acc.id} value={acc.id}>
-                    {acc.accountCode} - {acc.accountName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ChartOfAccountsSelector accounts={coaAccounts ?? []} value={formData.accountId} onChange={handleAccountChange} placeholder="Select COA account" />
 
             {selectedAccount && coaBalance !== null && (
               <Alert>

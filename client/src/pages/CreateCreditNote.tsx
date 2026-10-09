@@ -2,6 +2,7 @@ import ModuleLayout from "@/components/ModuleLayout";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -140,20 +141,11 @@ export default function CreateCreditNote() {
               <div className="grid gap-3">
                 <div className="grid grid-cols-[140px_1fr] items-center gap-3">
                   <Label className="text-right text-sm">Client *</Label>
-                  <Select value={clientId} onValueChange={v => {
+                  <ClientSelector value={clientId} onChange={v => {
                     setClientId(v);
                     const c = (clients as any[]).find((c: any) => c.id === v);
                     if (c) setClientName(c.companyName || c.name || "");
-                  }}>
-                    <SelectTrigger><SelectValue placeholder="Search or select client..." /></SelectTrigger>
-                    <SelectContent>
-                      {(clients as any[]).map((c: any) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          <span className="flex items-center gap-2"><Building2 className="h-3 w-3 text-muted-foreground" />{c.companyName || c.name}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  }} required placeholder="Search or select client..." label="" />
                 </div>
               </div>
             ) : (

@@ -4,7 +4,7 @@ import { createFeatureRestrictedProcedure } from "../middleware/enhancedRbac";
 import { z } from "zod";
 import { getDb, getSettingsByCategory, logActivity } from "../db";
 import { v4 as uuidv4 } from "uuid";
-import { tickets as canonicalTickets } from "../../drizzle/schema";
+import { tickets as canonicalTickets, clients } from "../../drizzle/schema";
 import { ticketComments, ticketTasks } from "../../drizzle/schema-extended";
 import { eq, and } from "drizzle-orm";
 
@@ -57,6 +57,20 @@ export function canRoleCreateTicket(role: string, allowClientTickets: unknown): 
   return role !== "client" || resolveAllowClientTickets(allowClientTickets);
 }
 
+export async function getClientOrganizationId(db: any, user: { clientId?: string | null; organizationId?: string | null }) {
+  if (!user.clientId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Client account is not linked to a client record" });
+  }
+  const clientRows = await db.select({
+    organizationId: clients.organizationId,
+  }).from(clients).where(eq(clients.id, user.clientId)).limit(1);
+  const clientOrganizationId = clientRows[0]?.organizationId || null;
+  if (!clientOrganizationId || (user.organizationId && user.organizationId !== clientOrganizationId)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Client account is not linked to an organization" });
+  }
+  return clientOrganizationId;
+}
+
 const safeSelectByTicketId = async <T>(db: any, table: any, ticketId: string, fieldName: string) => {
   try {
     return await db.select().from(table).where(eq(table.ticketId, ticketId));
@@ -72,8 +86,11 @@ export const ticketsRouter = router({
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
-      const orgId = ctx.user.organizationId || "";
+      const orgId = ctx.user.role === "client"
+        ? await getClientOrganizationId(db, { clientId: (ctx.user as any).clientId, organizationId: ctx.user.organizationId })
+        : ctx.user.organizationId || "";
       const filters: any[] = [eq(canonicalTickets.organizationId, orgId)];
+      if (ctx.user.role === "client") filters.push(eq(canonicalTickets.createdBy, ctx.user.id));
       if (input?.status) filters.push(eq(canonicalTickets.status as any, normalizeStatus(input.status) as any));
       const where = filters.length === 1 ? filters[0] : and(...filters);
       return await db.select().from(canonicalTickets).where(where).limit(input?.limit || 100).offset(input?.offset || 0);
@@ -84,8 +101,15 @@ export const ticketsRouter = router({
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return null;
-      const orgId = ctx.user.organizationId || "";
-      const where = and(eq(canonicalTickets.id, input), eq(canonicalTickets.organizationId, orgId));
+      const orgId = ctx.user.role === "client"
+        ? await getClientOrganizationId(db, { clientId: (ctx.user as any).clientId, organizationId: ctx.user.organizationId })
+        : ctx.user.organizationId || "";
+      const filters = [
+        eq(canonicalTickets.id, input),
+        eq(canonicalTickets.organizationId, orgId),
+      ];
+      if (ctx.user.role === "client") filters.push(eq(canonicalTickets.createdBy, ctx.user.id));
+      const where = and(...filters);
       const rows = await db.select().from(canonicalTickets).where(where).limit(1);
       if (rows.length === 0) return null;
       const ticket = rows[0];
@@ -116,14 +140,17 @@ export const ticketsRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Client ticket submissions are disabled" });
         }
       }
-      if (!ctx.user.organizationId) {
+      const organizationId = ctx.user.role === "client"
+        ? await getClientOrganizationId(db, { clientId: (ctx.user as any).clientId, organizationId: ctx.user.organizationId })
+        : ctx.user.organizationId;
+      if (!organizationId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Organization context required" });
       }
 
       const id = uuidv4();
       const payload = {
         id,
-        organizationId: ctx.user.organizationId,
+        organizationId,
         ticketNumber: makeTicketNumber(),
         title: input.title.trim(),
         description: input.description || "No description provided",

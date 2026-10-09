@@ -3,13 +3,7 @@
  * Provides scrollable dropdown selects for Country, County, and City/Town
  */
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/SearchableSelect";
 
 import { Label } from "@/components/ui/label";
 import {
@@ -19,9 +13,9 @@ import {
   getCitiesByCounty,
   INDUSTRIES,
 } from "@/data/locations";
-import { useEffect, useState } from "react";
 
 interface LocationSelectProps {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -30,40 +24,40 @@ interface LocationSelectProps {
 }
 
 export function CountrySelect({
+  id,
   value,
   onChange,
   placeholder = "Select a country",
   label,
   required,
 }: LocationSelectProps) {
+  const options = [...new Set([...COUNTRIES, ...(value && !COUNTRIES.includes(value) ? [value] : [])])]
+    .map((country) => ({ value: country, label: country }));
+
   return (
     <div className="space-y-2">
       {label && (
-        <Label>
+        <Label htmlFor={id}>
           {label}
           {required && <span className="text-red-500">*</span>}
         </Label>
       )}
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-            {value && !COUNTRIES.includes(value) && (
-              <SelectItem value={value} className="cursor-pointer">{value}</SelectItem>
-            )}
-            {COUNTRIES.map((country) => (
-              <SelectItem key={country} value={country} className="cursor-pointer">
-                {country}
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
+      <SearchableSelect
+        id={id}
+        value={value}
+        options={options}
+        onValueChange={onChange}
+        placeholder={placeholder}
+        searchPlaceholder="Search countries..."
+        emptyMessage="No countries found."
+        required={required}
+      />
     </div>
   );
 }
 
 export function CountySelect({
+  id,
   value,
   onChange,
   placeholder = "Select a county",
@@ -73,23 +67,22 @@ export function CountySelect({
   return (
     <div className="space-y-2">
       {label && (
-        <Label>
+        <Label htmlFor={id}>
           {label}
           {required && <span className="text-red-500">*</span>}
         </Label>
       )}
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-            {KENYAN_COUNTIES_NAMES.map((county) => (
-              <SelectItem key={county} value={county} className="cursor-pointer">
-                {county}
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
+      <SearchableSelect
+        id={id}
+        value={value}
+        options={[...new Set([...KENYAN_COUNTIES_NAMES, ...(value && !KENYAN_COUNTIES_NAMES.includes(value) ? [value] : [])])]
+          .map((county) => ({ value: county, label: county }))}
+        onValueChange={onChange}
+        placeholder={placeholder}
+        searchPlaceholder="Search counties..."
+        emptyMessage="No counties found."
+        required={required}
+      />
     </div>
   );
 }
@@ -99,6 +92,7 @@ interface CitySelectProps extends LocationSelectProps {
 }
 
 export function CitySelect({
+  id,
   value,
   onChange,
   county,
@@ -106,42 +100,35 @@ export function CitySelect({
   label,
   required,
 }: CitySelectProps) {
-  const [cities, setCities] = useState<string[]>(KENYAN_CITIES);
-
-  useEffect(() => {
-    if (county) {
-      const countyCities = getCitiesByCounty(county);
-      setCities(countyCities.length > 0 ? countyCities : KENYAN_CITIES);
-    } else {
-      setCities(KENYAN_CITIES);
-    }
-  }, [county]);
+  const cities = county ? getCitiesByCounty(county) : [];
+  const availableCities = cities.length > 0 ? cities : KENYAN_CITIES;
+  const options = [...new Set([...availableCities, ...(value && !availableCities.includes(value) ? [value] : [])])]
+    .map((city) => ({ value: city, label: city }));
 
   return (
     <div className="space-y-2">
       {label && (
-        <Label>
+        <Label htmlFor={id}>
           {label}
           {required && <span className="text-red-500">*</span>}
         </Label>
       )}
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-            {cities.map((city) => (
-              <SelectItem key={city} value={city} className="cursor-pointer">
-                {city}
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
+      <SearchableSelect
+        id={id}
+        value={value}
+        options={options}
+        onValueChange={onChange}
+        placeholder={placeholder}
+        searchPlaceholder="Search cities and towns..."
+        emptyMessage="No cities or towns found."
+        required={required}
+      />
     </div>
   );
 }
 
 interface IndustrySelectProps {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -150,6 +137,7 @@ interface IndustrySelectProps {
 }
 
 export function IndustrySelect({
+  id,
   value,
   onChange,
   placeholder = "Select industry",
@@ -159,23 +147,22 @@ export function IndustrySelect({
   return (
     <div className="space-y-2">
       {label && (
-        <Label>
+        <Label htmlFor={id}>
           {label}
           {required && <span className="text-red-500">*</span>}
         </Label>
       )}
-      <Select value={value || ""} onValueChange={onChange}>
-        <SelectTrigger>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {INDUSTRIES.map((industry) => (
-            <SelectItem key={industry} value={industry} className="cursor-pointer">
-              {industry}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SearchableSelect
+        id={id}
+        value={value || ""}
+        options={[...new Set([...INDUSTRIES, ...(value && !INDUSTRIES.includes(value) ? [value] : [])])]
+          .map((industry) => ({ value: industry, label: industry }))}
+        onValueChange={onChange}
+        placeholder={placeholder}
+        searchPlaceholder="Search industries..."
+        emptyMessage="No industries found."
+        required={required}
+      />
     </div>
   );
 }

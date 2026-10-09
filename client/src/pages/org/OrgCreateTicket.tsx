@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { TicketPlus } from "lucide-react";
@@ -31,7 +32,6 @@ export default function CreateTicket() {
     requestedDueDate: "",
   });
 
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
 
   const createMutation = trpc.tickets.create.useMutation({
     onSuccess: (data: any) => {
@@ -87,19 +87,7 @@ export default function CreateTicket() {
               <Input id="title" value={formData.title} onChange={(e) => update("title", e.target.value)} required placeholder="Brief description of the issue" />
             </div>
             <div>
-              <Label htmlFor="clientId">Client *</Label>
-              <select
-                id="clientId"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={formData.clientId}
-                onChange={(e) => update("clientId", e.target.value)}
-                required
-              >
-                <option value="">Select client...</option>
-                {(clients as any[]).map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.companyName || `${c.firstName} ${c.lastName}`}</option>
-                ))}
-              </select>
+              <ClientSelector id="clientId" value={formData.clientId} onChange={(clientId) => update("clientId", clientId)} required />
             </div>
             <div>
               <Label htmlFor="category">Category</Label>

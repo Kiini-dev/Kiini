@@ -24,6 +24,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useRequireFeature } from "@/lib/permissions";
 import { trpc } from "@/lib/trpc";
 import { SupplierSelector } from "@/components/SupplierSelector";
+import { ContractTypeSelector } from "@/components/ContractTypeSelector";
 
 const CONTRACT_TYPES = [
   { value: "service", label: "Service Agreement" },
@@ -38,7 +39,20 @@ const CONTRACT_TYPES = [
   { value: "other", label: "Other" },
 ];
 
-const emptyForm = {
+type ContractFormValues = {
+  name: string;
+  vendor: string;
+  startDate: string;
+  endDate: string;
+  value: string;
+  status: "draft" | "active" | "expired";
+  contractType: string;
+  description: string;
+  notes: string;
+  templateId: string;
+};
+
+const emptyForm: ContractFormValues = {
   name: "", vendor: "", startDate: "", endDate: "", value: "",
   status: "draft" as const, contractType: "", description: "", notes: "", templateId: "",
 };
@@ -49,7 +63,7 @@ export default function ContractManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<any>(null);
-  const [form, setForm] = useState({ ...emptyForm });
+  const [form, setForm] = useState<ContractFormValues>({ ...emptyForm });
   const utils = trpc.useUtils();
   const _search = useSearch();
   useEffect(() => { if (new URLSearchParams(_search).get("action") === "create") setCreateOpen(true); }, []);
@@ -85,8 +99,8 @@ export default function ContractManagement() {
     setForm({
       name: c.name || "", vendor: c.vendor || "", startDate: c.startDate || "",
       endDate: c.endDate || "", value: ((c.value || 0) / 100).toString(),
-      status: c.status || "draft", contractType: c.contractType || "",
-      description: c.description || "", notes: c.notes || "",
+      status: c.status === "active" ? "active" : c.status === "expired" ? "expired" : "draft", contractType: c.contractType || "",
+      description: c.description || "", notes: c.notes || "", templateId: "",
     });
   };
 
@@ -153,23 +167,17 @@ export default function ContractManagement() {
             </div>
             <div className="space-y-2">
               <Label>Contract Type</Label>
-              <Select value={form.contractType} onValueChange={v => setForm(f => ({ ...f, contractType: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
-                <SelectContent>
-                  {CONTRACT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <ContractTypeSelector options={CONTRACT_TYPES} value={form.contractType} onChange={contractType => setForm(f => ({ ...f, contractType }))} placeholder="Select type..." />
             </div>
           </div>
           <div className="space-y-2 md:w-1/2">
             <Label>Status</Label>
-            <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as any }))}>
+            <Select value={form.status} onValueChange={(v: ContractFormValues["status"]) => setForm(f => ({ ...f, status: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="terminated">Terminated</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -276,11 +284,14 @@ export default function ContractManagement() {
                       <TableCell>{contract.vendor}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{contract.startDate ? new Date(contract.startDate).toLocaleDateString() : "-"} → {contract.endDate ? new Date(contract.endDate).toLocaleDateString() : "-"}</TableCell>
                       <TableCell>Ksh {((contract.value || 0) / 100).toLocaleString()}</TableCell>
-                      <TableCell><Badge variant={statusColor(contract.status || "draft")}>{contract.status || "draft"}</Badge></TableCell>
+                      <TableCell className="space-x-2">
+                        <Badge variant={statusColor(contract.status || "draft")}>{contract.status || "draft"}</Badge>
+                        {contract.signingStatus && contract.signingStatus !== "not_sent" && <Badge variant="outline">Locked for signature</Badge>}
+                      </TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button variant="ghost" size="sm" onClick={() => setLocation(`/contracts/${contract.id}`)}><Eye className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(contract)}><Edit2 className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" className="text-red-500" onClick={() => { if (confirm("Delete this contract?")) deleteMutation.mutate(contract.id); }}><Trash2 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" disabled={contract.status === "terminated" || Boolean(contract.signingStatus && contract.signingStatus !== "not_sent")} title={contract.status === "terminated" ? "Terminated contracts are immutable" : contract.signingStatus && contract.signingStatus !== "not_sent" ? "Contracts are locked after signature invitations are sent" : "Edit contract"} onClick={() => openEdit(contract)}><Edit2 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" className="text-red-500" disabled={contract.status === "terminated" || Boolean(contract.signingStatus && contract.signingStatus !== "not_sent")} title={contract.status === "terminated" ? "Terminated contracts are retained for audit history" : contract.signingStatus && contract.signingStatus !== "not_sent" ? "Contracts in a signing workflow cannot be deleted" : "Delete contract"} onClick={() => { if (confirm("Delete this contract?")) deleteMutation.mutate(contract.id); }}><Trash2 className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -295,7 +306,7 @@ export default function ContractManagement() {
       <Dialog open={createOpen} onOpenChange={v => { setCreateOpen(v); if (!v) setForm({ ...emptyForm }); }}>
         <DialogContent className="max-w-3xl">
           <DialogHeader><DialogTitle>New Contract</DialogTitle></DialogHeader>
-          <ContractForm isEdit={false} />
+          {ContractForm({ isEdit: false })}
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setCreateOpen(false)}><X className="h-4 w-4 mr-2" />Cancel</Button>
             <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.name || !form.vendor || !form.startDate || !form.endDate || !form.value}>
@@ -309,7 +320,7 @@ export default function ContractManagement() {
       <Dialog open={!!editingContract} onOpenChange={v => { if (!v) setEditingContract(null); }}>
         <DialogContent className="max-w-3xl">
           <DialogHeader><DialogTitle>Edit Contract</DialogTitle></DialogHeader>
-          <ContractForm isEdit={true} />
+          {ContractForm({ isEdit: true })}
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setEditingContract(null)}><X className="h-4 w-4 mr-2" />Cancel</Button>
             <Button onClick={() => handleSubmit(true)} disabled={updateMutation.isPending}>

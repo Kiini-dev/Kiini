@@ -39,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BookOpen, Eye, Plus, Search, Edit, Trash2, TrendingUp, TrendingDown, Loader2, DollarSign, Download, Upload } from "lucide-react";
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { ChartOfAccountsHierarchy } from "@/components/ChartOfAccountsHierarchy";
@@ -357,22 +358,7 @@ export default function ChartOfAccounts() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="parent">Parent Account (Optional)</Label>
-                    <Select 
-                      value={newAccount.parentAccountId || "none"}
-                      onValueChange={(value) => setNewAccount({ ...newAccount, parentAccountId: value === "none" ? null : value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select parent account" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None (Top Level)</SelectItem>
-                        {accounts.map((account: any) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.accountCode} - {account.accountName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <ChartOfAccountsSelector accounts={accounts} value={newAccount.parentAccountId || ""} onChange={(accountId) => setNewAccount({ ...newAccount, parentAccountId: accountId || null })} noneLabel="None (Top Level)" placeholder="Select parent account" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="description">Description</Label>

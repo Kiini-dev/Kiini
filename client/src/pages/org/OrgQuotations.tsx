@@ -3,8 +3,6 @@ import { useSearch, useLocation } from "wouter";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -29,8 +27,18 @@ import { SummaryStatCards, type SummaryCard } from "@/components/list-page/Summa
 import { TableColumnSettings, useColumnVisibility, type ColumnConfig } from "@/components/list-page/TableColumnSettings";
 import { EnhancedBulkActions, bulkExportAction, bulkCopyIdsAction, bulkDeleteAction } from "@/components/list-page/EnhancedBulkActions";
 import { RowActionsMenu, actionIcons, type RowAction } from "@/components/list-page/RowActionsMenu";
+import { createEmptyQuotationForm, quotationFormPayload, quotationToForm, QuotationRequestForm } from "@/components/QuotationRequestForm";
 
-const emptyForm = { rfqNo: "", supplier: "", description: "", amount: "", dueDate: "", status: "draft" as const };
+type QuotationRow = {
+  id: string;
+  rfqNo: string;
+  supplier: string;
+  amount: number;
+  dueDate: string | null;
+  status: string;
+  description?: string | null;
+  submittedDate?: string | null;
+};
 
 const QUOTATION_COLUMNS: ColumnConfig[] = [
   { key: "id", label: "ID", defaultVisible: true },
@@ -51,7 +59,7 @@ export default function QuotationsPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [createOpen, setCreateOpen] = useState(false);
   const [editingRFQ, setEditingRFQ] = useState<any>(null);
-  const [form, setForm] = useState({ ...emptyForm });
+  const [form, setForm] = useState(createEmptyQuotationForm);
   const [selectedQuotations, setSelectedQuotations] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
   const { page: currentPage, pageSize, setPage: setCurrentPage, setPageSize, paginate } = usePagination(25);
@@ -62,10 +70,10 @@ export default function QuotationsPage() {
   useEffect(() => { if (new URLSearchParams(_search).get("action") === "create") setCreateOpen(true); }, []);
 
   const { data: quotationsData, isLoading: dataLoading } = trpc.quotations.list.useQuery({}, { enabled: allowed });
-  const quotations = quotationsData?.data || [];
+  const quotations = (Array.isArray(quotationsData?.data) ? quotationsData.data : []) as QuotationRow[];
 
   const createMutation = trpc.quotations.create.useMutation({
-    onSuccess: () => { utils.quotations.list.invalidate(); toast.success("RFQ created"); setCreateOpen(false); setForm({ ...emptyForm }); },
+    onSuccess: () => { utils.quotations.list.invalidate(); toast.success("RFQ created"); setCreateOpen(false); setForm(createEmptyQuotationForm()); },
     onError: (err: any) => toast.error(err.message),
   });
   const updateMutation = trpc.quotations.update.useMutation({
@@ -151,39 +159,18 @@ export default function QuotationsPage() {
 
   const openEdit = (q: any) => {
     setEditingRFQ(q);
-    setForm({ rfqNo: q.rfqNo || "", supplier: q.supplier || "", description: q.description || "", amount: ((q.amount || 0) / 100).toString(), dueDate: q.dueDate || "", status: q.status || "draft" });
+    setForm(quotationToForm(q));
   };
 
   const handleSubmit = (isEdit: boolean) => {
-    const payload = { rfqNo: form.rfqNo, supplier: form.supplier, description: form.description || undefined, amount: parseFloat(form.amount) || 0, dueDate: form.dueDate || undefined, status: form.status };
+    if (!form.buyerCompanyName.trim() || !form.lineItems.some((item) => item.description.trim())) {
+      toast.error("Add the issuing company and at least one item or service.");
+      return;
+    }
+    const payload = quotationFormPayload(form);
     if (isEdit && editingRFQ) updateMutation.mutate({ id: editingRFQ.id, ...payload });
     else createMutation.mutate(payload);
   };
-
-  const RFQForm = () => (
-    <div className="grid gap-4 py-2">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1"><Label>Supplier *</Label><Input value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))} placeholder="Supplier name" /></div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1"><Label>Amount (Ksh) *</Label><Input type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0" /></div>
-        <div className="space-y-1"><Label>Due Date</Label><Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} /></div>
-      </div>
-      <div className="space-y-1"><Label>Status</Label>
-        <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as any }))}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="submitted">Submitted</SelectItem>
-            <SelectItem value="under_review">Under Review</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-1"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
-    </div>
-  );
 
   return (
     <ModuleLayout title="Quotations & RFQs" description="Request and manage quotations from suppliers" icon={<FileText className="h-5 w-5" />} breadcrumbs={[{ label: "Dashboard", href: "/crm-home" }, { label: "Procurement", href: "/procurement" }, { label: "Quotations" }]}>
@@ -223,7 +210,7 @@ export default function QuotationsPage() {
               </SelectContent>
             </Select>
             <TableColumnSettings columns={QUOTATION_COLUMNS} visibleColumns={visibleColumns} onToggleColumn={toggleColumn} />
-            <Button onClick={() => { setForm({ ...emptyForm }); setCreateOpen(true); }} className="gap-2">
+            <Button onClick={() => { setForm(createEmptyQuotationForm()); setCreateOpen(true); }} className="gap-2">
               <Plus className="h-4 w-4" /> New RFQ
             </Button>
           </div>
@@ -322,9 +309,9 @@ export default function QuotationsPage() {
                           <TableCell className="text-right">
                             <RowActionsMenu 
                               actions={[
-                                { label: "View", icon: Eye, onClick: () => setLocation(`/quotations/${q.id}`) },
-                                { label: "Edit", icon: Edit2, onClick: () => openEdit(q) },
-                                { label: "Delete", icon: Trash2, onClick: () => { if (confirm("Delete this quotation?")) deleteMutation.mutate(q.id); }, isDangerous: true },
+                                { label: "View", icon: <Eye className="h-4 w-4" />, onClick: () => setLocation(`/quotations/${q.id}`) },
+                                { label: "Edit", icon: <Edit2 className="h-4 w-4" />, onClick: () => openEdit(q) },
+                                { label: "Delete", icon: <Trash2 className="h-4 w-4" />, variant: "destructive", onClick: () => { if (confirm("Delete this quotation?")) deleteMutation.mutate(q.id); } },
                               ]}
                             />
                           </TableCell>
@@ -341,13 +328,13 @@ export default function QuotationsPage() {
         <PaginationControls total={processedQuotations.length} page={currentPage} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
       </div>
 
-      <Dialog open={createOpen} onOpenChange={v => { setCreateOpen(v); if (!v) setForm({ ...emptyForm }); }}>
-        <DialogContent className="max-w-xl">
+      <Dialog open={createOpen} onOpenChange={v => { setCreateOpen(v); if (!v) setForm(createEmptyQuotationForm()); }}>
+        <DialogContent className="max-w-4xl">
           <DialogHeader><DialogTitle>New RFQ / Quotation</DialogTitle></DialogHeader>
-          <RFQForm />
+          <QuotationRequestForm form={form} setForm={setForm} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.rfqNo || !form.supplier || !form.amount}>
+            <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.buyerCompanyName.trim() || !form.lineItems.some((item) => item.description.trim())}>
               {createMutation.isPending ? "Saving..." : "Create RFQ"}
             </Button>
           </DialogFooter>
@@ -355,9 +342,9 @@ export default function QuotationsPage() {
       </Dialog>
 
       <Dialog open={!!editingRFQ} onOpenChange={v => { if (!v) setEditingRFQ(null); }}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader><DialogTitle>Edit Quotation</DialogTitle></DialogHeader>
-          <RFQForm />
+          <QuotationRequestForm form={form} setForm={setForm} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingRFQ(null)}>Cancel</Button>
             <Button onClick={() => handleSubmit(true)} disabled={updateMutation.isPending}>

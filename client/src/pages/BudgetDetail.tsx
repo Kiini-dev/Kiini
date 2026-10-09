@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Edit2, Trash2, PiggyBank, ArrowLeft } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { toast } from "sonner";
 
 const CATEGORIES = [
@@ -462,10 +463,7 @@ export default function BudgetDetail() {
           <div className="space-y-4 py-2">
             <div className="space-y-1">
               <Label>Chart of Accounts</Label>
-              <Select value={form.accountId} onValueChange={(value) => setForm((current) => ({ ...current, accountId: value }))}>
-                <SelectTrigger><SelectValue placeholder="Select COA account" /></SelectTrigger>
-                <SelectContent>{(accounts as any[]).map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} - {account.accountName}</SelectItem>)}</SelectContent>
-              </Select>
+              <ChartOfAccountsSelector accounts={accounts as any[]} value={form.accountId} onChange={(accountId) => setForm((current) => ({ ...current, accountId }))} placeholder="Select COA account" />
             </div>
 
             <div className="space-y-1">
@@ -531,4 +529,3 @@ export default function BudgetDetail() {
     </ModuleLayout>
   );
 }
-

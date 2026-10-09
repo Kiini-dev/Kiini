@@ -70,7 +70,11 @@ export default function Payslips() {
 
   const sendPayslips = trpc.payslips.sendPayslips.useMutation({
     onSuccess: (data) => {
-      toast.success(`Sent ${data.sent}/${data.total} payslips`);
+      if (data.sent > 0) {
+        toast.success(`Sent ${data.sent}/${data.total} payslips`);
+      } else if (data.errors.length === 0) {
+        toast.info("No payslips were sent");
+      }
       if (data.errors.length) data.errors.forEach(e => toast.error(e));
       setSelectedIds([]);
       utils.payslips.listAll.invalidate();

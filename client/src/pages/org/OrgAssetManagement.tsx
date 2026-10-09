@@ -183,7 +183,7 @@ export default function AssetManagement() {
       <Dialog open={createOpen} onOpenChange={v => { setCreateOpen(v); if (!v) setForm({ ...emptyForm }); }}>
         <DialogContent className="max-w-xl">
           <DialogHeader><DialogTitle>Register Asset</DialogTitle></DialogHeader>
-          <AssetForm />
+          {AssetForm()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.name || !form.category || !form.location || !form.value}>
@@ -196,7 +196,7 @@ export default function AssetManagement() {
       <Dialog open={!!editingAsset} onOpenChange={v => { if (!v) setEditingAsset(null); }}>
         <DialogContent className="max-w-xl">
           <DialogHeader><DialogTitle>Edit Asset</DialogTitle></DialogHeader>
-          <AssetForm />
+          {AssetForm()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingAsset(null)}>Cancel</Button>
             <Button onClick={() => handleSubmit(true)} disabled={updateMutation.isPending}>

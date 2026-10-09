@@ -26,11 +26,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Plus, Trash2, Save, Send, Printer, Loader2, ChevronDown, ChevronUp, User, Building2 } from "lucide-react";
+import { Plus, Trash2, Save, Send, Printer, Loader2, ChevronDown, ChevronUp, User } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useCurrencySettings, formatAmount } from "@/lib/currency";
 import { getPaymentMethodOptions } from "@/const/paymentMethods";
+import { ClientSelector } from "@/components/ClientSelector";
 
 interface LineItem {
   id: string;
@@ -468,22 +469,14 @@ export default function DocumentForm({
           {clientMode === "existing" ? (
             <div className="grid gap-4">
               <div className="grid grid-cols-[140px_1fr] items-center gap-3">
-                <Label className="text-right text-sm">Client *</Label>
-                <Select value={clientId} onValueChange={setClientId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Search or select client..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        <span className="flex items-center gap-2">
-                          <Building2 className="h-3 w-3 text-muted-foreground" />
-                          {c.companyName || c.name || "Unknown Client"}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <span className="text-right text-sm font-medium">Client *</span>
+                <ClientSelector
+                  value={clientId}
+                  onChange={setClientId}
+                  label=""
+                  placeholder="Search or select client..."
+                  required
+                />
               </div>
               <div className="grid grid-cols-[140px_1fr] items-center gap-3">
                 <Label className="text-right text-sm">Project</Label>
@@ -794,4 +787,3 @@ export default function DocumentForm({
     </div>
   );
 }
-

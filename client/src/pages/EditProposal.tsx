@@ -1,233 +1,145 @@
-import { useState, useEffect } from "react";
-import { useParams, useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "wouter";
 import { ModuleLayout } from "@/components/ModuleLayout";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RichTextEditor } from "@/components/RichTextEditor";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { toast } from "sonner";
-import { FileText, ArrowLeft, Loader2, Users, DollarSign, Calendar, ClipboardList, Save, Target } from "lucide-react";
+import { ArrowLeft, FileText, Loader2 } from "lucide-react";
+
+type ProposalLineItem = { description: string; quantity: string; unitPrice: string };
 
 export default function EditProposal() {
-  const { id } = useParams();
+  const { id, slug } = useParams<{ id: string; slug?: string }>();
+  const proposalsPath = slug ? `/org/${slug}/proposals` : "/proposals";
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
-  const [formData, setFormData] = useState({
-    proposalNumber: "",
-    clientId: "",
-    title: "",
-    description: "",
-    amount: "",
-    validUntil: new Date().toISOString().split("T")[0],
-    status: "draft",
-    probability: 0,
-    notes: "",
+  const { data: proposal, isLoading } = trpc.proposals.getById.useQuery(id || "", { enabled: Boolean(id) });
+  const [form, setForm] = useState({
+    clientId: "", title: "", issueDate: "", expiryDate: "", description: "", deliverables: "",
+    timeline: "", assumptions: "", exclusions: "", terms: "", taxAmount: "", discountAmount: "",
+    lineItems: [] as ProposalLineItem[],
   });
-  const [isLoading, setIsLoading] = useState(true);
-
-  const { data: proposal } = trpc.opportunities.getById.useQuery(id || "", { enabled: !!id });
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
 
   useEffect(() => {
-    if (proposal) {
-      setFormData({
-        proposalNumber: proposal.proposalNumber || "",
-        clientId: proposal.clientId || "",
-        title: proposal.title || "",
-        description: proposal.description || "",
-        amount: proposal.amount ? (proposal.amount / 100).toString() : "",
-        validUntil: proposal.validUntil
-          ? new Date(proposal.validUntil).toISOString().split("T")[0]
-          : new Date().toISOString().split("T")[0],
-        status: proposal.status || proposal.stage || "draft",
-        probability: proposal.probability || 0,
-        notes: proposal.notes || "",
-      });
-      setIsLoading(false);
-    }
+    if (!proposal) return;
+    const lineItems = Array.isArray(proposal.lineItems)
+      ? proposal.lineItems as Array<{ description?: string; quantity?: number; unitPrice?: number }>
+      : [];
+    setForm({
+      clientId: proposal.clientId,
+      title: proposal.title || "",
+      issueDate: proposal.issueDate?.slice(0, 10) || "",
+      expiryDate: proposal.expiryDate?.slice(0, 10) || "",
+      description: proposal.description || "",
+      deliverables: proposal.deliverables || "",
+      timeline: proposal.timeline || "",
+      assumptions: proposal.assumptions || "",
+      exclusions: proposal.exclusions || "",
+      terms: proposal.terms || "",
+      taxAmount: ((proposal.taxAmount || 0) / 100).toString(),
+      discountAmount: ((proposal.discountAmount || 0) / 100).toString(),
+      lineItems: lineItems.length ? lineItems.map(item => ({
+        description: item.description || "",
+        quantity: String(item.quantity || 1),
+        unitPrice: ((item.unitPrice || 0) / 100).toString(),
+      })) : [{ description: "", quantity: "1", unitPrice: "" }],
+    });
   }, [proposal]);
 
-  const updateMutation = trpc.opportunities.update.useMutation({
-    onSuccess: () => {
-      toast.success("Opportunity updated successfully!");
-      utils.opportunities.list.invalidate();
-      utils.opportunities.getById.invalidate(id || "");
-      navigate("/opportunities");
+  const updateProposal = trpc.proposals.update.useMutation({
+    onSuccess: async () => {
+      toast.success("Proposal draft updated");
+      await Promise.all([
+        utils.proposals.getById.invalidate(id || ""),
+        utils.proposals.list.invalidate(),
+      ]);
+      navigate(`${proposalsPath}/${id}`);
     },
-    onError: (error: any) => toast.error(`Failed to update: ${error.message}`),
+    onError: error => toast.error(error.message),
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.proposalNumber || !formData.clientId || !formData.title || !formData.amount) {
-      toast.error("Please fill in all required fields"); return;
+  const updateLineItem = (index: number, field: keyof ProposalLineItem, value: string) => {
+    setForm(current => ({ ...current, lineItems: current.lineItems.map((item, i) => i === index ? { ...item, [field]: value } : item) }));
+  };
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const lineItems = form.lineItems.filter(item => item.description.trim()).map(item => ({
+      description: item.description.trim(),
+      quantity: Number(item.quantity),
+      unitPrice: Number(item.unitPrice),
+    }));
+    if (!form.clientId || !form.title.trim() || !form.issueDate || !lineItems.length || lineItems.some(item => item.quantity <= 0 || item.unitPrice < 0 || !Number.isFinite(item.quantity) || !Number.isFinite(item.unitPrice))) {
+      toast.error("Enter valid proposal details and at least one priced deliverable");
+      return;
     }
-    updateMutation.mutate({
+    const subtotal = lineItems.reduce((sum, item) => sum + Math.round(item.quantity * item.unitPrice * 100), 0);
+    const taxAmount = Math.round((Number(form.taxAmount) || 0) * 100);
+    const discountAmount = Math.round((Number(form.discountAmount) || 0) * 100);
+    if (discountAmount > subtotal + taxAmount) {
+      toast.error("Discount cannot exceed the subtotal plus tax");
+      return;
+    }
+    updateProposal.mutate({
       id: id || "",
-      proposalNumber: formData.proposalNumber,
-      clientId: formData.clientId,
-      title: formData.title,
-      description: formData.description || undefined,
-      amount: Math.round(parseFloat(formData.amount) * 100),
-      validUntil: new Date(formData.validUntil).toISOString().split("T")[0],
-      status: formData.status as any,
-      probability: formData.probability || undefined,
-      notes: formData.notes || undefined,
+      clientId: form.clientId,
+      title: form.title.trim(),
+      issueDate: form.issueDate,
+      expiryDate: form.expiryDate || "",
+      description: form.description,
+      deliverables: form.deliverables,
+      timeline: form.timeline,
+      assumptions: form.assumptions,
+      exclusions: form.exclusions,
+      terms: form.terms,
+      lineItems,
+      subtotal,
+      taxAmount,
+      discountAmount,
+      total: subtotal + taxAmount - discountAmount,
     });
   };
 
-  const breadcrumbs = [
-    { label: "Dashboard", href: "/crm-home" },
-    { label: "Sales", href: "/sales" },
-    { label: "Opportunities", href: "/opportunities" },
-    { label: "Edit" },
-  ];
+  if (isLoading) return <ModuleLayout title="Edit proposal" icon={<FileText className="h-5 w-5" />}><div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></div></ModuleLayout>;
+  if (!proposal) return <ModuleLayout title="Proposal not found" icon={<FileText className="h-5 w-5" />}><div className="p-8 text-center">Proposal not found.</div></ModuleLayout>;
+  if (proposal.signingStatus !== "not_sent") return <ModuleLayout title="Proposal locked" icon={<FileText className="h-5 w-5" />}><div className="p-8 text-center space-y-4"><p>This proposal cannot be edited after a signing workflow starts.</p><Button variant="outline" onClick={() => navigate(`${proposalsPath}/${id}`)}><ArrowLeft className="mr-2 h-4 w-4" />Back to proposal</Button></div></ModuleLayout>;
 
-  if (isLoading) {
-    return (
-      <ModuleLayout title="Edit Opportunity" description="Update opportunity details" icon={<FileText className="w-6 h-6" />} breadcrumbs={breadcrumbs}>
-        <div className="flex items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>
-      </ModuleLayout>
-    );
-  }
-
-  return (
-    <ModuleLayout title="Edit Opportunity" description="Update opportunity details" icon={<FileText className="w-6 h-6" />} breadcrumbs={breadcrumbs}>
-      <form onSubmit={handleSubmit} className="max-w-4xl space-y-6 p-4 sm:p-6">
-        {/* Opportunity Details */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              Opportunity Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Opportunity Number *</Label>
-                <Input value={formData.proposalNumber} onChange={e => setFormData({ ...formData, proposalNumber: e.target.value })} placeholder="e.g., PROP-001" />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={formData.status} onValueChange={v => setFormData({ ...formData, status: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="lead">Lead</SelectItem>
-                    <SelectItem value="qualified">Qualified</SelectItem>
-                    <SelectItem value="proposal">Proposal</SelectItem>
-                    <SelectItem value="negotiation">Negotiation</SelectItem>
-                    <SelectItem value="closed_won">Closed Won</SelectItem>
-                    <SelectItem value="closed_lost">Closed Lost</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Opportunity Title *</Label>
-              <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="e.g., Website Development Project" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Client */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              Client
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 md:w-1/2">
-              <Label>Client *</Label>
-              <Select value={formData.clientId} onValueChange={v => setFormData({ ...formData, clientId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
-                <SelectContent>
-                  {Array.isArray(clients) && clients.map((client: any) => (
-                    <SelectItem key={client.id} value={client.id}>{client.companyName || client.contactPerson}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Financial Details */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-primary" />
-              Financial Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Amount (Ksh) *</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} placeholder="0.00" step="0.01" min="0" className="pl-9" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Valid Until</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input type="date" value={formData.validUntil} onChange={e => setFormData({ ...formData, validUntil: e.target.value })} className="pl-9" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Win Probability (%)</Label>
-                <div className="relative">
-                  <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input type="number" value={formData.probability} onChange={e => setFormData({ ...formData, probability: parseInt(e.target.value) || 0 })} min="0" max="100" placeholder="0" className="pl-9" />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Description & Notes */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-primary" />
-              Description &amp; Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <RichTextEditor value={formData.description} onChange={v => setFormData({ ...formData, description: v })} placeholder="Enter proposal description..." minHeight="120px" />
-            </div>
-            <Separator />
-            <div className="space-y-2">
-              <Label>Internal Notes</Label>
-              <RichTextEditor value={formData.notes} onChange={v => setFormData({ ...formData, notes: v })} placeholder="Add any internal notes..." minHeight="100px" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Actions */}
-        <div className="flex gap-3 justify-end">
-          <Button type="button" variant="outline" onClick={() => navigate("/opportunities")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />Cancel
-          </Button>
-          <Button type="submit" disabled={updateMutation.isPending}>
-            {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {updateMutation.isPending ? "Saving..." : "Save Changes"}
-          </Button>
+  return <ModuleLayout title="Edit Proposal Draft" description={proposal.proposalNumber} icon={<FileText className="h-5 w-5" />} breadcrumbs={[{ label: "Proposals", href: proposalsPath }, { label: proposal.proposalNumber }, { label: "Edit" }]}>
+    <form onSubmit={submit} className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
+      <Card><CardHeader><CardTitle>Proposal details</CardTitle></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">
+        <ClientSelector value={form.clientId} onChange={clientId => setForm(current => ({ ...current, clientId }))} />
+        <div className="space-y-2"><Label>Title</Label><Input value={form.title} onChange={event => setForm(current => ({ ...current, title: event.target.value }))} /></div>
+        <div className="space-y-2"><Label>Issue date</Label><Input type="date" value={form.issueDate} onChange={event => setForm(current => ({ ...current, issueDate: event.target.value }))} /></div>
+        <div className="space-y-2"><Label>Valid until</Label><Input type="date" value={form.expiryDate} onChange={event => setForm(current => ({ ...current, expiryDate: event.target.value }))} /></div>
+      </CardContent></Card>
+      <Card><CardHeader><CardTitle>Scope, deliverables, and schedule</CardTitle></CardHeader><CardContent className="space-y-4">
+        <div className="space-y-2"><Label>Overview</Label><RichTextEditor value={form.description} onChange={description => setForm(current => ({ ...current, description }))} minHeight="100px" /></div>
+        <div className="space-y-2"><Label>Deliverables</Label><RichTextEditor value={form.deliverables} onChange={deliverables => setForm(current => ({ ...current, deliverables }))} minHeight="100px" /></div>
+        <div className="space-y-2"><Label>Timeline and milestones</Label><RichTextEditor value={form.timeline} onChange={timeline => setForm(current => ({ ...current, timeline }))} minHeight="100px" /></div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2"><Label>Assumptions</Label><RichTextEditor value={form.assumptions} onChange={assumptions => setForm(current => ({ ...current, assumptions }))} minHeight="90px" /></div>
+          <div className="space-y-2"><Label>Exclusions</Label><RichTextEditor value={form.exclusions} onChange={exclusions => setForm(current => ({ ...current, exclusions }))} minHeight="90px" /></div>
         </div>
-      </form>
-    </ModuleLayout>
-  );
+      </CardContent></Card>
+      <Card><CardHeader><CardTitle>Investment</CardTitle></CardHeader><CardContent className="space-y-4">
+        {form.lineItems.map((item, index) => <div key={index} className="grid gap-3 md:grid-cols-3">
+          <div className="space-y-2"><Label>Deliverable</Label><Input value={item.description} onChange={event => updateLineItem(index, "description", event.target.value)} /></div>
+          <div className="space-y-2"><Label>Quantity</Label><Input type="number" min="0.01" step="0.01" value={item.quantity} onChange={event => updateLineItem(index, "quantity", event.target.value)} /></div>
+          <div className="space-y-2"><Label>Unit price</Label><Input type="number" min="0" step="0.01" value={item.unitPrice} onChange={event => updateLineItem(index, "unitPrice", event.target.value)} /></div>
+        </div>)}
+        <Button type="button" variant="outline" onClick={() => setForm(current => ({ ...current, lineItems: [...current.lineItems, { description: "", quantity: "1", unitPrice: "" }] }))}>Add line item</Button>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2"><Label>Tax amount</Label><Input type="number" min="0" step="0.01" value={form.taxAmount} onChange={event => setForm(current => ({ ...current, taxAmount: event.target.value }))} /></div>
+          <div className="space-y-2"><Label>Discount</Label><Input type="number" min="0" step="0.01" value={form.discountAmount} onChange={event => setForm(current => ({ ...current, discountAmount: event.target.value }))} /></div>
+        </div>
+      </CardContent></Card>
+      <Card><CardHeader><CardTitle>Commercial terms and acceptance</CardTitle></CardHeader><CardContent><RichTextEditor value={form.terms} onChange={terms => setForm(current => ({ ...current, terms }))} minHeight="120px" /></CardContent></Card>
+      <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => navigate(`${proposalsPath}/${id}`)}>Cancel</Button><Button type="submit" disabled={updateProposal.isPending}>{updateProposal.isPending ? "Saving…" : "Save draft"}</Button></div>
+    </form>
+  </ModuleLayout>;
 }
-
-

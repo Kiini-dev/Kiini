@@ -423,6 +423,8 @@ interface RichTextEditorProps {
   onInsertVariable?: (variable: string) => void;
 }
 
+const Separator = () => <div className="w-px h-6 bg-border mx-0.5 self-center" />;
+
 export function RichTextEditor({
   value,
   onChange,
@@ -590,16 +592,6 @@ export function RichTextEditor({
   const curHeading = () => { for (let i = 1; i <= 4; i++) { if (editor.isActive("heading", { level: i })) return `Heading ${i}`; } return "Normal"; };
   const curFont = () => editor.getAttributes("textStyle")?.fontFamily || "Default";
   const curFontSize = () => { const fs = editor.getAttributes("textStyle")?.fontSize; if (!fs) return "Normal"; return FONT_SIZES.find(s => s.value === fs)?.label || fs; };
-
-  const Separator = () => <div className="w-px h-6 bg-border mx-0.5 self-center" />;
-
-  const DDBtn = ({ refEl, open, toggle, label }: { refEl: React.RefObject<HTMLDivElement | null>; open: boolean; toggle: () => void; label: string }) => (
-    <div className="relative" ref={refEl}>
-      <button type="button" className={cn("inline-flex items-center gap-1 h-8 px-2 rounded-md text-xs font-medium transition-colors hover:bg-muted whitespace-nowrap", open && "bg-accent text-accent-foreground")} onClick={toggle}>
-        {label}<ChevronDown className="h-3 w-3" />
-      </button>
-    </div>
-  );
 
   return (
     <div className={cn("border rounded-md bg-background", isFullscreen && "fixed inset-0 z-50 rounded-none border-0 flex flex-col overflow-auto", className)}>

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { DollarSign, Loader2 } from "lucide-react";
 import { getPaymentMethodOptions } from "@/const/paymentMethods";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 
 interface ExpenseFormProps {
   onSuccess?: () => void;
@@ -165,22 +166,13 @@ export function ExpenseForm({ onSuccess, onCancel, initialData }: ExpenseFormPro
             {/* Chart of Account */}
             <div className="space-y-2">
               <Label htmlFor="chartOfAccount">Chart of Account *</Label>
-              <Select 
-                value={formData.chartOfAccountId} 
-                onValueChange={(value) => setFormData({ ...formData, chartOfAccountId: value })}
+              <ChartOfAccountsSelector
+                accounts={Array.isArray(chartOfAccounts) ? chartOfAccounts : []}
+                value={formData.chartOfAccountId}
+                onChange={(chartOfAccountId) => setFormData({ ...formData, chartOfAccountId })}
+                placeholder="Select account"
                 disabled={isLoadingCOA}
-              >
-                <SelectTrigger id="chartOfAccount">
-                  <SelectValue placeholder="Select account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.isArray(chartOfAccounts) && chartOfAccounts.map((account: any) => (
-                    <SelectItem key={account.id} value={account.id.toString()}>
-                      {account.accountCode} - {account.accountName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
 
             {/* Budget Allocation (Optional) */}

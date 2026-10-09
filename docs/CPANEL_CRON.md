@@ -42,6 +42,20 @@ Dispatch payslips at 00:05 on days 28 through 31. The runner checks the Nairobi 
 5 0 28-31 * * cd /home3/kiiniafr/Kiini && /path/to/node scripts/run-scheduled-job.mjs payslip-dispatch >> "$HOME/kiini-cron.log" 2>&1
 ```
 
+## Signed PDF Generation
+
+Signed-document downloads and completion-email attachments are rendered from HTML using Chromium. The application searches `PATH` for Chromium/Chrome and checks common Linux install locations. If Chromium is installed elsewhere, set `PUPPETEER_EXECUTABLE_PATH` in the cPanel Node.js application's environment variables to the installed executable's absolute path (for example, `/usr/bin/chromium`). Restart the application after installing Chromium or changing the environment. A configured path must exist on the application host; setting the variable alone does not install the browser.
+
+Verify the path from the application host's shell before restarting:
+
+```sh
+command -v chromium || command -v chromium-browser || command -v google-chrome
+test -x "$PUPPETEER_EXECUTABLE_PATH"
+"$PUPPETEER_EXECUTABLE_PATH" --version
+```
+
+If the host does not permit installing or running Chromium, use the repository's Docker deployment instead; its `Dockerfile` installs Chromium. Do not substitute an HTML file when PDF rendering fails.
+
 ## Annual P9 Forms
 
 Generate P9 forms on March 31 at 02:05 EAT. The runner generates forms for the prior tax year and skips forms already generated for each employee, so interrupted runs can be retried.

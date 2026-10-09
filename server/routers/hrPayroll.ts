@@ -1,7 +1,7 @@
 import { router, publicProcedure } from '../_core/trpc'
 import { getDb, logActivity } from '../db'
 import { payrollBatches, payrollDetails, payslips, taxCompliance, employees, leaveBalances, hrSettings, approvalWorkflows } from '../../drizzle/schema'
-import { eq, and, desc, gte, lte, sql } from 'drizzle-orm'
+import { eq, and, desc, gte, lte, or, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { sendEmail } from '../_core/mail'
 import { v4 as uuidv4 } from 'uuid'
@@ -10,6 +10,14 @@ import { departments } from '../../drizzle/schema'
 import { calculateKenyanPayroll } from '../utils/kenyan-payroll-calculator'
 import { checkBudget, deductFromBudget, findActiveBudget } from '../utils/budgetEnforcer'
 import { recordPayrollCostAllocation } from '../services/payrollCostAllocationService'
+import { employeeBenefits, salaryAllowances, salaryDeductions } from '../../drizzle/schema-extended'
+
+const monthlyPayrollAmount = (amount: unknown, frequency: unknown) => {
+  const value = Number(amount || 0)
+  if (frequency === 'quarterly') return Math.round(value / 3)
+  if (frequency === 'annual') return Math.round(value / 12)
+  return value
+}
 
 const calculatePayrollSchema = z.object({
   organizationId: z.string(),
@@ -759,19 +767,89 @@ export const hrPayrollRouter = router({
             throw new Error(`Payroll gross salary does not match the Kenya calculation for employee ${detail.employeeId}`)
           }
 
-          const benefitsResult = await transaction.execute(sql`
-            SELECT COALESCE(SUM(employerCost), 0) AS employerBenefitsCents
-            FROM employeeBenefits
-            WHERE employeeId = ${detail.employeeId}
-              AND isActive = 1
-              AND enrollDate <= ${periodEnd}
-              AND (endDate IS NULL OR endDate >= ${periodStart})
-          `)
-          const benefitsRow = (benefitsResult?.[0] as any[])?.[0]
-          const employerBenefitsCents = Number(benefitsRow?.employerBenefitsCents ?? 0)
+          const periodStartDate = new Date(periodStart)
+          const periodEndDate = new Date(periodEnd)
+          const [allowanceRows, deductionRows, benefitRows] = await Promise.all([
+            transaction.select().from(salaryAllowances).where(and(
+              eq(salaryAllowances.employeeId, detail.employeeId),
+              eq(salaryAllowances.isActive, true),
+              lte(salaryAllowances.effectiveDate, periodEndDate),
+              or(isNull(salaryAllowances.endDate), gte(salaryAllowances.endDate, periodStartDate)),
+            )),
+            transaction.select().from(salaryDeductions).where(and(
+              eq(salaryDeductions.employeeId, detail.employeeId),
+              eq(salaryDeductions.isActive, true),
+              lte(salaryDeductions.effectiveDate, periodEndDate),
+              or(isNull(salaryDeductions.endDate), gte(salaryDeductions.endDate, periodStartDate)),
+            )),
+            transaction.select().from(employeeBenefits).where(and(
+              eq(employeeBenefits.employeeId, detail.employeeId),
+              eq(employeeBenefits.isActive, true),
+              lte(employeeBenefits.enrollDate, periodEndDate),
+              or(isNull(employeeBenefits.endDate), gte(employeeBenefits.endDate, periodStartDate)),
+            )),
+          ])
+          const employerBenefitsCents = (benefitRows as any[]).reduce(
+            (sum, benefit) => sum + Number(benefit.employerCost || 0),
+            0,
+          )
           if (!Number.isSafeInteger(employerBenefitsCents) || employerBenefitsCents < 0) {
             throw new Error(`Invalid employer benefits for employee ${detail.employeeId}`)
           }
+
+          const configuredAllowances = (allowanceRows as any[]).map((allowance) => ({
+            ...allowance,
+            amountCents: monthlyPayrollAmount(allowance.amount, allowance.frequency),
+          }))
+          const configuredAllowanceTotal = configuredAllowances.reduce((sum, allowance) => sum + allowance.amountCents, 0)
+          const expenseComponents = [
+            { componentType: 'basic_salary' as const, componentName: 'Basic Salary', amountCents: basicSalaryCents },
+            ...(configuredAllowanceTotal <= allowancesAndBonusesCents
+              ? [
+                  ...configuredAllowances.map((allowance) => ({
+                    componentType: 'allowance' as const,
+                    componentName: allowance.allowanceType,
+                    amountCents: allowance.amountCents,
+                    departmentIdOverride: allowance.departmentIdOverride,
+                    glAccountId: allowance.glAccountId,
+                  })),
+                  ...(allowancesAndBonusesCents > configuredAllowanceTotal
+                    ? [{
+                        componentType: 'allowance' as const,
+                        componentName: 'Other Allowances',
+                        amountCents: allowancesAndBonusesCents - configuredAllowanceTotal,
+                      }]
+                    : []),
+                ]
+              : allowancesAndBonusesCents > 0
+                ? [{ componentType: 'allowance' as const, componentName: 'Allowances and Bonuses', amountCents: allowancesAndBonusesCents }]
+                : []),
+            { componentType: 'employer_statutory' as const, componentName: 'Employer NSSF', amountCents: calculation.nssfContribution },
+            { componentType: 'employer_statutory' as const, componentName: 'Employer Housing Levy', amountCents: calculation.housingLevyDeduction },
+            ...(benefitRows as any[])
+              .filter((benefit) => Number(benefit.employerCost || 0) > 0)
+              .map((benefit) => ({
+                componentType: 'employer_benefit' as const,
+                componentName: benefit.benefitType,
+                amountCents: Number(benefit.employerCost || 0),
+                departmentIdOverride: benefit.departmentIdOverride,
+                glAccountId: benefit.glAccountId,
+              })),
+          ]
+          const liabilityComponents = [
+            ...(deductionRows as any[]).map((deduction) => ({
+              componentName: deduction.deductionType,
+              amountCents: monthlyPayrollAmount(deduction.amount, deduction.frequency),
+              glAccountId: deduction.glAccountId,
+            })),
+            ...(benefitRows as any[])
+              .filter((benefit) => Number(benefit.cost || 0) > 0)
+              .map((benefit) => ({
+                componentName: benefit.benefitType,
+                amountCents: Number(benefit.cost || 0),
+                glAccountId: benefit.glAccountId,
+              })),
+          ]
 
           const allocation = await recordPayrollCostAllocation(transaction, {
             organizationId: batch.organizationId,
@@ -786,10 +864,14 @@ export const hrPayrollRouter = router({
             employerBenefitsCents,
             employeeTaxCents: toCents(detail.payeDeduction, 'PAYE deduction'),
             netPayoutCents: toCents(detail.netSalary, 'net salary'),
+            expenseComponents,
+            liabilityComponents,
           })
-          for (const split of allocation.budgetSplits ?? []) {
-            if (!split.departmentId) throw new Error(`Cost center ${split.costCenterId} has no department for budget charging`)
-            budgetTotals.set(split.departmentId, (budgetTotals.get(split.departmentId) ?? 0) + split.fullyBurdenedCostCents)
+          if (allocation.inserted) {
+            for (const split of allocation.budgetSplits ?? []) {
+              if (!split.departmentId) throw new Error(`Cost center ${split.costCenterId} has no department for budget charging`)
+              budgetTotals.set(split.departmentId, (budgetTotals.get(split.departmentId) ?? 0) + split.fullyBurdenedCostCents)
+            }
           }
 
           await transaction.update(payrollDetails)

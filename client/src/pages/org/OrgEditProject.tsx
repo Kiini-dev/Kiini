@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Save, Trash2, Loader2, Briefcase } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import mutateAsync from "@/lib/mutationHelpers";
 import UserSelector from "@/components/UserSelector";
 
@@ -42,7 +43,6 @@ export default function EditProject() {
   const { data: project, isLoading: isLoadingProject } = trpc.projects.getById.useQuery(projectId, {
     enabled: !!projectId,
   });
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
 
   const updateProjectMutation = trpc.projects.update.useMutation({
     onSuccess: () => {
@@ -194,19 +194,7 @@ export default function EditProject() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="clientId">Client *</Label>
-                  <Select value={formData.clientId} onValueChange={(value) => setFormData({ ...formData, clientId: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.companyName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ClientSelector id="clientId" value={formData.clientId} onChange={(clientId) => setFormData({ ...formData, clientId })} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="name">Project Name *</Label>
@@ -367,4 +355,3 @@ export default function EditProject() {
     </ModuleLayout>
   );
 }
-

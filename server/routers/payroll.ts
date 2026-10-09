@@ -1,7 +1,7 @@
 import { router, protectedProcedure, createFeatureRestrictedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
-import { payroll, employees, jobGroups } from "../../drizzle/schema";
+import { accounts, departments, payroll, employees, jobGroups } from "../../drizzle/schema";
 import ExcelJS from "exceljs";
 import {
   salaryStructures,
@@ -13,17 +13,20 @@ import {
   employeeTaxInfo,
   salaryIncrements,
 } from "../../drizzle/schema-extended";
-import { eq, and, gte, inArray, isNull, lt } from "drizzle-orm";
+import { eq, and, desc, gte, inArray, isNull, lt, or } from "drizzle-orm";
 import { getCompanyInfo } from "../utils/company-info";
 import { v4 as uuidv4 } from "uuid";
 import { generateP9Form, generateP9DataFromPayroll } from "../utils/p9-form-generator";
 import { calculateKenyanPayroll } from "../utils/kenyan-payroll-calculator";
 import { processMonthlyPayroll, processAndDispatchPayslips, processAndPayPayroll } from "../jobs/payrollJobs";
 import { TRPCError } from "@trpc/server";
+import { resolveP9OrganizationScope } from "../services/p9OrganizationScope";
 import {
   applyJobGroupCompensationDefaults,
   parseJobGroupPayrollDefaults,
   resolveJobGroupPayrollAmount,
+  resolveJobGroupPayrollBasisSalary,
+  resolveJobGroupPayrollTaxRate,
 } from "../services/jobGroupPayrollDefaults";
 
 export function normalizeDateValue(value: unknown): string {
@@ -53,9 +56,12 @@ function parseMonthRange(month: string): { start: string; end: string } {
   if (!y || !m || m < 1 || m > 12) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid month format. Use YYYY-MM" });
   }
-  const start = new Date(y, m - 1, 1);
-  const end = new Date(y, m, 0);
-  return { start: toDbDate(start), end: toDbDate(end) };
+  const monthNumber = String(m).padStart(2, "0");
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return {
+    start: `${y}-${monthNumber}-01 00:00:00`,
+    end: `${y}-${monthNumber}-${String(lastDay).padStart(2, "0")} 23:59:59`,
+  };
 }
 
 function resolvePayrollIds(input: any): string[] {
@@ -72,6 +78,70 @@ function monthlyAmount(amount: unknown, frequency: unknown): number {
   }
 }
 
+const payrollEmployeeScope = (organizationId?: string | null) =>
+  organizationId ? eq(employees.organizationId, organizationId) : isNull(employees.organizationId);
+
+async function requirePayrollWorkspaceEmployee(db: any, employeeId: string, organizationId?: string | null) {
+  const [employee] = await db.select()
+    .from(employees)
+    .where(and(eq(employees.id, employeeId), payrollEmployeeScope(organizationId)))
+    .limit(1);
+  if (!employee) throw new TRPCError({ code: "NOT_FOUND", message: "Employee not found in this payroll workspace" });
+  return employee;
+}
+
+async function requireScopedCompensationRecord(
+  db: any,
+  kind: "allowance" | "deduction" | "benefit",
+  id: string,
+  organizationId?: string | null,
+) {
+  const record = await getCompensationRecord(db, kind, id);
+  if (!record) throw new TRPCError({ code: "NOT_FOUND", message: "Compensation item not found" });
+  await requirePayrollWorkspaceEmployee(db, record.employeeId, organizationId);
+  return record;
+}
+
+async function getScopedPayrollIds(db: any, ids: string[], organizationId?: string | null): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const rows = await db.select({ id: payroll.id })
+    .from(payroll)
+    .innerJoin(employees, eq(employees.id, payroll.employeeId))
+    .where(and(inArray(payroll.id, ids), payrollEmployeeScope(organizationId)));
+  return rows.map((row: { id: string }) => row.id);
+}
+
+async function validatePayrollComponentAssignment(
+  database: any,
+  organizationId: string | null | undefined,
+  departmentIdOverride?: string,
+  glAccountId?: string,
+  accountKind?: "expense" | "liability",
+) {
+  if (departmentIdOverride) {
+    const departmentScope = organizationId
+      ? or(eq(departments.organizationId, organizationId), isNull(departments.organizationId))
+      : isNull(departments.organizationId);
+    const [department] = await database.select({ id: departments.id }).from(departments)
+      .where(and(eq(departments.id, departmentIdOverride), departmentScope)).limit(1);
+    if (!department) throw new TRPCError({ code: "BAD_REQUEST", message: "The department override is not available in this organization." });
+  }
+  if (glAccountId) {
+    const accountScope = organizationId
+      ? eq(accounts.organizationId, organizationId)
+      : isNull(accounts.organizationId);
+    const [account] = await database.select({ id: accounts.id, accountType: accounts.accountType }).from(accounts)
+      .where(and(eq(accounts.id, glAccountId), accountScope, eq(accounts.isActive, 1))).limit(1);
+    if (!account) throw new TRPCError({ code: "BAD_REQUEST", message: "The GL account is not active or is outside this organization." });
+    const validType = accountKind === "liability"
+      ? account.accountType === "liability"
+      : accountKind === "expense"
+        ? ["expense", "operating expense", "cost of goods sold", "other expense"].includes(account.accountType)
+        : true;
+    if (!validType) throw new TRPCError({ code: "BAD_REQUEST", message: `Select a valid ${accountKind} account for this payroll component.` });
+  }
+}
+
 async function getEmployeeCompensationPackage(db: any, employeeId: string) {
   const [employeeRows, structureRows, allowanceRows, deductionRows, benefitRows] = await Promise.all([
     db.select().from(employees).where(eq(employees.id, employeeId)).limit(1),
@@ -85,12 +155,18 @@ async function getEmployeeCompensationPackage(db: any, employeeId: string) {
     ? await db.select().from(jobGroups).where(eq(jobGroups.id, employee.jobGroupId)).limit(1)
     : [];
   const jobGroup = groupRows[0];
-  const basicSalaryUnits = employee?.salary ?? jobGroup?.defaultBasicSalary ?? 0;
+  const basicSalaryUnits = resolveJobGroupPayrollBasisSalary(employee?.salary, jobGroup);
 
-  const structure = [...structureRows].sort((a: any, b: any) =>
+  const latestStructure = [...structureRows].sort((a: any, b: any) =>
     new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
-  )[0] || (basicSalaryUnits > 0 ? { basicSalary: Math.round(basicSalaryUnits * 100), effectiveDate: null, isJobGroupDefault: true } : null);
-  const active = (row: any) => row.isActive !== false && (!row.endDate || new Date(row.endDate).getTime() >= Date.now());
+  )[0];
+  const structure = latestStructure
+    ? { ...latestStructure, basicSalary: Math.round(basicSalaryUnits * 100) || latestStructure.basicSalary }
+    : (basicSalaryUnits > 0 ? { basicSalary: Math.round(basicSalaryUnits * 100), effectiveDate: null, isJobGroupDefault: true } : null);
+  const active = (row: any) =>
+    row.isActive !== false && row.isActive !== 0
+    && (!row.endDate || new Date(row.endDate).getTime() >= Date.now())
+    && (!row.effectiveDate || new Date(row.effectiveDate).getTime() <= Date.now());
   const allowances: any[] = allowanceRows.filter(active).map((row: any) => ({
     id: row.id,
     name: row.allowanceType,
@@ -111,46 +187,57 @@ async function getEmployeeCompensationPackage(db: any, employeeId: string) {
   }));
   const appendMissingDefaults = (
     existingRows: any[],
-    allRows: any[],
     defaults: ReturnType<typeof parseJobGroupPayrollDefaults>,
-    typeField: string,
     mapDefault: (item: ReturnType<typeof parseJobGroupPayrollDefaults>[number]) => any,
   ) => {
-    const existingTypes = new Set(allRows.map((row: any) => row[typeField]));
+    const existingTypes = new Set(existingRows.map((row: any) => String(row.name).trim().toLowerCase()));
     for (const item of defaults) {
-      if (!existingTypes.has(item.type)) existingRows.push(mapDefault(item));
+      if (!existingTypes.has(item.type.trim().toLowerCase())) existingRows.push(mapDefault(item));
     }
   };
   if (jobGroup) {
-    appendMissingDefaults(allowances, allowanceRows, parseJobGroupPayrollDefaults(jobGroup.defaultAllowances), "allowanceType", (item) => ({
+    appendMissingDefaults(allowances, parseJobGroupPayrollDefaults(jobGroup.defaultAllowances), (item) => ({
       id: null,
       name: item.type,
       amount: monthlyAmount(resolveJobGroupPayrollAmount(item, basicSalaryUnits), item.frequency),
       frequency: item.frequency || "monthly",
       isJobGroupDefault: true,
     }));
-    appendMissingDefaults(deductions, deductionRows, parseJobGroupPayrollDefaults(jobGroup.defaultDeductions), "deductionType", (item) => ({
+    const defaultDeductions = parseJobGroupPayrollDefaults(jobGroup.defaultDeductions);
+    appendMissingDefaults(deductions, defaultDeductions.filter((item) =>
+      !(/tax|paye/i.test(item.type) && Number.isFinite(item.percentage))
+    ), (item) => ({
       id: null,
       name: item.type,
       amount: monthlyAmount(resolveJobGroupPayrollAmount(item, basicSalaryUnits), item.frequency),
       frequency: item.frequency || "monthly",
       isJobGroupDefault: true,
     }));
-    appendMissingDefaults(benefits, benefitRows, parseJobGroupPayrollDefaults(jobGroup.defaultBenefits), "benefitType", (item) => {
+    appendMissingDefaults(benefits, parseJobGroupPayrollDefaults(jobGroup.defaultBenefits), (item) => {
       const amount = monthlyAmount(resolveJobGroupPayrollAmount(item, basicSalaryUnits), "monthly");
       return { id: null, name: item.type, employeeCost: amount, employerCost: amount, isJobGroupDefault: true };
     });
   }
 
+  const structureTaxRate = Number(structure?.taxRate || 0);
+  const taxRate = resolveJobGroupPayrollTaxRate(structureTaxRate, jobGroup?.defaultDeductions);
+  const allowanceTotal = allowances.length
+    ? allowances.reduce((sum: number, row: any) => sum + row.amount, 0)
+    : Number(structure?.allowances || 0);
+  const deductionTotal = deductions.length
+    ? deductions.reduce((sum: number, row: any) => sum + row.amount, 0)
+    : Number(structure?.deductions || 0);
+
   return {
     structure,
-    basicSalary: Number(structure?.basicSalary || 0),
+    basicSalary: Number(structure?.basicSalary || Math.round(basicSalaryUnits * 100)),
+    taxRate,
     allowances,
     deductions,
     benefits,
     totals: {
-      allowances: allowances.reduce((sum: number, row: any) => sum + row.amount, 0),
-      deductions: deductions.reduce((sum: number, row: any) => sum + row.amount, 0),
+      allowances: allowanceTotal,
+      deductions: deductionTotal,
       employeeBenefits: benefits.reduce((sum: number, row: any) => sum + row.employeeCost, 0),
       employerBenefits: benefits.reduce((sum: number, row: any) => sum + row.employerCost, 0),
     },
@@ -174,7 +261,7 @@ async function setCompensationRecordActive(
 }
 
 function assertCompensationEmployeeAccess(ctx: any, employee: any) {
-  if (ctx.user.organizationId && employee?.organizationId !== ctx.user.organizationId) {
+  if ((employee?.organizationId ?? null) !== (ctx.user.organizationId ?? null)) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Compensation item not found" });
   }
 }
@@ -187,7 +274,7 @@ async function buildP9ForEmployee(
   organizationId?: string | null,
 ) {
   const employeeConditions = [eq(employees.id, employeeId)];
-  if (organizationId) employeeConditions.push(eq(employees.organizationId, organizationId));
+  employeeConditions.push(payrollEmployeeScope(organizationId));
   const employee = await db.select().from(employees).where(and(...employeeConditions)).limit(1);
   if (!employee || employee.length === 0) {
     throw new Error("Employee not found");
@@ -277,21 +364,18 @@ export const payrollRouter = router({
         });
       }
       try {
-        const employeeConditions = ctx.user.organizationId
-          ? [eq(employees.organizationId, ctx.user.organizationId)]
-          : ctx.user.role === "super_admin"
-            ? []
-            : [isNull(employees.organizationId)];
+        const employeeConditions = [payrollEmployeeScope(ctx.user.organizationId)];
         const employeeRows = await db.select().from(employees).where(
           employeeConditions.length ? and(...employeeConditions) : undefined
         );
-        const empMap = new Map(employeeRows.map((employee: any) => [employee.id, employee]));
+        const empMap = new Map<string, any>(employeeRows.map((employee: any) => [employee.id, employee] as [string, any]));
         if (!empMap.size) return [];
 
         const rows = await db
           .select()
           .from(payroll)
           .where(inArray(payroll.employeeId, [...empMap.keys()]))
+          .orderBy(desc(payroll.payPeriodStart))
           .limit(input?.limit || 50)
           .offset(input?.offset || 0);
 
@@ -323,7 +407,7 @@ export const payrollRouter = router({
       }
       try {
         const conditions = [eq(payroll.id, input)];
-        if (ctx.user.organizationId) conditions.push(eq(employees.organizationId, ctx.user.organizationId));
+        conditions.push(payrollEmployeeScope(ctx.user.organizationId));
         const result = await db.select({ payroll, organizationId: employees.organizationId })
           .from(payroll)
           .innerJoin(employees, eq(employees.id, payroll.employeeId))
@@ -353,14 +437,16 @@ export const payrollRouter = router({
       const db = await getDb();
       if (!db) return [];
       try {
-        const result = await db.select().from(payroll).where(eq(payroll.employeeId, input.employeeId));
-        return result.map((r: any) => ({
-          ...r,
-          month: (r as any).month || (r as any).payPeriodStart || null,
+        const employee = await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
+        const result = await db.select().from(payroll).where(eq(payroll.employeeId, employee.id));
+        return result.map((row: any) => ({
+          ...row,
+          month: row.month || row.payPeriodStart || null,
         }));
       } catch (error) {
+        if (error instanceof TRPCError && error.code === "NOT_FOUND") throw error;
         console.warn("Error fetching payroll by employee:", error);
-        return [];
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to load employee payroll records.", cause: error });
       }
     }),
 
@@ -646,8 +732,7 @@ export const payrollRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const employeeConditions = [eq(employees.id, input.employeeId)];
-      if (ctx.user.organizationId) employeeConditions.push(eq(employees.organizationId, ctx.user.organizationId));
+      const employeeConditions = [eq(employees.id, input.employeeId), payrollEmployeeScope(ctx.user.organizationId)];
       const employeeRows = await db.select({ id: employees.id }).from(employees)
         .where(and(...employeeConditions)).limit(1);
       if (!employeeRows.length) {
@@ -709,22 +794,20 @@ export const payrollRouter = router({
       if (!db) throw new Error("Database not available");
       
       const { id, ...data } = input;
-      if (ctx.user.organizationId) {
-        const ownedRows = await db.select({ employeeId: employees.id })
-          .from(payroll)
-          .innerJoin(employees, eq(employees.id, payroll.employeeId))
-          .where(and(eq(payroll.id, id), eq(employees.organizationId, ctx.user.organizationId)))
+      const ownedRows = await db.select({ employeeId: employees.id })
+        .from(payroll)
+        .innerJoin(employees, eq(employees.id, payroll.employeeId))
+        .where(and(eq(payroll.id, id), payrollEmployeeScope(ctx.user.organizationId)))
+        .limit(1);
+      if (!ownedRows.length) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Payroll record not found" });
+      }
+      if (data.employeeId) {
+        const targetEmployee = await db.select({ id: employees.id }).from(employees)
+          .where(and(eq(employees.id, data.employeeId), payrollEmployeeScope(ctx.user.organizationId)))
           .limit(1);
-        if (!ownedRows.length) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Payroll record not found" });
-        }
-        if (data.employeeId) {
-          const targetEmployee = await db.select({ id: employees.id }).from(employees)
-            .where(and(eq(employees.id, data.employeeId), eq(employees.organizationId, ctx.user.organizationId)))
-            .limit(1);
-          if (!targetEmployee.length) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Employee must belong to your organization" });
-          }
+        if (!targetEmployee.length) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Employee must belong to your payroll workspace" });
         }
       }
       const now = normalizeDateValue(new Date());
@@ -762,17 +845,18 @@ export const payrollRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      if (ctx.user.organizationId) {
-        const ownedRows = await db.select({ id: payroll.id })
-          .from(payroll)
-          .innerJoin(employees, eq(employees.id, payroll.employeeId))
-          .where(and(eq(payroll.id, input), eq(employees.organizationId, ctx.user.organizationId)))
-          .limit(1);
-        if (!ownedRows.length) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Payroll record not found" });
-        }
+      const ownedRows = await db.select({ employeeId: payroll.employeeId })
+        .from(payroll)
+        .innerJoin(employees, eq(employees.id, payroll.employeeId))
+        .where(and(eq(payroll.id, input), payrollEmployeeScope(ctx.user.organizationId)))
+        .limit(1);
+      if (!ownedRows.length) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Payroll record not found" });
       }
-      await db.delete(payroll).where(eq(payroll.id, input));
+      await db.delete(payroll).where(and(
+        eq(payroll.id, input),
+        inArray(payroll.employeeId, ownedRows.map((row: any) => row.employeeId)),
+      ));
       return { success: true };
     }),
 
@@ -783,7 +867,7 @@ export const payrollRouter = router({
       payrollIds: z.array(z.string()).optional(),
       status: z.enum(["draft", "processed", "paid"]),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -793,21 +877,25 @@ export const payrollRouter = router({
         return { success: true };
       }
 
-      await db
-        .update(payroll)
-        .set({ status: input.status })
-        .where(inArray(payroll.id, ids));
+      const scopedIds = await getScopedPayrollIds(db, ids, ctx.user.organizationId);
+      if (scopedIds.length > 0) {
+        await db
+          .update(payroll)
+          .set({ status: input.status })
+          .where(inArray(payroll.id, scopedIds));
+      }
       return { success: true };
     }),
 
   bulkDelete: createFeatureRestrictedProcedure("payroll:delete")
     .input(z.object({ ids: z.array(z.string()).optional(), payrollIds: z.array(z.string()).optional() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const ids = resolvePayrollIds(input);
       if (ids.length === 0) return { success: true };
-      await db.delete(payroll).where(inArray(payroll.id, ids));
+      const scopedIds = await getScopedPayrollIds(db, ids, ctx.user.organizationId);
+      if (scopedIds.length > 0) await db.delete(payroll).where(inArray(payroll.id, scopedIds));
       return { success: true };
     }),
 
@@ -817,7 +905,7 @@ export const payrollRouter = router({
       payrollIds: z.array(z.string()).optional(),
       format: z.enum(["xlsx", "csv"]).default("xlsx"),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const database = await getDb();
       if (!database) throw new Error("Database not available");
 
@@ -825,11 +913,13 @@ export const payrollRouter = router({
       if (ids.length === 0) {
         return { success: false, message: "No records selected" };
       }
+      const scopedIds = await getScopedPayrollIds(database, ids, ctx.user.organizationId);
+      if (scopedIds.length === 0) return { success: false, message: "No records selected" };
 
       let query = database
         .select()
         .from(payroll)
-        .where(inArray(payroll.id, ids));
+        .where(inArray(payroll.id, scopedIds));
 
       const records: any[] = await (query as any);
       if (records.length === 0) {
@@ -877,13 +967,14 @@ export const payrollRouter = router({
 
   // ===================== Salary Structure Management =====================
   salaryStructures: router({
-    list: protectedProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) return [];
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       try {
         const rows = await db.select({ structure: salaryStructures, employeeSalary: employees.salary })
           .from(salaryStructures)
-          .leftJoin(employees, eq(employees.id, salaryStructures.employeeId));
+          .innerJoin(employees, eq(employees.id, salaryStructures.employeeId))
+          .where(payrollEmployeeScope(ctx.user.organizationId));
         return rows.map(({ structure, employeeSalary }) => ({
           ...structure,
           ...(employeeSalary != null ? { basicSalary: Math.round(Number(employeeSalary) * 100) } : {}),
@@ -896,22 +987,28 @@ export const payrollRouter = router({
 
     byEmployee: createFeatureRestrictedProcedure("payroll:read")
       .input(z.object({ employeeId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return [];
-        try {
-          const rows = await db.select({ structure: salaryStructures, employeeSalary: employees.salary })
-            .from(salaryStructures)
-            .leftJoin(employees, eq(employees.id, salaryStructures.employeeId))
-            .where(eq(salaryStructures.employeeId, input.employeeId));
-          return rows.map(({ structure, employeeSalary }) => ({
-            ...structure,
-            ...(employeeSalary != null ? { basicSalary: Math.round(Number(employeeSalary) * 100) } : {}),
-          }));
-        } catch (error) {
-          console.warn("Error fetching salary structures for employee:", error);
-          return [];
+        const employeeConditions = [eq(employees.id, input.employeeId)];
+        employeeConditions.push(payrollEmployeeScope(ctx.user.organizationId));
+        const [employee] = await db.select({ id: employees.id })
+          .from(employees)
+          .where(and(...employeeConditions))
+          .limit(1);
+        if (!employee) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Employee not found" });
         }
+
+        const rows = await db.select({ structure: salaryStructures, employeeSalary: employees.salary })
+          .from(salaryStructures)
+          .leftJoin(employees, eq(employees.id, salaryStructures.employeeId))
+          .where(eq(salaryStructures.employeeId, input.employeeId))
+          .orderBy(desc(salaryStructures.effectiveDate));
+        return rows.map(({ structure, employeeSalary }) => ({
+          ...structure,
+          ...(employeeSalary != null ? { basicSalary: Math.round(Number(employeeSalary) * 100) } : {}),
+        }));
       }),
 
     create: createFeatureRestrictedProcedure("payroll:create")
@@ -926,7 +1023,10 @@ export const payrollRouter = router({
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-
+        const [employee] = await db.select({ id: employees.id }).from(employees)
+          .where(and(eq(employees.id, input.employeeId), payrollEmployeeScope(ctx.user.organizationId)))
+          .limit(1);
+        if (!employee) throw new TRPCError({ code: "NOT_FOUND", message: "Employee not found" });
         const id = uuidv4();
         const now = new Date();
         await db.insert(salaryStructures).values({
@@ -937,7 +1037,7 @@ export const payrollRouter = router({
           createdAt: now,
           updatedAt: now,
         } as any);
-        await db.update(employees).set({ salary: Math.round(input.basicSalary / 100), updatedAt: now } as any)
+        await db.update(employees).set({ salary: input.basicSalary / 100, updatedAt: now } as any)
           .where(eq(employees.id, input.employeeId));
 
         return { id };
@@ -958,15 +1058,19 @@ export const payrollRouter = router({
 
         const { id, ...data } = input;
         const now = new Date();
-        const [structure] = await db.select({ employeeId: salaryStructures.employeeId }).from(salaryStructures)
-          .where(eq(salaryStructures.id, id)).limit(1);
+        const [structure] = await db.select({ employeeId: salaryStructures.employeeId })
+          .from(salaryStructures)
+          .innerJoin(employees, eq(employees.id, salaryStructures.employeeId))
+          .where(and(eq(salaryStructures.id, id), payrollEmployeeScope(ctx.user.organizationId)))
+          .limit(1);
+        if (!structure) throw new TRPCError({ code: "NOT_FOUND", message: "Salary structure not found" });
         await db.update(salaryStructures).set({
           ...data,
           updatedAt: now,
         } as any).where(eq(salaryStructures.id, id));
         if (structure && input.basicSalary !== undefined) {
-          await db.update(employees).set({ salary: Math.round(input.basicSalary / 100), updatedAt: now } as any)
-            .where(eq(employees.id, structure.employeeId));
+          await db.update(employees).set({ salary: input.basicSalary / 100, updatedAt: now } as any)
+            .where(and(eq(employees.id, structure.employeeId), payrollEmployeeScope(ctx.user.organizationId)));
         }
 
         return { success: true };
@@ -974,20 +1078,33 @@ export const payrollRouter = router({
 
     delete: createFeatureRestrictedProcedure("payroll:delete")
       .input(z.string())
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        await db.delete(salaryStructures).where(eq(salaryStructures.id, input));
+        const [structure] = await db.select({ employeeId: salaryStructures.employeeId })
+          .from(salaryStructures)
+          .innerJoin(employees, eq(employees.id, salaryStructures.employeeId))
+          .where(and(eq(salaryStructures.id, input), payrollEmployeeScope(ctx.user.organizationId)))
+          .limit(1);
+        if (!structure) throw new TRPCError({ code: "NOT_FOUND", message: "Salary structure not found" });
+        await db.delete(salaryStructures).where(and(
+          eq(salaryStructures.id, input),
+          eq(salaryStructures.employeeId, structure.employeeId),
+        ));
         return { success: true };
       }),
   }),
 
   employeePackage: createFeatureRestrictedProcedure("payroll:read")
     .input(z.object({ employeeId: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const employee = await db.select().from(employees).where(eq(employees.id, input.employeeId)).limit(1);
+      const employeeConditions = [eq(employees.id, input.employeeId)];
+      employeeConditions.push(payrollEmployeeScope(ctx.user.organizationId));
+      const employee = await db.select().from(employees)
+        .where(and(...employeeConditions))
+        .limit(1);
       if (!employee.length) throw new TRPCError({ code: "NOT_FOUND", message: "Employee not found" });
       return {
         employee: employee[0],
@@ -997,27 +1114,32 @@ export const payrollRouter = router({
 
   // ===================== Salary Allowances Management =====================
   allowances: router({
-    list: protectedProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return [];
       try {
-        return await db.select().from(salaryAllowances);
+        const rows = await db.select({ item: salaryAllowances }).from(salaryAllowances)
+          .innerJoin(employees, eq(employees.id, salaryAllowances.employeeId))
+          .where(payrollEmployeeScope(ctx.user.organizationId));
+        return rows.map((row: any) => row.item);
       } catch (error) {
         console.warn("Error fetching salary allowances:", error);
-        return [];
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to load salary allowances", cause: error });
       }
     }),
 
     byEmployee: createFeatureRestrictedProcedure("payroll:read")
       .input(z.object({ employeeId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) return [];
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         try {
+          await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
           return await db.select().from(salaryAllowances).where(eq(salaryAllowances.employeeId, input.employeeId));
         } catch (error) {
+          if (error instanceof TRPCError) throw error;
           console.warn("Error fetching salary allowances for employee:", error);
-          return [];
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to load employee salary allowances", cause: error });
         }
       }),
 
@@ -1027,11 +1149,15 @@ export const payrollRouter = router({
         allowanceType: z.string(),
         amount: z.number(),
         frequency: z.enum(["monthly", "quarterly", "annual", "one_time"]),
+        departmentIdOverride: z.string().optional(),
+        glAccountId: z.string().optional(),
         notes: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
+        await validatePayrollComponentAssignment(db, ctx.user.organizationId, input.departmentIdOverride, input.glAccountId, "expense");
 
         const id = uuidv4();
         const now = new Date();
@@ -1054,6 +1180,8 @@ export const payrollRouter = router({
         allowanceType: z.string().optional(),
         amount: z.number().optional(),
         frequency: z.enum(["monthly", "quarterly", "annual", "one_time"]).optional(),
+        departmentIdOverride: z.string().optional(),
+        glAccountId: z.string().optional(),
         notes: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1061,6 +1189,8 @@ export const payrollRouter = router({
         if (!db) throw new Error("Database not available");
 
         const { id, ...data } = input;
+        await requireScopedCompensationRecord(db, "allowance", id, ctx.user.organizationId);
+        await validatePayrollComponentAssignment(db, ctx.user.organizationId, data.departmentIdOverride, data.glAccountId, "expense");
         const now = new Date();
         await db.update(salaryAllowances).set({
           ...data,
@@ -1072,9 +1202,10 @@ export const payrollRouter = router({
 
     delete: createFeatureRestrictedProcedure("payroll:delete")
       .input(z.string())
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        await requireScopedCompensationRecord(db, "allowance", input, ctx.user.organizationId);
         await db.delete(salaryAllowances).where(eq(salaryAllowances.id, input));
         return { success: true };
       }),
@@ -1092,9 +1223,7 @@ export const payrollRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const employeeRows = await db.select().from(employees).where(eq(employees.id, input.employeeId)).limit(1);
-      const employee = employeeRows[0];
-      if (!employee) throw new TRPCError({ code: "NOT_FOUND", message: "Employee not found" });
+      const employee = await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
       if (employee.jobGroupId) {
         const groupRows = await db.select().from(jobGroups).where(eq(jobGroups.id, employee.jobGroupId)).limit(1);
         if (groupRows[0]) {
@@ -1128,7 +1257,7 @@ export const payrollRouter = router({
         updatedAt: now,
       } as any);
 
-      const details = [
+      const details: Array<{ type: string; itemId?: string; name: string; amount: number }> = [
         ...compensation.allowances.map((row: any) => ({ type: "allowance", itemId: row.id, name: row.name, amount: row.amount })),
         ...compensation.deductions.map((row: any) => ({ type: "deduction", itemId: row.id, name: row.name, amount: row.amount })),
         ...compensation.benefits.filter((row: any) => row.employeeCost > 0).map((row: any) => ({ type: "benefit", itemId: row.id, name: row.name, amount: row.employeeCost })),
@@ -1162,27 +1291,32 @@ export const payrollRouter = router({
 
   // ===================== Salary Deductions Management =====================
   deductions: router({
-    list: protectedProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) return [];
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       try {
-        return await db.select().from(salaryDeductions);
+        const rows = await db.select({ item: salaryDeductions }).from(salaryDeductions)
+          .innerJoin(employees, eq(employees.id, salaryDeductions.employeeId))
+          .where(payrollEmployeeScope(ctx.user.organizationId));
+        return rows.map((row: any) => row.item);
       } catch (error) {
         console.warn("Error fetching salary deductions:", error);
-        return [];
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to load salary deductions", cause: error });
       }
     }),
 
     byEmployee: createFeatureRestrictedProcedure("payroll:read")
       .input(z.object({ employeeId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) return [];
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         try {
+          await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
           return await db.select().from(salaryDeductions).where(eq(salaryDeductions.employeeId, input.employeeId));
         } catch (error) {
+          if (error instanceof TRPCError) throw error;
           console.warn("Error fetching salary deductions for employee:", error);
-          return [];
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to load employee salary deductions", cause: error });
         }
       }),
 
@@ -1192,12 +1326,16 @@ export const payrollRouter = router({
         deductionType: z.string(),
         amount: z.number(),
         frequency: z.enum(["monthly", "quarterly", "annual", "one_time"]),
+        departmentIdOverride: z.string().optional(),
+        glAccountId: z.string().optional(),
         reference: z.string().optional(),
         notes: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
+        await validatePayrollComponentAssignment(db, ctx.user.organizationId, input.departmentIdOverride, input.glAccountId, "liability");
 
         const id = uuidv4();
         const now = new Date();
@@ -1220,6 +1358,8 @@ export const payrollRouter = router({
         deductionType: z.string().optional(),
         amount: z.number().optional(),
         frequency: z.enum(["monthly", "quarterly", "annual", "one_time"]).optional(),
+        departmentIdOverride: z.string().optional(),
+        glAccountId: z.string().optional(),
         reference: z.string().optional(),
         notes: z.string().optional(),
       }))
@@ -1228,6 +1368,8 @@ export const payrollRouter = router({
         if (!db) throw new Error("Database not available");
 
         const { id, ...data } = input;
+        await requireScopedCompensationRecord(db, "deduction", id, ctx.user.organizationId);
+        await validatePayrollComponentAssignment(db, ctx.user.organizationId, data.departmentIdOverride, data.glAccountId, "liability");
         const now = new Date();
         await db.update(salaryDeductions).set({
           ...data,
@@ -1239,9 +1381,10 @@ export const payrollRouter = router({
 
     delete: createFeatureRestrictedProcedure("payroll:delete")
       .input(z.string())
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        await requireScopedCompensationRecord(db, "deduction", input, ctx.user.organizationId);
         await db.delete(salaryDeductions).where(eq(salaryDeductions.id, input));
         return { success: true };
       }),
@@ -1249,27 +1392,32 @@ export const payrollRouter = router({
 
   // ===================== Employee Benefits Management =====================
   benefits: router({
-    list: protectedProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
-      if (!db) return [];
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       try {
-        return await db.select().from(employeeBenefits);
+        const rows = await db.select({ item: employeeBenefits }).from(employeeBenefits)
+          .innerJoin(employees, eq(employees.id, employeeBenefits.employeeId))
+          .where(payrollEmployeeScope(ctx.user.organizationId));
+        return rows.map((row: any) => row.item);
       } catch (error) {
         console.warn("Error fetching employee benefits:", error);
-        return [];
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to load employee benefits", cause: error });
       }
     }),
 
     byEmployee: createFeatureRestrictedProcedure("payroll:read")
       .input(z.object({ employeeId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) return [];
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         try {
+          await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
           return await db.select().from(employeeBenefits).where(eq(employeeBenefits.employeeId, input.employeeId));
         } catch (error) {
+          if (error instanceof TRPCError) throw error;
           console.warn("Error fetching employee benefits for employee:", error);
-          return [];
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to load employee benefits", cause: error });
         }
       }),
 
@@ -1281,11 +1429,15 @@ export const payrollRouter = router({
         coverage: z.string().optional(),
         cost: z.number().optional(),
         employerCost: z.number().optional(),
+        departmentIdOverride: z.string().optional(),
+        glAccountId: z.string().optional(),
         notes: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
+        await validatePayrollComponentAssignment(db, ctx.user.organizationId, input.departmentIdOverride, input.glAccountId, "expense");
 
         const id = uuidv4();
         const now = new Date();
@@ -1310,6 +1462,8 @@ export const payrollRouter = router({
         coverage: z.string().optional(),
         cost: z.number().optional(),
         employerCost: z.number().optional(),
+        departmentIdOverride: z.string().optional(),
+        glAccountId: z.string().optional(),
         notes: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1317,6 +1471,8 @@ export const payrollRouter = router({
         if (!db) throw new Error("Database not available");
 
         const { id, ...data } = input;
+        await requireScopedCompensationRecord(db, "benefit", id, ctx.user.organizationId);
+        await validatePayrollComponentAssignment(db, ctx.user.organizationId, data.departmentIdOverride, data.glAccountId, "expense");
         const now = new Date();
         await db.update(employeeBenefits).set({
           ...data,
@@ -1328,9 +1484,10 @@ export const payrollRouter = router({
 
     delete: createFeatureRestrictedProcedure("payroll:delete")
       .input(z.string())
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        await requireScopedCompensationRecord(db, "benefit", input, ctx.user.organizationId);
         await db.delete(employeeBenefits).where(eq(employeeBenefits.id, input));
         return { success: true };
       }),
@@ -1350,11 +1507,11 @@ export const payrollRouter = router({
       const employeeRows = await db.select().from(employees).where(eq(employees.id, record.employeeId)).limit(1);
       assertCompensationEmployeeAccess(ctx, employeeRows[0]);
       const details = await db.select().from(payrollDetails).where(eq(payrollDetails.itemId, input.id));
-      const payrollIds = [...new Set(details.map((detail: any) => detail.payrollId))];
+      const payrollIds: string[] = [...new Set<string>(details.map((detail: any) => String(detail.payrollId)))];
       const payrollRows = payrollIds.length
         ? await db.select().from(payroll).where(inArray(payroll.id, payrollIds))
         : [];
-      const payrollById = new Map(payrollRows.map((row: any) => [row.id, row]));
+      const payrollById = new Map<string, any>(payrollRows.map((row: any) => [row.id, row] as [string, any]));
       const history = details.map((detail: any) => {
         const payrollRecord = payrollById.get(detail.payrollId);
         return {
@@ -1410,9 +1567,10 @@ export const payrollRouter = router({
   taxInfo: router({
     byEmployee: createFeatureRestrictedProcedure("payroll:read")
       .input(z.object({ employeeId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return null;
+        await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
         const result = await db.select().from(employeeTaxInfo).where(eq(employeeTaxInfo.employeeId, input.employeeId));
         return result[0] || null;
       }),
@@ -1428,6 +1586,7 @@ export const payrollRouter = router({
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
 
         const id = uuidv4();
         const now = new Date();
@@ -1450,11 +1609,15 @@ export const payrollRouter = router({
         exemptions: z.number().optional(),
         notes: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 
         const { id, ...data } = input;
+        const [record] = await db.select({ employeeId: employeeTaxInfo.employeeId }).from(employeeTaxInfo)
+          .where(eq(employeeTaxInfo.id, id)).limit(1);
+        if (!record) throw new TRPCError({ code: "NOT_FOUND", message: "Tax information not found" });
+        await requirePayrollWorkspaceEmployee(db, record.employeeId, ctx.user.organizationId);
         const now = new Date();
         await db.update(employeeTaxInfo).set({
           ...data,
@@ -1466,9 +1629,13 @@ export const payrollRouter = router({
 
     delete: createFeatureRestrictedProcedure("payroll:delete")
       .input(z.string())
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        const [record] = await db.select({ employeeId: employeeTaxInfo.employeeId }).from(employeeTaxInfo)
+          .where(eq(employeeTaxInfo.id, input)).limit(1);
+        if (!record) throw new TRPCError({ code: "NOT_FOUND", message: "Tax information not found" });
+        await requirePayrollWorkspaceEmployee(db, record.employeeId, ctx.user.organizationId);
         await db.delete(employeeTaxInfo).where(eq(employeeTaxInfo.id, input));
         return { success: true };
       }),
@@ -1478,9 +1645,10 @@ export const payrollRouter = router({
   increments: router({
     byEmployee: createFeatureRestrictedProcedure("payroll:read")
       .input(z.object({ employeeId: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return [];
+        await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
         return await db.select().from(salaryIncrements).where(eq(salaryIncrements.employeeId, input.employeeId));
       }),
 
@@ -1495,6 +1663,7 @@ export const payrollRouter = router({
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        await requirePayrollWorkspaceEmployee(db, input.employeeId, ctx.user.organizationId);
 
         const id = uuidv4();
         const previousSalary = input.previousSalary;
@@ -1521,6 +1690,10 @@ export const payrollRouter = router({
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        const [increment] = await db.select({ employeeId: salaryIncrements.employeeId }).from(salaryIncrements)
+          .where(eq(salaryIncrements.id, input.id)).limit(1);
+        if (!increment) throw new TRPCError({ code: "NOT_FOUND", message: "Salary increment not found" });
+        await requirePayrollWorkspaceEmployee(db, increment.employeeId, ctx.user.organizationId);
 
         await db.update(salaryIncrements).set({
           approvedBy: ctx.user.id,
@@ -1787,11 +1960,12 @@ export const payrollRouter = router({
       taxYear: z.number().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const organizationId = resolveP9OrganizationScope(ctx.user);
       try {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const certifiedBy = ctx.user.firstName ? `${ctx.user.firstName} ${ctx.user.lastName}` : "HR Manager";
-        const generated = await buildP9ForEmployee(db, input.employeeId, certifiedBy, input.taxYear, ctx.user.organizationId);
+        const generated = await buildP9ForEmployee(db, input.employeeId, certifiedBy, input.taxYear, organizationId);
 
         return {
           success: true,
@@ -1817,11 +1991,12 @@ export const payrollRouter = router({
       format: z.enum(['html', 'pdf']).optional().default('html'),
     }))
     .mutation(async ({ input, ctx }) => {
+      const organizationId = resolveP9OrganizationScope(ctx.user);
       try {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const certifiedBy = ctx.user.firstName ? `${ctx.user.firstName} ${ctx.user.lastName}` : "HR Manager";
-        const generated = await buildP9ForEmployee(db, input.employeeId, certifiedBy, undefined, ctx.user.organizationId);
+        const generated = await buildP9ForEmployee(db, input.employeeId, certifiedBy, undefined, organizationId);
 
         return {
           success: true,
@@ -1845,6 +2020,7 @@ export const payrollRouter = router({
       sendEmail: z.boolean().optional().default(false),
     }))
     .mutation(async ({ input, ctx }) => {
+      const organizationId = resolveP9OrganizationScope(ctx.user);
       try {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
@@ -1854,7 +2030,7 @@ export const payrollRouter = router({
 
         for (const employeeId of input.employeeIds) {
           try {
-            const p9Result = await buildP9ForEmployee(db, employeeId, certifiedBy, undefined, ctx.user.organizationId);
+            const p9Result = await buildP9ForEmployee(db, employeeId, certifiedBy, undefined, organizationId);
             results.push({
               employeeId,
               success: true,
@@ -1894,7 +2070,7 @@ export const payrollRouter = router({
       month: z.number().min(1).max(12).optional(),
     }).optional())
     .mutation(async ({ input, ctx }) => {
-      const result = await processMonthlyPayroll(input?.year, input?.month, ctx.user.id, ctx.user.organizationId);
+      const result = await processMonthlyPayroll(input?.year, input?.month, ctx.user.id, ctx.user.organizationId ?? null);
       return result;
     }),
 
@@ -1904,7 +2080,7 @@ export const payrollRouter = router({
       month: z.number().min(1).max(12).optional(),
     }).optional())
     .mutation(async ({ input, ctx }) => {
-      return processAndPayPayroll(input?.year, input?.month, ctx.user.id, ctx.user.organizationId);
+      return processAndPayPayroll(input?.year, input?.month, ctx.user.id, ctx.user.organizationId ?? null);
     }),
 
   /** Manually trigger payslip dispatch (admin/HR only) */
@@ -1914,7 +2090,7 @@ export const payrollRouter = router({
       month: z.number().min(1).max(12).optional(),
     }).optional())
     .mutation(async ({ input, ctx }) => {
-      const result = await processAndDispatchPayslips(input?.year, input?.month, ctx.user.id, ctx.user.organizationId);
+      const result = await processAndDispatchPayslips(input?.year, input?.month, ctx.user.id, ctx.user.organizationId ?? null);
       return result;
     }),
 });

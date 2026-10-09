@@ -683,7 +683,13 @@ export const invoicesRouter = router({
       if (ctx.user?.role !== "client") {
         verifyOrgOwnership(ctx, client[0].organizationId);
       }
-      const result = await db.select().from(invoices).where(eq(invoices.clientId, clientId));
+      const invoiceScope = and(
+        eq(invoices.clientId, clientId),
+        client[0].organizationId
+          ? eq(invoices.organizationId, client[0].organizationId)
+          : isNull(invoices.organizationId),
+      );
+      const result = await db.select().from(invoices).where(invoiceScope);
       return result;
     }),
 

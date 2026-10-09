@@ -14,9 +14,9 @@ import { PermissionGuard } from "@/components/PermissionGuard";
 
 export default function OrgQuotationDetail() {
   const { hasAccess } = useOrgAccess();
-  const params = useParams();
-  const slug = params.slug as string;
-  const quotationId = params.id as string;
+  const params = useParams<{ slug: string; id: string }>();
+  const slug = params.slug;
+  const quotationId = params.id;
 
   const canViewInvoicing = hasAccess('org:invoicing:view');
   const canEditInvoicing = hasAccess('org:invoicing:edit');
@@ -31,6 +31,9 @@ export default function OrgQuotationDetail() {
   const { data: quotation, isLoading } = trpc.quotations.getById.useQuery(quotationId, {
     enabled: !!quotationId && hasPermission("quotations"),
   });
+  const lineItems = Array.isArray(quotation?.lineItems)
+    ? quotation.lineItems as Array<{ partNumber?: string; description?: string; quantity?: number; unitPrice?: number | null; total?: number | null }>
+    : [];
 
   const utils = trpc.useUtils();
   const deleteMutation = trpc.quotations.delete.useMutation({
@@ -106,7 +109,7 @@ export default function OrgQuotationDetail() {
               </div>
               <div>
                 <p className="text-sm text-white/60">Amount</p>
-                <p className="text-white">KES {(quotation.amount || 0).toLocaleString()}</p>
+                <p className="text-white">{quotation.currency || "KES"} {((quotation.amount || 0) / 100).toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-sm text-white/60">Due Date</p>
@@ -116,6 +119,26 @@ export default function OrgQuotationDetail() {
                 <p className="text-sm text-white/60">Created</p>
                 <p className="text-white">{quotation.createdAt ? new Date(quotation.createdAt).toLocaleDateString() : "N/A"}</p>
               </div>
+              <div><p className="text-sm text-white/60">Buyer / department</p><p className="text-white">{quotation.buyerCompanyName || "—"}{quotation.buyerDepartment ? ` · ${quotation.buyerDepartment}` : ""}</p></div>
+              <div><p className="text-sm text-white/60">Buyer contact</p><p className="text-white">{quotation.buyerContactName || "—"}{quotation.buyerEmail ? ` · ${quotation.buyerEmail}` : ""}{quotation.buyerPhone ? ` · ${quotation.buyerPhone}` : ""}</p></div>
+              <div><p className="text-sm text-white/60">Bidder / supplier</p><p className="text-white">{quotation.bidderLegalName || quotation.supplier || "Open solicitation"}</p></div>
+              <div><p className="text-sm text-white/60">Bidder contact</p><p className="text-white">{quotation.bidderContactName || "—"}{quotation.bidderEmail ? ` · ${quotation.bidderEmail}` : ""}{quotation.bidderPhone ? ` · ${quotation.bidderPhone}` : ""}</p></div>
+              <div><p className="text-sm text-white/60">Delivery address</p><p className="text-white whitespace-pre-wrap">{quotation.deliveryAddress || "—"}</p></div>
+              <div><p className="text-sm text-white/60">Issue / deadline / target delivery</p><p className="text-white">{[quotation.issueDate, quotation.submissionDeadline || quotation.dueDate, quotation.targetDeliveryDate].map(value => value ? new Date(value).toLocaleDateString() : "—").join(" · ")}</p></div>
+              <div><p className="text-sm text-white/60">Quote validity / lead time</p><p className="text-white">{quotation.quoteValidityDays ?? 60} days · {quotation.leadTime || "—"}</p></div>
+              <div><p className="text-sm text-white/60">Registration / tax ID</p><p className="text-white">{quotation.bidderRegistrationNumber || "—"}</p></div>
+              {lineItems.length > 0 && <div className="md:col-span-2">
+                <p className="mb-2 text-sm text-white/60">Specifications and pricing</p>
+                <div className="space-y-2">{lineItems.map((item, index) => <div key={`${item.partNumber || "item"}-${index}`} className="flex flex-wrap justify-between gap-2 border-b border-white/10 pb-2 text-white">
+                  <span>{item.partNumber ? `${item.partNumber} · ` : ""}{item.description} · Qty {item.quantity ?? 0}</span>
+                  <span>{item.unitPrice == null ? "Price pending" : `${quotation.currency || "KES"} ${(item.total ?? 0) / 100}`}</span>
+                </div>)}</div>
+              </div>}
+              <div><p className="text-sm text-white/60">Submission requirements</p><p className="text-white whitespace-pre-wrap">{[quotation.submissionFormat, quotation.submissionMethod, quotation.submissionEmail, quotation.emailSubjectProtocol, quotation.mandatoryAttachments].filter(Boolean).join("\n") || "—"}</p></div>
+              <div><p className="text-sm text-white/60">Evaluation weights</p><p className="text-white">Cost {quotation.costWeight ?? 50}% · Compliance {quotation.complianceWeight ?? 30}% · Delivery {quotation.deliveryWeight ?? 20}%</p></div>
+              <div className="md:col-span-2"><p className="text-sm text-white/60">Terms and settlement</p><p className="text-white whitespace-pre-wrap">{[quotation.nonBindingTerms, quotation.incoterms, quotation.paymentTerms, quotation.settlementDays != null ? `${quotation.settlementDays} days` : ""].filter(Boolean).join("\n") || "—"}</p></div>
+              <div><p className="text-sm text-white/60">Buyer signatory</p><p className="text-white">{quotation.buyerSignatoryName || "—"}{quotation.buyerSignatoryTitle ? ` · ${quotation.buyerSignatoryTitle}` : ""}</p></div>
+              <div><p className="text-sm text-white/60">Bidder signatory</p><p className="text-white">{quotation.bidderSignatoryName || "—"}{quotation.bidderSignatoryTitle ? ` · ${quotation.bidderSignatoryTitle}` : ""}</p></div>
             </CardContent>
             {quotation.description && (
               <CardContent>

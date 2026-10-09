@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import OrgLayout from "@/components/OrgLayout";
 import OrgBreadcrumb from "@/components/OrgBreadcrumb";
@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
 import { useOrgAccess } from "@/hooks/useOrgAccess";
 import { useOrgPermission } from "@/hooks/useOrgPermission";
+import { ContractTerminationDialog } from "@/components/ContractTerminationDialog";
 import {
   ArrowLeft, FileText, AlertCircle, Edit2, Building2, DollarSign, Calendar,
 } from "lucide-react";
@@ -31,7 +32,7 @@ function StatusBadge({ status }: { status?: string }) {
 
 export default function OrgContractDetail() {
   const { hasAccess } = useOrgAccess();
-  const params = useParams();
+  const params = useParams<{ slug: string; id: string }>();
   const slug = params.slug as string;
   const contractId = params.id as string;
 
@@ -41,8 +42,10 @@ export default function OrgContractDetail() {
 
   const [, setLocation] = useLocation();
   const { checkPermission } = useOrgPermission();
+  const [terminationDialogOpen, setTerminationDialogOpen] = useState(false);
+  const utils = trpc.useUtils();
 
-  const { data: contract, isLoading } = trpc.contracts.get.useQuery(contractId, {
+  const { data: contract, isLoading } = trpc.contracts.getById.useQuery(contractId, {
     enabled: !!contractId && checkPermission("contracts:view"),
   });
 
@@ -92,18 +95,23 @@ export default function OrgContractDetail() {
     );
   }
 
+  const isSigningLocked = contract.status === "terminated" || Boolean(contract.signingStatus && contract.signingStatus !== "not_sent");
+
   return (
-    <OrgLayout title={`Contract: ${contract.contractName}`} showOrgInfo={false}>
+    <OrgLayout title={`Contract: ${contract.name}`} showOrgInfo={false}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <OrgBreadcrumb slug={slug} items={[
               { label: "Contracts", href: `/org/${slug}/contracts` },
-              { label: contract.contractName || `Contract ${contract.id.slice(-8)}` },
+              { label: contract.name || `Contract ${contract.id.slice(-8)}` },
             ]} />
           </div>
           <div className="flex gap-2">
-            {checkPermission("contracts:edit") && (
+            {checkPermission("contracts:edit") && contract.status === "active" && (
+              <Button size="sm" variant="destructive" onClick={() => setTerminationDialogOpen(true)}>Terminate</Button>
+            )}
+            {checkPermission("contracts:edit") && !isSigningLocked && (
               <Button
                 size="sm"
                 variant="outline"
@@ -113,6 +121,7 @@ export default function OrgContractDetail() {
                 <Edit2 className="h-4 w-4 mr-1" /> Edit
               </Button>
             )}
+            {isSigningLocked && <span className="self-center text-xs text-amber-300">{contract.status === "terminated" ? "Terminated contracts are immutable" : "Editing locked while signature workflow is active"}</span>}
             <Button
               size="sm"
               variant="outline"
@@ -141,7 +150,7 @@ export default function OrgContractDetail() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-white/60">Contract Name</p>
-                    <p className="text-white font-medium">{contract.contractName || "—"}</p>
+                    <p className="text-white font-medium">{contract.name || "—"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-white/60">Contract Type</p>
@@ -149,7 +158,7 @@ export default function OrgContractDetail() {
                   </div>
                   <div>
                     <p className="text-sm text-white/60">Party Name</p>
-                    <p className="text-white">{contract.partyName || "—"}</p>
+                    <p className="text-white">{contract.vendor || "—"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-white/60">Status</p>
@@ -219,7 +228,7 @@ export default function OrgContractDetail() {
               </CardContent>
             </Card>
 
-            {contract.partyName && (
+            {contract.vendor && (
               <Card className="bg-white/5 border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white text-sm flex items-center gap-2">
@@ -228,13 +237,30 @@ export default function OrgContractDetail() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-white">{contract.partyName}</p>
+                  <p className="text-sm text-white">{contract.vendor}</p>
                 </CardContent>
               </Card>
             )}
           </div>
         </div>
       </div>
+      {contract.terminatedAt && <Card className="border-white/10 bg-white/5">
+        <CardHeader><CardTitle className="text-white">Termination record</CardTitle></CardHeader>
+        <CardContent className="space-y-2 text-sm text-white">
+          <p>Effective date: {new Date(contract.terminatedAt).toLocaleDateString()}</p>
+          {contract.terminationReason && <p>Reason: {contract.terminationReason}</p>}
+        </CardContent>
+      </Card>}
+      <ContractTerminationDialog
+        contractId={contract.id}
+        contractName={contract.name}
+        open={terminationDialogOpen}
+        onOpenChange={setTerminationDialogOpen}
+        onCompleted={() => Promise.all([
+          utils.contracts.getById.invalidate(contractId),
+          utils.contracts.list.invalidate(),
+        ]).then(() => undefined)}
+      />
     </OrgLayout>
   );
 }

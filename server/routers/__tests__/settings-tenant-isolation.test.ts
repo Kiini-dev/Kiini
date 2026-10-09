@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { organizationSettings, settings } from "../../../drizzle/schema";
 
-const { fakeDatabase, getDbMock, insertedRows, rowsByTable } = vi.hoisted(() => {
+const { fakeDatabase, getDbMock, insertedRows, updatedRows, rowsByTable } = vi.hoisted(() => {
   const insertedRows: Array<{ table: unknown; values: Record<string, unknown> }> = [];
+  const updatedRows: Array<{ table: unknown; values: Record<string, unknown> }> = [];
   const rowsByTable = new Map<unknown, Array<Record<string, unknown>>>();
   const database = {
     select: () => ({
@@ -22,13 +23,20 @@ const { fakeDatabase, getDbMock, insertedRows, rowsByTable } = vi.hoisted(() => 
         insertedRows.push({ table, values });
       },
     }),
-    update: () => ({ set: () => ({ where: async () => undefined }) }),
+    update: (table: unknown) => ({
+      set: (values: Record<string, unknown>) => ({
+        where: async () => {
+          updatedRows.push({ table, values });
+        },
+      }),
+    }),
   };
 
   return {
     fakeDatabase: database,
     getDbMock: vi.fn(async () => database),
     insertedRows,
+    updatedRows,
     rowsByTable,
   };
 });
@@ -53,6 +61,7 @@ describe("settings tenant isolation", () => {
     vi.clearAllMocks();
     rowsByTable.clear();
     insertedRows.length = 0;
+    updatedRows.length = 0;
     getDbMock.mockResolvedValue(fakeDatabase as any);
   });
 
@@ -90,5 +99,22 @@ describe("settings tenant isolation", () => {
     const result = await createCaller().getByCategory({ category: "clients_categories" });
 
     expect(result.list).toBe("platform categories");
+  });
+
+  it("updates existing platform settings for the whole category/key instead of inserting another row", async () => {
+    rowsByTable.set(settings, [
+      { id: "old-row-1", category: "email", key: "smtpHost", value: "old.example.com" },
+      { id: "old-row-2", category: "email", key: "smtpHost", value: "stale.example.com" },
+    ]);
+
+    await createCaller().updateByCategory({
+      category: "email",
+      values: { smtpHost: "new.example.com" },
+    });
+
+    expect(updatedRows).toEqual([
+      { table: settings, values: { value: "new.example.com", updatedBy: "platform-admin" } },
+    ]);
+    expect(insertedRows).toHaveLength(0);
   });
 });

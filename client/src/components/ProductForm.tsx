@@ -57,6 +57,24 @@ const UNIT_OPTIONS = [
   { value: "pair", label: "Pair" },
 ];
 
+function FormField({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      {children}
+      {error && <p className="text-sm text-red-500">{error}</p>}
+    </div>
+  );
+}
+
 export function ProductForm({
   formData,
   setFormData,
@@ -158,24 +176,8 @@ export function ProductForm({
       : [{ value: formData.unit, label: formData.unit }, ...configuredUnits]
     : UNIT_OPTIONS;
 
-  const FormField = ({
-    label,
-    error,
-    children,
-  }: {
-    label: string;
-    error?: string;
-    children: React.ReactNode;
-  }) => (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      {children}
-      {error && <p className="text-sm text-red-500">{error}</p>}
-    </div>
-  );
-
   return (
-    <form className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-5xl">
       {/* Basic Information Card */}
       <Card>
         <CardHeader>
@@ -458,6 +460,6 @@ export function ProductForm({
           </Button>
         </div>
       )}
-    </form>
+    </div>
   );
 }

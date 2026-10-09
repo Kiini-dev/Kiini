@@ -256,10 +256,6 @@ export default function HR() {
                 <Building2 className="h-4 w-4 mr-2" />
                 Create Department
               </Button>
-              <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/attendance/create")}>
-                <Calendar className="h-4 w-4 mr-2" />
-                Record Attendance
-              </Button>
               <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/leave-management/create")}>
                 <Clock className="h-4 w-4 mr-2" />
                 Process Leave Request

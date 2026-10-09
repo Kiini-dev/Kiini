@@ -49,7 +49,12 @@ export const imprestRouter = router({
     }),
 
   create: createProcedure
-    .input(z.object({ userId: z.string(), purpose: z.string().optional(), amount: z.number().positive() }))
+    .input(z.object({
+      userId: z.string(),
+      purpose: z.string().optional(),
+      amount: z.number().positive(),
+      templateData: z.record(z.string(), z.unknown()).optional(),
+    }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("DB not available");
@@ -60,6 +65,7 @@ export const imprestRouter = router({
         imprestNumber: impNum,
         userId: input.userId,
         purpose: input.purpose || null,
+        templateData: input.templateData || null,
         amount: input.amount,
         status: 'requested',
         createdBy: ctx.user.id,
@@ -68,7 +74,13 @@ export const imprestRouter = router({
     }),
 
   update: createProcedure
-    .input(z.object({ id: z.string(), status: z.enum(["requested","approved","rejected","settled"]).optional(), purpose: z.string().optional(), amount: z.number().positive().optional() }))
+    .input(z.object({
+      id: z.string(),
+      status: z.enum(["requested","approved","rejected","settled"]).optional(),
+      purpose: z.string().optional(),
+      amount: z.number().positive().optional(),
+      templateData: z.record(z.string(), z.unknown()).optional(),
+    }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("DB not available");
@@ -132,6 +144,7 @@ export const imprestRouter = router({
       }
       if (input.purpose !== undefined) upd.purpose = input.purpose;
       if (input.amount !== undefined) upd.amount = input.amount;
+      if (input.templateData !== undefined) upd.templateData = input.templateData;
       await db.update(imprests).set(upd).where(eq(imprests.id, input.id));
       return { success: true };
     }),

@@ -15,6 +15,8 @@ import { useOrgAccess } from "@/hooks/useOrgAccess";
 import { useOrgPermission } from "@/hooks/useOrgPermission";
 import { toast } from "sonner";
 import { ArrowLeft, FileText } from "lucide-react";
+import { ContractTypeSelector } from "@/components/ContractTypeSelector";
+import { CONTRACT_TYPES } from "@/lib/contractTemplates";
 
 export default function OrgEditContract() {
   const { hasAccess } = useOrgAccess();
@@ -202,12 +204,7 @@ export default function OrgEditContract() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="contractType">Contract Type</Label>
-                  <Input
-                    id="contractType"
-                    placeholder="e.g., Service Agreement, NDA"
-                    value={form.contractType}
-                    onChange={(e) => setForm((f) => ({ ...f, contractType: e.target.value }))}
-                  />
+                  <ContractTypeSelector options={CONTRACT_TYPES} value={form.contractType} onChange={(contractType) => setForm((f) => ({ ...f, contractType }))} placeholder="Select contract type..." />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="value">Value (KES)</Label>

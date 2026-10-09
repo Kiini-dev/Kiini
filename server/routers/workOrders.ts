@@ -34,6 +34,7 @@ const createWorkOrderSchema = z.object({
   total: z.number().nonnegative(),
   notes: z.string().optional(),
   status: z.enum(["draft", "open", "in-progress", "completed", "cancelled"]).default("draft"),
+  templateData: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const workOrdersRouter = router({
@@ -89,6 +90,7 @@ export const workOrdersRouter = router({
           serviceCost: Math.round(input.serviceCost * 100),
           total: Math.round(input.total * 100),
           notes: input.notes || null,
+          templateData: input.templateData || null,
           status: input.status,
           createdBy: ctx.user?.id || "",
           organizationId: ctx.user?.organizationId ?? null,

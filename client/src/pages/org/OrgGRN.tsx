@@ -28,12 +28,13 @@ import { SummaryStatCards } from "@/components/list-page/SummaryStatCards";
 import { TableColumnSettings, useColumnVisibility, type ColumnConfig } from "@/components/list-page/TableColumnSettings";
 import { PaginationControls, usePagination } from "@/components/ui/data-table-controls";
 import { SupplierSelector } from "@/components/SupplierSelector";
+import { OperationalTemplateFields, createOperationalTemplateDefaults, normalizeOperationalTemplateData, type OperationalTemplateData } from "@/components/operations/OperationalTemplateFields";
 
 const emptyForm = { grnNo: "", supplier: "", invNo: "", receivedDate: "", items: "", value: "", status: "pending" as const, notes: "" };
 
 // ─── Hoisted outside parent to keep stable component reference (prevents focus loss) ──
 type GRNFormData = typeof emptyForm;
-function GRNFormFields({ form, setForm }: { form: GRNFormData; setForm: React.Dispatch<React.SetStateAction<GRNFormData>> }) {
+function GRNFormFields({ form, setForm, templateData, setTemplateData }: { form: GRNFormData; setForm: React.Dispatch<React.SetStateAction<GRNFormData>>; templateData: OperationalTemplateData; setTemplateData: React.Dispatch<React.SetStateAction<OperationalTemplateData>> }) {
   return (
     <div className="grid gap-4 py-2">
       <div className="grid grid-cols-2 gap-3">
@@ -59,6 +60,7 @@ function GRNFormFields({ form, setForm }: { form: GRNFormData; setForm: React.Di
         </Select>
       </div>
       <div className="space-y-1"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
+      <OperationalTemplateFields documentType="grn" value={templateData} onChange={setTemplateData} />
     </div>
   );
 }
@@ -88,13 +90,14 @@ export default function GoodsReceivedNotes() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingGRN, setEditingGRN] = useState<any>(null);
   const [form, setForm] = useState({ ...emptyForm });
+  const [templateData, setTemplateData] = useState<OperationalTemplateData>(() => createOperationalTemplateDefaults("grn"));
   const utils = trpc.useUtils();
   const _search = useSearch();
   useEffect(() => { if (new URLSearchParams(_search).get("action") === "create") setCreateOpen(true); }, []);
   const [, setLocation] = useLocation();
 
   const { data: grnData, isLoading: dataLoading } = trpc.grn.list.useQuery({ limit: 100, offset: 0 }, { enabled: allowed });
-  const grnList = grnData?.data || [];
+  const grnList: any[] = (grnData?.data || []) as any[];
 
   const createMutation = trpc.grn.create.useMutation({
     onSuccess: () => { utils.grn.list.invalidate(); toast.success("GRN created"); setCreateOpen(false); setForm({ ...emptyForm }); },
@@ -152,14 +155,19 @@ export default function GoodsReceivedNotes() {
   const openEdit = (g: any) => {
     setEditingGRN(g);
     setForm({ grnNo: g.grnNo || "", supplier: g.supplier || "", invNo: g.invNo || "", receivedDate: g.receivedDate || "", items: String(g.items || ""), value: ((g.value || 0) / 100).toString(), status: g.status || "pending", notes: g.notes || "" });
+    setTemplateData(g.templateData || createOperationalTemplateDefaults("grn"));
   };
 
   const handleSubmit = (isEdit: boolean) => {
-    const parsedItems = parseInt(form.items);
-    const parsedValue = parseFloat(form.value);
-    if (!parsedItems || parsedItems <= 0) { toast.error("Number of items must be greater than 0"); return; }
-    if (!parsedValue || parsedValue <= 0) { toast.error("Value must be greater than 0"); return; }
-    const payload = { grnNo: form.grnNo, supplier: form.supplier, invNo: form.invNo || undefined, receivedDate: form.receivedDate, items: parsedItems, value: parsedValue, status: form.status, notes: form.notes || undefined };
+    const normalizedTemplateData = normalizeOperationalTemplateData("grn", templateData);
+    const lineItems = normalizedTemplateData.lineItems || [];
+    const parsedItems = parseInt(form.items) || lineItems.reduce((sum: number, item: any) => sum + Number(item.quantityReceived || item.quantityAccepted || 0), 0);
+    const calculatedValue = Number(normalizedTemplateData.netVerifiedStockValue || 0);
+    const lineValue = lineItems.reduce((sum: number, item: any) => sum + Number(item.unitPrice || 0) * Number(item.quantityAccepted || item.quantityReceived || 0), 0);
+    const parsedValue = parseFloat(form.value) || calculatedValue || lineValue;
+    if (!parsedItems || parsedItems <= 0) { toast.error("Add at least one received quantity or enter a positive item count"); return; }
+    if (!parsedValue || parsedValue <= 0) { toast.error("Enter the verified value or item prices"); return; }
+    const payload = { supplier: form.supplier, invNo: form.invNo || undefined, receivedDate: form.receivedDate, items: parsedItems, value: parsedValue, status: form.status, notes: form.notes || undefined, templateData: normalizedTemplateData };
     if (isEdit && editingGRN) updateMutation.mutate({ id: editingGRN.id, ...payload });
     else createMutation.mutate(payload);
   };
@@ -172,7 +180,7 @@ export default function GoodsReceivedNotes() {
       <div className="space-y-6 p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div><h2 className="text-2xl font-bold">Goods Received Notes</h2><p className="text-sm text-muted-foreground">Record and track received goods</p></div>
-          <Button onClick={() => { setForm({ ...emptyForm }); setCreateOpen(true); }}><Plus className="h-4 w-4 mr-2" /> New GRN</Button>
+          <Button onClick={() => { setForm({ ...emptyForm }); setTemplateData(createOperationalTemplateDefaults("grn")); setCreateOpen(true); }}><Plus className="h-4 w-4 mr-2" /> New GRN</Button>
         </div>
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground" />
@@ -289,23 +297,23 @@ export default function GoodsReceivedNotes() {
         </Card>
       </div>
 
-      <Dialog open={createOpen} onOpenChange={v => { setCreateOpen(v); if (!v) setForm({ ...emptyForm }); }}>
-        <DialogContent className="max-w-xl">
+      <Dialog open={createOpen} onOpenChange={v => { setCreateOpen(v); if (!v) { setForm({ ...emptyForm }); setTemplateData(createOperationalTemplateDefaults("grn")); } }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>New Goods Received Note</DialogTitle></DialogHeader>
-          <GRNFormFields form={form} setForm={setForm} />
+          <GRNFormFields form={form} setForm={setForm} templateData={templateData} setTemplateData={setTemplateData} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.grnNo || !form.supplier || !form.receivedDate || !form.items || !form.value}>
+            <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.supplier || !form.receivedDate || (!form.items && !(templateData.lineItems || []).length) || (!form.value && !templateData.subtotal && !(templateData.lineItems || []).length)}>
               {createMutation.isPending ? "Saving..." : "Create GRN"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editingGRN} onOpenChange={v => { if (!v) setEditingGRN(null); }}>
-        <DialogContent className="max-w-xl">
+      <Dialog open={!!editingGRN} onOpenChange={v => { if (!v) { setEditingGRN(null); setTemplateData(createOperationalTemplateDefaults("grn")); } }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit GRN</DialogTitle></DialogHeader>
-          <GRNFormFields form={form} setForm={setForm} />
+          <GRNFormFields form={form} setForm={setForm} templateData={templateData} setTemplateData={setTemplateData} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingGRN(null)}>Cancel</Button>
             <Button onClick={() => handleSubmit(true)} disabled={updateMutation.isPending}>

@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,7 +107,6 @@ export default function SalesPipeline() {
   const boardQuery = trpc.salesPipeline.getPipelineBoard.useQuery({});
   const forecastQuery = trpc.salesPipeline.getSalesForecast.useQuery({});
   const statsQuery = trpc.salesPipeline.getWinLossStats.useQuery({ months: 3 });
-  const clientsQuery = trpc.clients.list.useQuery(undefined);
 
   // Mutations
   const createMutation = trpc.salesPipeline.create.useMutation({
@@ -245,7 +245,6 @@ export default function SalesPipeline() {
   const board = boardQuery.data;
   const forecast = forecastQuery.data;
   const stats = statsQuery.data;
-  const clients = clientsQuery.data || [];
 
   const sortedStages = board?.stages.sort(
     (a, b) => STAGE_ORDER.indexOf(a.id) - STAGE_ORDER.indexOf(b.id)
@@ -305,24 +304,7 @@ export default function SalesPipeline() {
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="client">Client *</Label>
-                    <Select
-                      value={formData.clientId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, clientId: value })
-                      }
-                    >
-                      <SelectTrigger id="client">
-                        <SelectValue placeholder="Select client" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.isArray(clients) && clients.map((c: any) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.companyName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <ClientSelector id="client" value={formData.clientId} onChange={(clientId) => setFormData({ ...formData, clientId })} required placeholder="Select client" />
                   </div>
 
                   <div>
@@ -653,4 +635,3 @@ export default function SalesPipeline() {
     </ModuleLayout>
   );
 }
-

@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { PhoneInput } from "@/components/PhoneInput";
+import { BankNameSelect } from "@/components/BankNameSelect";
 import { CountrySelect, CitySelect, IndustrySelect } from "@/components/LocationSelects";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc";
@@ -379,11 +380,10 @@ export function ClientForm({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label htmlFor="bankName">Bank Name</Label>
-          <Input
+          <BankNameSelect
             id="bankName"
             value={formData.bankName}
-            onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-            placeholder="Equity Bank"
+            onValueChange={(bankName) => setFormData({ ...formData, bankName })}
           />
         </div>
         <div className="space-y-2">

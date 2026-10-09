@@ -18,6 +18,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Users, Loader2, Trash2, Save, Upload, X, Plus, Shield } from "lucide-react";
 import { EmployeeAccountSection } from "@/components/EmployeeAccountSection";
+import { BankNameSelect } from "@/components/BankNameSelect";
 
 export default function EditEmployee() {
   const params = useParams<{ id: string }>();
@@ -241,7 +242,7 @@ export default function EditEmployee() {
           department: formData.department || undefined,
           position: formData.position || undefined,
           jobGroupId: formData.jobGroupId || undefined,
-          salary: formData.salary ? Math.round(parseFloat(formData.salary)) : undefined,
+          salary: formData.salary ? parseFloat(formData.salary) : undefined,
           employmentType: formData.employmentType || undefined,
           status: formData.status || undefined,
           nationalId: formData.nationalId || undefined,
@@ -284,7 +285,7 @@ export default function EditEmployee() {
         department: formData.department || undefined,
         position: formData.position || undefined,
         jobGroupId: formData.jobGroupId || undefined,
-        salary: formData.salary ? Math.round(parseFloat(formData.salary)) : undefined,
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
         employmentType: formData.employmentType || undefined,
         status: formData.status || undefined,
         nationalId: formData.nationalId || undefined,
@@ -763,11 +764,10 @@ export default function EditEmployee() {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="bankName">Bank Name</Label>
-                    <Input
+                    <BankNameSelect
                       id="bankName"
                       value={formData.bankName}
-                      onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-                      placeholder="Bank name"
+                      onValueChange={(bankName) => setFormData({ ...formData, bankName })}
                     />
                   </div>
                   <div className="space-y-2">

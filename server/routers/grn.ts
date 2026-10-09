@@ -70,6 +70,7 @@ export const grnRouter = router({
       value: z.number().positive(),
       status: z.enum(["accepted", "partial", "rejected", "pending"]).default("pending"),
       notes: z.string().optional(),
+      templateData: z.record(z.string(), z.unknown()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -88,6 +89,7 @@ export const grnRouter = router({
           value: Math.round(input.value * 100),
           status: input.status,
           notes: input.notes || null,
+          templateData: input.templateData || null,
           createdBy: ctx.user?.id || "",
         });
         await scheduleDocumentAutomation({ documentType: "grn", documentId: id, organizationId: ctx.user?.organizationId, createdBy: ctx.user?.id }).catch((error) => console.error("Failed to schedule GRN automation:", error));
@@ -110,6 +112,7 @@ export const grnRouter = router({
       value: z.number().positive().optional(),
       status: z.enum(["accepted", "partial", "rejected", "pending"]).optional(),
       notes: z.string().optional(),
+      templateData: z.record(z.string(), z.unknown()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -128,6 +131,7 @@ export const grnRouter = router({
         if (updates.value !== undefined) setObj.value = Math.round(updates.value * 100);
         if (updates.status !== undefined) setObj.status = updates.status;
         if (updates.notes !== undefined) setObj.notes = updates.notes;
+        if (updates.templateData !== undefined) setObj.templateData = updates.templateData;
 
         await db.update(grnRecords).set(setObj).where(eq(grnRecords.id, id));
         const updated = await db.select().from(grnRecords).where(eq(grnRecords.id, id));

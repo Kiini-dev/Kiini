@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nonSalesInflowCreateInput } from "./nonSalesInflows";
+import { nonSalesInflowCreateInput, requiresDonorTaxId } from "./nonSalesInflows";
 
 const donation = {
   inflowType: "donation" as const,
@@ -14,17 +14,15 @@ const donation = {
 };
 
 describe("non-sales inflow validation", () => {
-  it("converts the USD donation threshold using the stored organization-currency rate", () => {
+  it("compares donation amounts to USD 250 using the current organization-currency rate", () => {
     expect(nonSalesInflowCreateInput.safeParse(donation).success).toBe(true);
-    const aboveThreshold = nonSalesInflowCreateInput.safeParse({ ...donation, amountCents: 3_250_001 });
-    expect(aboveThreshold.success).toBe(false);
-    if (!aboveThreshold.success) expect(aboveThreshold.error.issues.some((issue) => issue.path.includes("donorTaxId"))).toBe(true);
+    expect(requiresDonorTaxId(3_250_000, 130)).toBe(false);
+    expect(requiresDonorTaxId(3_250_001, 130)).toBe(true);
   });
 
-  it("requires an auditable FX rate and donor identity for donations", () => {
+  it("allows the server to supply the authoritative exchange rate and requires donor identity", () => {
     const missingRate = nonSalesInflowCreateInput.safeParse({ ...donation, usdToOrganizationFxRate: undefined });
-    expect(missingRate.success).toBe(false);
-    if (!missingRate.success) expect(missingRate.error.issues.some((issue) => issue.path.includes("usdToOrganizationFxRate"))).toBe(true);
+    expect(missingRate.success).toBe(true);
 
     const missingName = nonSalesInflowCreateInput.safeParse({ ...donation, donorName: undefined });
     expect(missingName.success).toBe(false);

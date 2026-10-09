@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -255,25 +256,7 @@ export function RecurringInvoices() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Client Selection */}
               <div className="space-y-2">
-                <Label htmlFor="client">Client *</Label>
-                <Select
-                  value={formData.clientId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, clientId: value })
-                  }
-                  disabled={!!editingId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.isArray(clients) && clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.companyName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ClientSelector id="client" label="" value={formData.clientId} onChange={(clientId) => setFormData({ ...formData, clientId })} disabled={!!editingId} required placeholder="Select client" />
               </div>
 
               {/* Template Invoice Selection */}

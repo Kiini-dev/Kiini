@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { toast } from "sonner";
 import { DollarSign, ArrowLeft, Loader2, Trash2, Download, Save } from "lucide-react";
 import { APP_TITLE } from "@/const";
@@ -370,24 +371,7 @@ export default function EditPayment() {
 
                 <div className="space-y-2">
                   <Label htmlFor="chartOfAccountId">Chart of Account</Label>
-                  <Select
-                    value={formData.chartOfAccountId}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, chartOfAccountId: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select account (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {Array.isArray(chartOfAccounts) && chartOfAccounts.map((account: any) => (
-                        <SelectItem key={account.id} value={account.id.toString()}>
-                          {account.accountCode} - {account.accountName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ChartOfAccountsSelector accounts={chartOfAccounts} value={formData.chartOfAccountId} onChange={(chartOfAccountId) => setFormData({ ...formData, chartOfAccountId })} placeholder="Select account (optional)" noneLabel="None" />
                 </div>
               </div>
 
@@ -480,4 +464,3 @@ export default function EditPayment() {
     </ModuleLayout>
   );
 }
-

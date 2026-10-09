@@ -5,6 +5,7 @@
  */
 
 import { router, protectedProcedure, createFeatureRestrictedProcedure } from "../_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getDb } from "../db";
 import {
@@ -401,19 +402,27 @@ export const documentManagementRouter = router({
       .input(z.object({ clientId: z.string().optional() }).optional())
       .query(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) return [];
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
         try {
           const clientId = ctx.user?.role === "client"
             ? (ctx.user as any)?.clientId
             : input?.clientId || (ctx.user as any)?.clientId;
           if (!clientId) return [];
-          const organizationId = ctx.user?.organizationId || null;
-          const clientScope = and(
-            eq(clients.id, clientId),
-            organizationId ? eq(clients.organizationId, organizationId) : isNull(clients.organizationId),
-          );
-          const clientRows = await db.select({ id: clients.id }).from(clients).where(clientScope).limit(1);
+          const clientScope = [eq(clients.id, clientId)];
+          if (ctx.user?.organizationId) {
+            clientScope.push(eq(clients.organizationId, ctx.user.organizationId));
+          } else if (ctx.user?.role !== "client") {
+            clientScope.push(isNull(clients.organizationId));
+          }
+          const clientRows = await db.select({
+            id: clients.id,
+            organizationId: clients.organizationId,
+          }).from(clients).where(and(...clientScope)).limit(1);
           if (!clientRows.length) return [];
+          const organizationId = clientRows[0].organizationId || null;
+          if (ctx.user?.role === "client" && ctx.user.organizationId && ctx.user.organizationId !== organizationId) {
+            return [];
+          }
           const invoiceScope = and(
             eq(invoices.clientId, clientId),
             organizationId ? eq(invoices.organizationId, organizationId) : isNull(invoices.organizationId),
@@ -447,7 +456,7 @@ export const documentManagementRouter = router({
           return tagged;
         } catch (error) {
           console.error('Get client documents error:', error);
-          return [];
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Could not load client documents" });
         }
       }),
 

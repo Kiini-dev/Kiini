@@ -21,6 +21,7 @@ interface ResetToDefaultButtonProps {
   label?: string;
   variant?: 'default' | 'outline' | 'ghost' | 'secondary' | 'destructive';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  onReset?: () => Promise<void>;
   onSuccess?: () => void;
 }
 
@@ -30,6 +31,7 @@ export function ResetToDefaultButton({
   label = 'Reset to Default',
   variant = 'outline',
   size = 'sm',
+  onReset,
   onSuccess,
 }: ResetToDefaultButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,7 +43,9 @@ export function ResetToDefaultButton({
   const handleReset = async () => {
     setIsLoading(true);
     try {
-      if (settingKey) {
+      if (onReset) {
+        await onReset();
+      } else if (settingKey) {
         await mutateAsync(resetSettingMutation, { key: settingKey });
         toast.success(`Setting reset to default`);
       } else if (category) {
@@ -75,7 +79,9 @@ export function ResetToDefaultButton({
           <AlertDialogHeader>
             <AlertDialogTitle>Reset to Default?</AlertDialogTitle>
             <AlertDialogDescription>
-              {settingKey
+              {onReset
+                ? "This will restore this page's settings to their default values. This action cannot be undone."
+                : settingKey
                 ? `This will reset the setting "${settingKey}" to its default value. This action cannot be undone.`
                 : `This will reset all settings in the "${category}" category to their default values. This action cannot be undone.`}
             </AlertDialogDescription>
@@ -95,4 +101,3 @@ export function ResetToDefaultButton({
     </>
   );
 }
-

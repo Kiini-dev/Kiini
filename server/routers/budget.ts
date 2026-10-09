@@ -6,12 +6,14 @@ import { getDb } from "../db";
 const readProcedure = protectedProcedure;
 import { projects, departments, expenses, invoices } from "../../drizzle/schema";
 import { projectBudgets, departmentBudgets, ledgerBudgets, budgetAllocations } from "../../drizzle/schema-extended";
-import { eq, desc, and, gte, lte, sum } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sum, isNull } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import * as db from "../db";
 
 // Feature-based procedures
 const writeProcedure = createFeatureRestrictedProcedure("budget:edit");
+const workspaceOrganizationCondition = (column: any, organizationId?: string | null) =>
+  organizationId ? eq(column, organizationId) : isNull(column);
 
 export const budgetRouter = router({
   // ========== PROJECT BUDGETS ==========
@@ -31,7 +33,7 @@ export const budgetRouter = router({
 
         const orgId = ctx.user.organizationId;
         const conditions: any[] = [];
-        if (orgId) conditions.push(eq(projectBudgets.organizationId, orgId));
+        conditions.push(workspaceOrganizationCondition(projectBudgets.organizationId, orgId));
         if (input?.projectId) conditions.push(eq(projectBudgets.projectId, input.projectId));
         if (input?.status) conditions.push(eq(projectBudgets.budgetStatus, input.status));
 
@@ -52,7 +54,10 @@ export const budgetRouter = router({
         if (!database) return null;
 
         const orgId = ctx.user.organizationId;
-        const where = orgId ? and(eq(projectBudgets.id, input), eq(projectBudgets.organizationId, orgId)) : eq(projectBudgets.id, input);
+        const where = and(
+          eq(projectBudgets.id, input),
+          workspaceOrganizationCondition(projectBudgets.organizationId, orgId),
+        );
         const result = await database
           .select()
           .from(projectBudgets)
@@ -74,6 +79,15 @@ export const budgetRouter = router({
       .mutation(async ({ input, ctx }) => {
         const database = await getDb();
         if (!database) throw new Error("Database not available");
+
+        const project = await database.select({ id: projects.id })
+          .from(projects)
+          .where(and(
+            eq(projects.id, input.projectId),
+            workspaceOrganizationCondition(projects.organizationId, ctx.user.organizationId),
+          ))
+          .limit(1);
+        if (!project.length) throw new Error("Project not found in this workspace");
 
         const id = uuidv4();
         const budgetedCents = Math.round(input.budgetedAmount * 100);
@@ -125,14 +139,13 @@ export const budgetRouter = router({
         const budget = await database
           .select()
           .from(projectBudgets)
-          .where(eq(projectBudgets.id, input.id))
+          .where(and(
+            eq(projectBudgets.id, input.id),
+            workspaceOrganizationCondition(projectBudgets.organizationId, ctx.user.organizationId),
+          ))
           .limit(1);
 
         if (!budget[0]) throw new Error("Budget not found");
-
-        // Verify org ownership
-        const orgId = ctx.user.organizationId;
-        if (orgId && budget[0].organizationId !== orgId) throw new Error("Budget not found");
 
         const updates: any = { updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 19)};
         let budgeted = budget[0].budgetedAmount;
@@ -160,7 +173,10 @@ export const budgetRouter = router({
         updates.budgetStatus = status;
 
         try {
-          await database.update(projectBudgets).set(updates).where(eq(projectBudgets.id, input.id));
+          await database.update(projectBudgets).set(updates).where(and(
+            eq(projectBudgets.id, input.id),
+            workspaceOrganizationCondition(projectBudgets.organizationId, ctx.user.organizationId),
+          ));
 
           await db.logActivity({
             userId: ctx.user.id,
@@ -187,10 +203,11 @@ export const budgetRouter = router({
         try {
           // Verify org ownership
           const orgId = ctx.user.organizationId;
-          if (orgId) {
-            const existing = await database.select().from(projectBudgets).where(eq(projectBudgets.id, input)).limit(1);
-            if (!existing.length || existing[0].organizationId !== orgId) throw new Error("Budget not found");
-          }
+          const existing = await database.select().from(projectBudgets).where(and(
+            eq(projectBudgets.id, input),
+            workspaceOrganizationCondition(projectBudgets.organizationId, orgId),
+          )).limit(1);
+          if (!existing.length) throw new Error("Budget not found");
 
           await database.delete(projectBudgets).where(eq(projectBudgets.id, input));
 
@@ -227,7 +244,7 @@ export const budgetRouter = router({
         const orgId = ctx.user.organizationId;
         const conditions: any[] = [];
         conditions.push(eq(departmentBudgets.year, input?.year || new Date().getFullYear()));
-        if (orgId) conditions.push(eq(departmentBudgets.organizationId, orgId));
+        conditions.push(workspaceOrganizationCondition(departmentBudgets.organizationId, orgId));
         if (input?.departmentId) conditions.push(eq(departmentBudgets.departmentId, input.departmentId));
         if (input?.status) conditions.push(eq(departmentBudgets.budgetStatus, input.status));
 
@@ -244,6 +261,7 @@ export const budgetRouter = router({
         departmentId: z.string(),
         year: z.number(),
         budgetedAmount: z.number(),
+        budgetCode: z.string().trim().min(1).max(100).optional(),
         category: z.string().optional(),
         notes: z.string().optional(),
       }))
@@ -251,15 +269,26 @@ export const budgetRouter = router({
         const database = await getDb();
         if (!database) throw new Error("Database not available");
 
+        const [department] = await database.select({ id: departments.id })
+          .from(departments)
+          .where(and(
+            eq(departments.id, input.departmentId),
+            workspaceOrganizationCondition(departments.organizationId, ctx.user.organizationId),
+          ))
+          .limit(1);
+        if (!department) throw new Error("Department not found in this workspace");
+
         const id = uuidv4();
         const budgetedCents = Math.round(input.budgetedAmount * 100);
 
         try {
           await database.insert(departmentBudgets).values({
             id,
+            organizationId: ctx.user.organizationId ?? null,
             departmentId: input.departmentId,
             year: input.year,
             budgetedAmount: budgetedCents,
+            budgetCode: input.budgetCode,
             spent: 0,
             remaining: budgetedCents,
             budgetStatus: "under",
@@ -302,7 +331,7 @@ export const budgetRouter = router({
             eq(departmentBudgets.departmentId, input.departmentId),
             eq(departmentBudgets.year, input.year),
           ];
-          if (orgId) budgetConditions.push(eq(departmentBudgets.organizationId, orgId));
+          budgetConditions.push(workspaceOrganizationCondition(departmentBudgets.organizationId, orgId));
 
           const [budget] = await database.select().from(departmentBudgets)
             .where(and(...budgetConditions)).limit(1);
@@ -318,22 +347,33 @@ export const budgetRouter = router({
             `SELECT COALESCE(SUM(e.amount), 0) as totalSpent
              FROM expenses e
              INNER JOIN employees emp ON e.createdBy = emp.userId
-             WHERE emp.department = (SELECT name FROM departments WHERE id = ?)
+               AND emp.organizationId ${orgId ? '= ?' : 'IS NULL'}
+             WHERE emp.department = (
+               SELECT name FROM departments
+               WHERE id = ? ${orgId ? 'AND organizationId = ?' : 'AND organizationId IS NULL'}
+             )
              AND e.status = 'approved'
              AND e.expenseDate BETWEEN ? AND ?
-             ${orgId ? 'AND e.organizationId = ?' : ''}`,
-            orgId ? [input.departmentId, yearStart, yearEnd, orgId] : [input.departmentId, yearStart, yearEnd]
+             ${orgId ? 'AND e.organizationId = ?' : 'AND e.organizationId IS NULL'}`,
+            orgId
+              ? [orgId, input.departmentId, orgId, yearStart, yearEnd, orgId]
+              : [input.departmentId, yearStart, yearEnd]
           );
 
           const totalSpent = Number(result?.[0]?.totalSpent || 0);
+          const budgetedAmount = Number(budget.budgetedAmount || 0);
 
           await database.update(departmentBudgets).set({
             spent: totalSpent,
-            budgetStatus: totalSpent > (budget as any).amount ? 'over' : 'under',
+            remaining: budgetedAmount - totalSpent,
+            budgetStatus: totalSpent > budgetedAmount ? "over" : totalSpent === budgetedAmount ? "at" : "under",
             updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 19),
-          } as any).where(eq(departmentBudgets.id, (budget as any).id));
+          } as any).where(and(
+            eq(departmentBudgets.id, budget.id),
+            workspaceOrganizationCondition(departmentBudgets.organizationId, orgId),
+          ));
 
-          return { success: true, spent: totalSpent, budgetId: (budget as any).id };
+          return { success: true, spent: totalSpent, budgetId: budget.id };
         } catch (error) {
           console.error("Error updating department budget spent:", error);
           throw new Error("Failed to update department budget spent amount");
@@ -355,12 +395,12 @@ export const budgetRouter = router({
         const orgId = ctx.user.organizationId;
 
         try {
-          const projectBudgetsData = orgId
-            ? await database.select().from(projectBudgets).where(eq(projectBudgets.organizationId, orgId))
-            : await database.select().from(projectBudgets);
-          const deptBudgetData = orgId
-            ? await database.select().from(departmentBudgets).where(and(eq(departmentBudgets.year, year), eq(departmentBudgets.organizationId, orgId)))
-            : await database.select().from(departmentBudgets).where(eq(departmentBudgets.year, year));
+          const projectBudgetsData = await database.select().from(projectBudgets)
+            .where(workspaceOrganizationCondition(projectBudgets.organizationId, orgId));
+          const deptBudgetData = await database.select().from(departmentBudgets).where(and(
+            eq(departmentBudgets.year, year),
+            workspaceOrganizationCondition(departmentBudgets.organizationId, orgId),
+          ));
 
           const totalProjectBudget = projectBudgetsData.reduce((sum, b) => sum + (b.budgetedAmount || 0), 0);
           const totalProjectSpent = projectBudgetsData.reduce((sum, b) => sum + (b.spent || 0), 0);
@@ -408,14 +448,16 @@ export const budgetRouter = router({
         const orgId = ctx.user.organizationId;
 
         try {
-          const deptBudgets = orgId
-            ? await database.select().from(departmentBudgets).where(and(eq(departmentBudgets.year, year), eq(departmentBudgets.organizationId, orgId)))
-            : await database.select().from(departmentBudgets).where(eq(departmentBudgets.year, year));
+          const deptBudgets = await database.select().from(departmentBudgets).where(and(
+            eq(departmentBudgets.year, year),
+            workspaceOrganizationCondition(departmentBudgets.organizationId, orgId),
+          ));
 
           return deptBudgets.map(budget => ({
             id: budget.id,
             departmentId: budget.departmentId,
             category: budget.category,
+            budgetCode: budget.budgetCode,
             budgeted: budget.budgetedAmount,
             spent: budget.spent,
             remaining: budget.remaining,
@@ -436,9 +478,8 @@ export const budgetRouter = router({
 
       try {
         const orgId = ctx.user.organizationId;
-        const budgets = orgId
-          ? await database.select().from(projectBudgets).where(eq(projectBudgets.organizationId, orgId))
-          : await database.select().from(projectBudgets);
+        const budgets = await database.select().from(projectBudgets)
+          .where(workspaceOrganizationCondition(projectBudgets.organizationId, orgId));
 
         return budgets.map(budget => ({
           id: budget.id,
@@ -464,9 +505,10 @@ export const budgetRouter = router({
 
       try {
         const orgId = ctx.user.organizationId;
-        const overBudget = orgId
-          ? await database.select().from(departmentBudgets).where(and(eq(departmentBudgets.budgetStatus, "over"), eq(departmentBudgets.organizationId, orgId)))
-          : await database.select().from(departmentBudgets).where(eq(departmentBudgets.budgetStatus, "over"));
+        const overBudget = await database.select().from(departmentBudgets).where(and(
+          eq(departmentBudgets.budgetStatus, "over"),
+          workspaceOrganizationCondition(departmentBudgets.organizationId, orgId),
+        ));
 
         return overBudget.map(budget => ({
           id: budget.id,

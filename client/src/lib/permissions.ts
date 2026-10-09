@@ -372,8 +372,8 @@ export const MODULE_ACCESS: Record<string, UserRole[]> = {
   "hr-automation": ["super_admin", "admin", "hr"],
 
   // Finance modules
-  invoices: ["super_admin", "admin", "accountant", "user", "client", "sales_manager"],
-  payments: ["super_admin", "admin", "accountant", "user", "client"],
+  invoices: ["super_admin", "admin", "accountant", "user", "sales_manager"],
+  payments: ["super_admin", "admin", "accountant", "user"],
   "payment-reports": ["super_admin", "admin", "accountant", "project_manager"],
   "overdue-payments": ["super_admin", "admin", "accountant", "user"],
   expenses: ["super_admin", "admin", "accountant", "project_manager"],
@@ -389,7 +389,7 @@ export const MODULE_ACCESS: Record<string, UserRole[]> = {
 
   // Sales and Projects modules
   clients: ["super_admin", "admin", "user", "project_manager", "sales_manager"],
-  projects: ["super_admin", "admin", "user", "client", "project_manager"],
+  projects: ["super_admin", "admin", "user", "project_manager"],
   opportunities: ["super_admin", "admin", "user", "project_manager", "sales_manager"],
   leads: ["super_admin", "admin", "user", "project_manager", "sales_manager"],
   estimates: ["super_admin", "admin", "user", "project_manager", "sales_manager"],
@@ -1455,6 +1455,7 @@ export const ROUTE_ROLES: Record<string, UserRole[]> = {
   "crm/staff": ["super_admin", "admin", "staff"],
   "crm/ict": ["super_admin", "admin", "ict_manager"],
   "crm/client-portal": ["client"],
+  "tickets": ["super_admin", "admin", "accountant", "staff", "project_manager", "hr", "procurement_manager", "ict_manager", "sales_manager", "user"],
   // Admin & Enterprise
   "admin/cron-jobs": ["super_admin", "admin", "ict_manager"],
   "admin/email-templates": ["super_admin", "admin", "ict_manager"],
@@ -1484,10 +1485,10 @@ export const ROUTE_ROLES: Record<string, UserRole[]> = {
   "hr-automation": ["super_admin", "admin", "hr"],
   // Finance / Accounting
   "accounting": ["super_admin", "admin", "accountant", "project_manager", "sales_manager", "procurement_manager"],
-  "invoices": ["super_admin", "admin", "accountant", "user", "client", "sales_manager"],
+  "invoices": ["super_admin", "admin", "accountant", "user", "sales_manager"],
   "recurring-invoices": ["super_admin", "admin", "accountant"],
   "recurring-expenses": ["super_admin", "admin", "accountant"],
-  "payments": ["super_admin", "admin", "accountant", "user", "client"],
+  "payments": ["super_admin", "admin", "accountant", "user"],
   "payment-plans": ["super_admin", "admin", "accountant"],
   "expenses": ["super_admin", "admin", "accountant", "project_manager"],
   "budgets": ["super_admin", "admin", "accountant", "project_manager"],
@@ -1508,15 +1509,15 @@ export const ROUTE_ROLES: Record<string, UserRole[]> = {
   "sales-pipeline": ["super_admin", "admin", "project_manager", "sales_manager"],
   "clients": ["super_admin", "admin", "user", "project_manager", "sales_manager"],
   "contacts": ["super_admin", "admin", "user", "project_manager", "sales_manager"],
-  "projects": ["super_admin", "admin", "user", "client", "project_manager"],
+  "projects": ["super_admin", "admin", "user", "project_manager"],
   "project-milestones": ["super_admin", "admin", "project_manager"],
   "time-tracking": ["super_admin", "admin", "project_manager", "staff"],
   "estimates": ["super_admin", "admin", "user", "project_manager", "sales_manager"],
   "opportunities": ["super_admin", "admin", "user", "project_manager", "sales_manager"],
   "leads": ["super_admin", "admin", "user", "project_manager", "sales_manager"],
-  "proposals": ["super_admin", "admin", "client", "project_manager", "sales_manager"],
+  "proposals": ["super_admin", "admin", "project_manager", "sales_manager"],
   "proposals/templates": ["super_admin", "admin", "project_manager", "sales_manager"],
-  "documents": ["super_admin", "admin", "client"],
+  "documents": ["super_admin", "admin"],
   "files": ["super_admin", "admin", "staff", "project_manager", "hr", "accountant", "user"],
   "knowledge-base": ["super_admin", "admin", "client", "staff", "project_manager", "sales_manager"],
   "project-analytics": ["super_admin", "admin", "project_manager"],
@@ -1529,10 +1530,10 @@ export const ROUTE_ROLES: Record<string, UserRole[]> = {
   "quotations": ["super_admin", "admin", "procurement_manager", "accountant"],
   "delivery-notes": ["super_admin", "admin", "procurement_manager", "accountant", "staff"],
   "grn": ["super_admin", "admin", "procurement_manager", "accountant", "staff"],
-  "contracts": ["super_admin", "admin", "client", "procurement_manager", "accountant"],
+  "contracts": ["super_admin", "admin", "procurement_manager", "accountant"],
   "contracts/templates": ["super_admin", "admin", "procurement_manager", "accountant"],
   "assets": ["super_admin", "admin", "ict_manager", "procurement_manager"],
-  "warranty": ["super_admin", "admin", "ict_manager", "procurement_manager", "client"],
+  "warranty": ["super_admin", "admin", "ict_manager", "procurement_manager"],
   "work-orders": ["super_admin", "admin", "procurement_manager"],
   "inventory": ["super_admin", "admin", "accountant", "staff", "project_manager"],
   "create-imprest": ["super_admin", "admin", "staff", "procurement_manager"],
@@ -1612,13 +1613,13 @@ const AUTHENTICATED_ANY = [
   "rbd", "account", "profile", "security", "mfa",
   "change-password", "change-password-enhanced",
   "notifications", "messages", "activity", "search",
-  "tickets", "approvals", "test-pdf",
+  "approvals", "test-pdf",
 ];
 
 export function canAccessRoute(userRole: UserRole | undefined, route: string): boolean {
   if (!userRole) return false;
 
-  const path = route.replace(/^\//, ""); // strip leading /
+  const path = route.split(/[?#]/, 1)[0].replace(/^\/+|\/+$/g, "");
   if (!path) return true; // root
 
   // Check specific route prefixes (longest match first)

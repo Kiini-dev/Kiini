@@ -77,15 +77,6 @@ export default function AssetManagement() {
     onError: (err: any) => toast.error(err.message),
   });
 
-  if (permissionLoading) return <div className="flex items-center justify-center h-screen"><Spinner/></div>;
-  if (!allowed) return null;
-
-  const filteredAssets = assets.filter((a: any) =>
-    (a.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (a.category || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const pagedAssets = paginate(filteredAssets);
-
   const openEdit = useCallback((a: any) => {
     setEditingAsset(a);
     setForm({ name: a.name || "", category: a.category || "", location: a.location || "", value: ((a.value || 0) / 100).toString(), assignedTo: a.assignedTo || "", supplier: a.supplier || "", serialNumber: a.serialNumber || "", purchaseDate: a.purchaseDate || "", status: a.status || "active", notes: a.notes || "" });
@@ -108,6 +99,15 @@ export default function AssetManagement() {
       }
     }
   }, [_search, openEdit, rawData, setLocation]);
+
+  if (permissionLoading) return <div className="flex items-center justify-center h-screen"><Spinner/></div>;
+  if (!allowed) return null;
+
+  const filteredAssets = assets.filter((a: any) =>
+    (a.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (a.category || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const pagedAssets = paginate(filteredAssets);
 
   const handleSubmit = (isEdit: boolean) => {
     const payload = { name: form.name, category: form.category, location: form.location, value: parseFloat(form.value) || 0, assignedTo: form.assignedTo || undefined, supplier: form.supplier || undefined, serialNumber: form.serialNumber || undefined, purchaseDate: form.purchaseDate || undefined, status: form.status, notes: form.notes || undefined };

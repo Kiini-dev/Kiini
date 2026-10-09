@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { useRequireFeature } from "@/lib/permissions";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
@@ -167,29 +168,15 @@ export default function CreateServiceInvoice() {
               </div>
 
               <div>
-                <Label htmlFor="clientId">Client</Label>
-                <Select
-                  value={formData.clientId}
-                  onValueChange={(value) => {
-                    const selected = clientsData.find((client: any) => client.id === value);
-                    setFormData({
-                      ...formData,
-                      clientId: value,
-                      clientName: selected ? getClientLabel(selected) : formData.clientName,
-                    });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientsData.map((client: any) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {getClientLabel(client)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="clientSelector">Select a client</Label>
+                <ClientSelector id="clientSelector" value={formData.clientId} onChange={(value) => {
+                  const selected = clientsData.find((client: any) => client.id === value);
+                  setFormData({
+                    ...formData,
+                    clientId: value,
+                    clientName: selected ? getClientLabel(selected) : formData.clientName,
+                  });
+                }} label="" placeholder="Select client" />
                 <Input
                   id="clientId"
                   value={formData.clientId}

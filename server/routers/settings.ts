@@ -7,6 +7,7 @@ import { settings, organizationSettings, systemSettings, invoices, expenses, pay
 import { eq, and } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { TRPCError } from "@trpc/server";
+import { sanitizeDocumentLetterhead } from "../utils/document-branding";
 
 const settingsReadProcedure = createFeatureRestrictedProcedure("admin:settings");
 const settingsWriteProcedure = createFeatureRestrictedProcedure("admin:settings");
@@ -61,7 +62,11 @@ async function upsertSettingForScope(
     if (existing.length > 0) {
       await database.update(organizationSettings)
         .set({ value, updatedBy: ctx.user.id })
-        .where(and(eq(organizationSettings.id, existing[0].id), eq(organizationSettings.organizationId, organizationId)));
+        .where(and(
+          eq(organizationSettings.organizationId, organizationId),
+          eq(organizationSettings.category, category),
+          eq(organizationSettings.key, key),
+        ));
     } else {
       await database.insert(organizationSettings).values({
         id: uuidv4(),
@@ -82,7 +87,7 @@ async function upsertSettingForScope(
   if (existing.length > 0) {
     await database.update(settings)
       .set({ value, updatedBy: ctx.user.id })
-      .where(eq(settings.id, existing[0].id));
+      .where(and(eq(settings.category, category), eq(settings.key, key)));
   } else {
     await database.insert(settings).values({
       id: uuidv4(),
@@ -866,6 +871,23 @@ export const settingsRouter = router({
       if (input.category === "maintenance" || input.category === "tweak_settings") {
         invalidateMaintenanceCache();
       }
+      return { success: true };
+    }),
+
+  updateDocumentBranding: settingsWriteProcedure
+    .input(z.object({
+      letterheadHtml: z.string().max(500_000),
+      letterheadImage: z.string().max(3_000_000),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const database = await getDb();
+      if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      if (input.letterheadImage && !/^data:image\/(?:png|jpe?g|webp);base64,[a-z\d+/]+=*$/i.test(input.letterheadImage)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Letterhead image must be a PNG, JPEG, or WebP image" });
+      }
+      const letterheadHtml = input.letterheadHtml ? sanitizeDocumentLetterhead(input.letterheadHtml) : "";
+      await upsertSettingForScope(database, ctx, "document_branding", "letterheadHtml", letterheadHtml);
+      await upsertSettingForScope(database, ctx, "document_branding", "letterheadImage", input.letterheadImage);
       return { success: true };
     }),
 });

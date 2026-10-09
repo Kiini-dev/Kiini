@@ -10,6 +10,80 @@ const readProcedure = createFeatureRestrictedProcedure("accounting:read");
 const createProcedure = createFeatureRestrictedProcedure("accounting:create");
 const reverseProcedure = createFeatureRestrictedProcedure("accounting:edit");
 
+const FX_RATE_CACHE_TTL_MS = 60 * 60 * 1000;
+const usdFxRateCache = new Map<string, { rate: number; updatedAt: string; cachedAt: number }>();
+
+async function getCurrentUsdToCurrencyRate(currency: string) {
+  const targetCurrency = currency.toUpperCase();
+  if (targetCurrency === "USD") {
+    return { rate: 1, updatedAt: new Date().toISOString() };
+  }
+  const cached = usdFxRateCache.get(targetCurrency);
+  if (cached && Date.now() - cached.cachedAt < FX_RATE_CACHE_TTL_MS) {
+    return { rate: cached.rate, updatedAt: cached.updatedAt };
+  }
+
+  let response: Response;
+  try {
+    response = await fetch("https://open.er-api.com/v6/latest/USD", {
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch (error) {
+    console.error("[NON_SALES_INFLOWS] Exchange-rate request failed:", error);
+    throw new TRPCError({
+      code: "SERVICE_UNAVAILABLE",
+      message: "The current USD exchange rate is unavailable. Try again shortly.",
+    });
+  }
+  if (!response.ok) {
+    throw new TRPCError({
+      code: "SERVICE_UNAVAILABLE",
+      message: "The exchange-rate service could not provide a current USD rate.",
+    });
+  }
+
+  const data = await response.json() as {
+    result?: string;
+    time_last_update_utc?: string;
+    rates?: Record<string, number>;
+  };
+  const rate = Number(data.rates?.[targetCurrency]);
+  if (data.result !== "success" || !Number.isFinite(rate) || rate <= 0) {
+    throw new TRPCError({
+      code: "SERVICE_UNAVAILABLE",
+      message: `A current USD-to-${targetCurrency} exchange rate is unavailable.`,
+    });
+  }
+
+  const updatedAt = data.time_last_update_utc
+    ? new Date(data.time_last_update_utc).toISOString()
+    : new Date().toISOString();
+  usdFxRateCache.set(targetCurrency, { rate, updatedAt, cachedAt: Date.now() });
+  return { rate, updatedAt };
+}
+
+export function requiresDonorTaxId(amountCents: number, usdToOrganizationFxRate: number) {
+  return amountCents > Math.round(25_000 * usdToOrganizationFxRate);
+}
+
+async function getExchangeRateConfiguration(currency: string) {
+  try {
+    const exchangeRate = await getCurrentUsdToCurrencyRate(currency);
+    return {
+      usdToOrganizationFxRate: exchangeRate.rate,
+      exchangeRateUpdatedAt: exchangeRate.updatedAt,
+      exchangeRateError: null,
+    };
+  } catch (error) {
+    console.error("[NON_SALES_INFLOWS] Could not load exchange rate for configuration:", error);
+    return {
+      usdToOrganizationFxRate: null,
+      exchangeRateUpdatedAt: null,
+      exchangeRateError: "The current USD exchange rate is unavailable.",
+    };
+  }
+}
+
 export const nonSalesInflowCreateInput = z.object({
   inflowType: z.enum(["donation", "other_income", "equity_injection", "deferred_loan"]),
   taxStatus: z.enum(["taxable", "tax_exempt", "equity_injection", "deferred_loan"]),
@@ -36,11 +110,6 @@ export const nonSalesInflowCreateInput = z.object({
   if (input.inflowType === "donation") {
     if (input.taxStatus !== "taxable" && input.taxStatus !== "tax_exempt") {
       context.addIssue({ code: "custom", path: ["taxStatus"], message: "Donations must be taxable or tax exempt." });
-    }
-    if (!input.usdToOrganizationFxRate) {
-      context.addIssue({ code: "custom", path: ["usdToOrganizationFxRate"], message: "Enter the USD-to-organization-currency rate used for the donation threshold check." });
-    } else if (input.amountCents > Math.round(25_000 * input.usdToOrganizationFxRate) && !input.donorTaxId) {
-      context.addIssue({ code: "custom", path: ["donorTaxId"], message: "A donor tax ID is required for donations exceeding USD 250 in organization currency." });
     }
     if (!input.donorName) context.addIssue({ code: "custom", path: ["donorName"], message: "Donor name is required." });
   }
@@ -147,7 +216,13 @@ async function postJournal(
 export const nonSalesInflowsRouter = router({
   getConfiguration: readProcedure.query(async ({ ctx }) => {
     const organizationId = organizationIdFor(ctx);
-    if (!organizationId) return { currency: "KES", donationTaxIdThresholdUsd: 250 };
+    if (!organizationId) {
+      return {
+        currency: "KES",
+        donationTaxIdThresholdUsd: 250,
+        ...await getExchangeRateConfiguration("KES"),
+      };
+    }
     const connection = await getDbConnection();
     try {
       const [rows] = await connection.execute<any[]>(
@@ -155,7 +230,12 @@ export const nonSalesInflowsRouter = router({
         [organizationId],
       );
       if (!rows[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found or inactive." });
-      return { currency: String(rows[0].currency || "KES").toUpperCase(), donationTaxIdThresholdUsd: 250 };
+      const currency = String(rows[0].currency || "KES").toUpperCase();
+      return {
+        currency,
+        donationTaxIdThresholdUsd: 250,
+        ...await getExchangeRateConfiguration(currency),
+      };
     } finally {
       connection.release();
     }
@@ -253,8 +333,8 @@ export const nonSalesInflowsRouter = router({
       const organizationId = organizationIdFor(ctx);
       const connection = await getDbConnection();
       const id = uuidv4();
+      let transactionStarted = false;
       try {
-        await connection.beginTransaction();
         const [organizations] = await connection.execute<any[]>(
           "SELECT currency FROM organizations WHERE id=? AND isActive=1 AND isArchived=0 LIMIT 1",
           [organizationId],
@@ -262,6 +342,21 @@ export const nonSalesInflowsRouter = router({
         const organization = organizations[0];
         if (organizationId && !organization) throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found or inactive." });
         const currency = String(organization?.currency || "KES").toUpperCase();
+        const currentUsdFxRate = input.inflowType === "donation"
+          ? (await getCurrentUsdToCurrencyRate(currency)).rate
+          : null;
+        if (
+          currentUsdFxRate !== null &&
+          requiresDonorTaxId(input.amountCents, currentUsdFxRate) &&
+          !input.donorTaxId
+        ) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `A donor tax ID is required for donations exceeding USD 250 (${new Intl.NumberFormat("en", { style: "currency", currency }).format(250 * currentUsdFxRate)}).`,
+          });
+        }
+        await connection.beginTransaction();
+        transactionStarted = true;
         const [accountRows] = await connection.execute<any[]>(
           "SELECT id, accountType FROM accounts WHERE organizationId <=> ? AND isActive=1 AND id IN (?, ?) FOR UPDATE",
           [organizationId, input.cashAccountId, input.categoryAccountId],
@@ -337,15 +432,16 @@ export const nonSalesInflowsRouter = router({
            VALUES (?, ?, ?, ?, 'posted', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
           [
             id, organizationId, referenceNumber, input.inflowType, input.description, input.amountCents,
-            currency, input.usdToOrganizationFxRate ?? null, input.taxStatus, input.cashAccountId,
+            currency, currentUsdFxRate ?? null, input.taxStatus, input.cashAccountId,
             input.categoryAccountId, input.bankAccountId ?? null, input.sourceBankTransactionId ?? null,
             JSON.stringify(complianceMetadata), toSqlDateTime(input.receivedAt), journalEntryId, ctx.user.id,
           ],
         );
         await connection.commit();
+        transactionStarted = false;
         return { id, referenceNumber, journalEntryId, currency, amountCents: input.amountCents };
       } catch (error) {
-        await connection.rollback();
+        if (transactionStarted) await connection.rollback();
         throw error;
       } finally {
         connection.release();

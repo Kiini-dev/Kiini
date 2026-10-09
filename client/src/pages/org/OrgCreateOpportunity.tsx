@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { toast } from "sonner";
 import { ArrowLeft, TrendingUp, Plus, Save, Users, DollarSign, Calendar, Target, Briefcase } from "lucide-react";
 import { useCurrencySettings } from "@/lib/currency";
@@ -71,10 +72,8 @@ export default function CreateOpportunity() {
     internalNotes: "",
   });
 
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
   const { data: usersData = [] } = trpc.users.list.useQuery({});
   const teamMembers = Array.isArray(usersData) ? usersData : (usersData as any)?.users ?? [];
-  const clientsArr = Array.isArray(clients) ? clients : (clients as any)?.items ?? [];
 
   const createMutation = trpc.opportunities.create.useMutation({
     onSuccess: () => {
@@ -147,19 +146,7 @@ export default function CreateOpportunity() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Client <span className="text-destructive">*</span></Label>
-                <Select value={formData.clientId} onValueChange={(v) => setFormData({ ...formData, clientId: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a client" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 overflow-y-auto">
-                    {clientsArr.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.companyName || c.contactPerson}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ClientSelector value={formData.clientId} onChange={(clientId) => setFormData({ ...formData, clientId })} required />
               </div>
 
               <div className="space-y-2">
@@ -441,5 +428,3 @@ export default function CreateOpportunity() {
     </ModuleLayout>
   );
 }
-
-

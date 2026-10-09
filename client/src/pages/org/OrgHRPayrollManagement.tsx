@@ -79,7 +79,11 @@ export default function HRPayrollManagement() {
       result.errors.slice(0, 3).forEach((message) => toast.error(message));
       if (result.errors.length > 3) toast.error(`${result.errors.length - 3} additional payroll errors`);
       if (result.processed > 0) {
-        toast.success(`Payroll processed for ${result.processed} employees; ${result.skipped} skipped`);
+        if (result.errors.length > 0) {
+          toast.error(`Payroll processed for ${result.processed} employees, but ${result.errors.length} payroll issue${result.errors.length === 1 ? "" : "s"} require attention`);
+        } else {
+          toast.success(`Payroll processed for ${result.processed} employees; ${result.skipped} skipped`);
+        }
       } else if (result.errors.length === 0) {
         toast.info(`No payroll records were created; ${result.skipped} employees were skipped`);
       }

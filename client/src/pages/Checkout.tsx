@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDashboardUrl } from "@/lib/permissions";
+import { BankNameSelect } from "@/components/BankNameSelect";
 import { CardElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 
@@ -433,11 +434,10 @@ function CheckoutContent() {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="bankName">Bank Name</Label>
-              <Input
+              <BankNameSelect
                 id="bankName"
-                placeholder="KCB Bank"
                 value={bankName}
-                onChange={(e) => setBankName(e.target.value)}
+                onValueChange={setBankName}
               />
             </div>
             <div>

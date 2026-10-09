@@ -13,6 +13,7 @@ import {
 import { DatePicker } from "@/components/DatePicker";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 
 interface CreateProjectFormProps {
   onSuccess?: () => void;
@@ -34,7 +35,6 @@ const projectColorOptions = [
 
 export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProps) {
   const utils = trpc.useUtils();
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
   const { data: categorySettings } = trpc.settings.getByCategory.useQuery({ category: "projects_categories" }, { staleTime: 60_000 });
   const projectCategories = (() => {
     try {
@@ -128,22 +128,12 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="clientId">Client *</Label>
-        <Select
+        <ClientSelector
           value={formData.clientId}
-          onValueChange={(value) => setFormData({ ...formData, clientId: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select client" />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.isArray(clients) && clients.map((client: any) => (
-              <SelectItem key={client.id} value={client.id}>
-                {client.companyName || client.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(clientId) => setFormData({ ...formData, clientId })}
+          label="Client"
+          required
+        />
       </div>
 
       <div className="space-y-2">
@@ -302,5 +292,4 @@ export function CreateProjectForm({ onSuccess, onCancel }: CreateProjectFormProp
     </form>
   );
 }
-
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearch, useLocation } from "wouter";
+import { useSearch, useLocation, useParams } from "wouter";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,36 +23,56 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { useRequireFeature } from "@/lib/permissions";
 import { trpc } from "@/lib/trpc";
-import { SupplierSelector } from "@/components/SupplierSelector";
+import { ContractPartyField } from "@/components/ContractPartyField";
+import { ContractTypeSelector } from "@/components/ContractTypeSelector";
+import { applyContractTypeTemplate, CONTRACT_TYPES } from "@/lib/contractTemplates";
 
-const CONTRACT_TYPES = [
-  { value: "service", label: "Service Agreement" },
-  { value: "lease", label: "Lease Agreement" },
-  { value: "supply", label: "Supply Contract" },
-  { value: "maintenance", label: "Maintenance Contract" },
-  { value: "consulting", label: "Consulting Agreement" },
-  { value: "employment", label: "Employment Contract" },
-  { value: "nda", label: "Non-Disclosure Agreement" },
-  { value: "partnership", label: "Partnership Agreement" },
-  { value: "licensing", label: "Licensing Agreement" },
-  { value: "other", label: "Other" },
-];
+type ContractFormValues = {
+  name: string;
+  vendor: string;
+  startDate: string;
+  endDate: string;
+  value: string;
+  status: "draft" | "active" | "expired";
+  contractType: string;
+  description: string;
+  notes: string;
+  counterpartyContactName: string;
+  counterpartyEmail: string;
+  counterpartyAddress: string;
+  counterpartyRegistrationNumber: string;
+  governingLaw: string;
+  currency: string;
+  paymentTerms: string;
+  terminationTerms: string;
+  confidentialityTerms: string;
+  disputeResolution: string;
+};
 
-const emptyForm = {
+const emptyForm: ContractFormValues = {
   name: "", vendor: "", startDate: "", endDate: "", value: "",
-  status: "draft" as const, contractType: "", description: "", notes: "", templateId: "",
+  status: "draft" as const, contractType: "", description: "", notes: "",
+  counterpartyContactName: "", counterpartyEmail: "", counterpartyAddress: "",
+  counterpartyRegistrationNumber: "", governingLaw: "Kenya", currency: "KES",
+  paymentTerms: "", terminationTerms: "", confidentialityTerms: "", disputeResolution: "",
 };
 
 export default function ContractManagement() {
+  const { slug } = useParams<{ slug?: string }>();
+  const contractsPath = slug ? `/org/${slug}/contracts` : "/contracts";
   const { allowed, isLoading: permissionLoading } = useRequireFeature("contracts:view");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<any>(null);
-  const [form, setForm] = useState({ ...emptyForm });
+  const [form, setForm] = useState<ContractFormValues>({ ...emptyForm });
   const utils = trpc.useUtils();
   const _search = useSearch();
-  useEffect(() => { if (new URLSearchParams(_search).get("action") === "create") setCreateOpen(true); }, []);
+  useEffect(() => {
+    if (new URLSearchParams(_search).get("action") === "create" || location.endsWith("/create")) {
+      setCreateOpen(true);
+    }
+  }, [_search, location]);
   const { data: categorySettings } = trpc.settings.getByCategory.useQuery({ category: "contract_categories" }, { staleTime: 60_000 });
   const contractTypes = (() => {
     try {
@@ -99,9 +119,18 @@ export default function ContractManagement() {
     setForm({
       name: c.name || "", vendor: c.vendor || "", startDate: c.startDate || "",
       endDate: c.endDate || "", value: ((c.value || 0) / 100).toString(),
-      status: c.status || "draft", contractType: c.contractType || "",
+      status: c.status === "active" ? "active" : c.status === "expired" ? "expired" : "draft", contractType: c.contractType || "",
       description: c.description || "", notes: c.notes || "",
-      templateId: "",
+      counterpartyContactName: c.counterpartyContactName || "",
+      counterpartyEmail: c.counterpartyEmail || "",
+      counterpartyAddress: c.counterpartyAddress || "",
+      counterpartyRegistrationNumber: c.counterpartyRegistrationNumber || "",
+      governingLaw: c.governingLaw || "Kenya",
+      currency: c.currency || "KES",
+      paymentTerms: c.paymentTerms || "",
+      terminationTerms: c.terminationTerms || "",
+      confidentialityTerms: c.confidentialityTerms || "",
+      disputeResolution: c.disputeResolution || "",
     });
   };
 
@@ -114,6 +143,16 @@ export default function ContractManagement() {
       endDate: form.endDate, value: parseFloat(form.value) || 0,
       status: form.status, contractType: form.contractType || undefined,
       description: form.description || undefined, notes: form.notes || undefined,
+      counterpartyContactName: form.counterpartyContactName || undefined,
+      counterpartyEmail: form.counterpartyEmail || undefined,
+      counterpartyAddress: form.counterpartyAddress || undefined,
+      counterpartyRegistrationNumber: form.counterpartyRegistrationNumber || undefined,
+      governingLaw: form.governingLaw || "Kenya",
+      currency: form.currency || "KES",
+      paymentTerms: form.paymentTerms || undefined,
+      terminationTerms: form.terminationTerms || undefined,
+      confidentialityTerms: form.confidentialityTerms || undefined,
+      disputeResolution: form.disputeResolution || undefined,
     };
     if (isEdit && editingContract) {
       updateMutation.mutate({ id: editingContract.id, ...payload });
@@ -124,34 +163,6 @@ export default function ContractManagement() {
 
   const ContractForm = ({ isEdit }: { isEdit: boolean }) => (
     <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
-      {/* Template Selection */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            Contract Template
-          </CardTitle>
-          <CardDescription>Select a template to pre-populate contract terms</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label>Select Template (Optional)</Label>
-            <Select value={form.templateId} onValueChange={v => setForm(f => ({ ...f, templateId: v }))}>
-              <SelectTrigger><SelectValue placeholder="Choose a template..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">No Template</SelectItem>
-                <SelectItem value="service">Service Agreement</SelectItem>
-                <SelectItem value="lease">Lease Agreement</SelectItem>
-                <SelectItem value="maintenance">Maintenance Agreement</SelectItem>
-                <SelectItem value="license">Software License Agreement</SelectItem>
-                <SelectItem value="nda">Non-Disclosure Agreement</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Choose a template to auto-populate terms or leave blank to start from scratch</p>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Contract Information */}
       <Card>
         <CardHeader className="pb-3">
@@ -159,6 +170,9 @@ export default function ContractManagement() {
             <FileText className="h-4 w-4 text-primary" />
             Contract Information
           </CardTitle>
+          <CardDescription>
+            Selecting a type fills an editable draft for its scope and terms. Add the real party, dates, value, and transaction details, then obtain local legal review before signature.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -168,23 +182,20 @@ export default function ContractManagement() {
             </div>
             <div className="space-y-2">
               <Label>Contract Type</Label>
-              <Select value={form.contractType} onValueChange={v => setForm(f => ({ ...f, contractType: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
-                <SelectContent>
-                  {contractTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <ContractTypeSelector options={contractTypes} value={form.contractType} onChange={v => {
+                const selectedType = contractTypes.find(type => type.value === v);
+                setForm(current => applyContractTypeTemplate(current, v, selectedType?.label));
+              }} placeholder="Select type..." />
             </div>
           </div>
           <div className="space-y-2 md:w-1/2">
             <Label>Status</Label>
-            <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as any }))}>
+            <Select value={form.status} onValueChange={(v: ContractFormValues["status"]) => setForm(f => ({ ...f, status: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="terminated">Terminated</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -200,8 +211,28 @@ export default function ContractManagement() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <SupplierSelector label="Vendor / Party Name" value={form.vendor} onChange={vendor => setForm(f => ({ ...f, vendor }))} required />
+          <ContractPartyField value={form.vendor} onChange={vendor => setForm(f => ({ ...f, vendor }))} />
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Counterparty Contact Name</Label>
+              <Input value={form.counterpartyContactName} onChange={e => setForm(f => ({ ...f, counterpartyContactName: e.target.value }))} placeholder="Authorized representative" />
+            </div>
+            <div className="space-y-2">
+              <Label>Counterparty Email</Label>
+              <Input type="email" value={form.counterpartyEmail} onChange={e => setForm(f => ({ ...f, counterpartyEmail: e.target.value }))} placeholder="signer@example.com" />
+            </div>
+            <div className="space-y-2">
+              <Label>Registration Number</Label>
+              <Input value={form.counterpartyRegistrationNumber} onChange={e => setForm(f => ({ ...f, counterpartyRegistrationNumber: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Governing Law</Label>
+              <Input value={form.governingLaw} onChange={e => setForm(f => ({ ...f, governingLaw: e.target.value }))} />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>Counterparty Address</Label>
+              <Input value={form.counterpartyAddress} onChange={e => setForm(f => ({ ...f, counterpartyAddress: e.target.value }))} />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -245,8 +276,29 @@ export default function ContractManagement() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Description</Label>
-            <RichTextEditor value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Enter contract details, terms, and conditions..." minHeight="120px" />
+            <Label>Scope of Work / Services</Label>
+            <RichTextEditor value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="Describe the services, deliverables, and responsibilities..." minHeight="140px" />
+          </div>
+          <Separator />
+          <div className="space-y-2">
+            <Label>Payment Terms</Label>
+            <RichTextEditor value={form.paymentTerms} onChange={v => setForm(f => ({ ...f, paymentTerms: v }))} placeholder="Fees, payment schedule, invoicing, and taxes..." minHeight="100px" />
+          </div>
+          <Separator />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Termination</Label>
+              <RichTextEditor value={form.terminationTerms} onChange={v => setForm(f => ({ ...f, terminationTerms: v }))} placeholder="Notice periods and termination conditions..." minHeight="100px" />
+            </div>
+            <div className="space-y-2">
+              <Label>Confidentiality</Label>
+              <RichTextEditor value={form.confidentialityTerms} onChange={v => setForm(f => ({ ...f, confidentialityTerms: v }))} placeholder="Confidential information and handling obligations..." minHeight="100px" />
+            </div>
+          </div>
+          <Separator />
+          <div className="space-y-2">
+            <Label>Dispute Resolution</Label>
+            <RichTextEditor value={form.disputeResolution} onChange={v => setForm(f => ({ ...f, disputeResolution: v }))} placeholder="How disputes will be resolved..." minHeight="100px" />
           </div>
           <Separator />
           <div className="space-y-2">
@@ -259,7 +311,7 @@ export default function ContractManagement() {
   );
 
   return (
-    <ModuleLayout title="Contracts Management" description="Manage contracts, agreements, and vendor terms" icon={<FileText className="h-5 w-5" />} breadcrumbs={[{ label: "Dashboard", href: "/crm-home" }, { label: "Contracts" }]}>
+    <ModuleLayout title="Contracts Management" description="Manage contracts, agreements, and vendor terms" icon={<FileText className="h-5 w-5" />} breadcrumbs={[{ label: "Dashboard", href: slug ? `/org/${slug}/crm-home` : "/crm-home" }, { label: "Contracts" }]}>
       <div className="space-y-6 p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <div><h2 className="text-2xl font-bold">Contracts</h2><p className="text-sm text-muted-foreground">Manage all contracts and agreements</p></div>
@@ -286,16 +338,19 @@ export default function ContractManagement() {
                     <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No contracts found. Click &quot;New Contract&quot; to add one.</TableCell></TableRow>
                   ) : filteredContracts.map((contract: any) => (
                     <TableRow key={contract.id}>
-                      <TableCell className="font-medium"><TableItemLink href={`/contracts/${contract.id}`}>{contract.name}</TableItemLink></TableCell>
+                      <TableCell className="font-medium"><TableItemLink href={`${contractsPath}/${contract.id}`}>{contract.name}</TableItemLink></TableCell>
                       <TableCell className="text-sm">{contractTypes.find(t => t.value === contract.contractType)?.label || contract.contractType || "-"}</TableCell>
                       <TableCell>{contract.vendor}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{contract.startDate ? new Date(contract.startDate).toLocaleDateString() : "-"} → {contract.endDate ? new Date(contract.endDate).toLocaleDateString() : "-"}</TableCell>
                       <TableCell>Ksh {((contract.value || 0) / 100).toLocaleString()}</TableCell>
-                      <TableCell><Badge variant={statusColor(contract.status || "draft")}>{contract.status || "draft"}</Badge></TableCell>
+                      <TableCell className="space-x-2">
+                        <Badge variant={statusColor(contract.status || "draft")}>{contract.status || "draft"}</Badge>
+                        {contract.signingStatus && contract.signingStatus !== "not_sent" && <Badge variant="outline">Locked for signature</Badge>}
+                      </TableCell>
                       <TableCell className="text-right space-x-1">
-                        <Button variant="ghost" size="sm" onClick={() => setLocation(`/contracts/${contract.id}`)}><Eye className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(contract)}><Edit2 className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" className="text-red-500" onClick={() => { if (confirm("Delete this contract?")) deleteMutation.mutate(contract.id); }}><Trash2 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => setLocation(`${contractsPath}/${contract.id}`)}><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" disabled={contract.status === "terminated" || Boolean(contract.signingStatus && contract.signingStatus !== "not_sent")} title={contract.status === "terminated" ? "Terminated contracts are immutable" : contract.signingStatus && contract.signingStatus !== "not_sent" ? "Contracts are locked after signature invitations are sent" : "Edit contract"} onClick={() => openEdit(contract)}><Edit2 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" className="text-red-500" disabled={contract.status === "terminated" || Boolean(contract.signingStatus && contract.signingStatus !== "not_sent")} title={contract.status === "terminated" ? "Terminated contracts are retained for audit history" : contract.signingStatus && contract.signingStatus !== "not_sent" ? "Contracts in a signing workflow cannot be deleted" : "Delete contract"} onClick={() => { if (confirm("Delete this contract?")) deleteMutation.mutate(contract.id); }}><Trash2 className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}

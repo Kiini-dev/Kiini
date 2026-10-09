@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { generateP9Form, generateP9DataFromPayroll, P9FormData } from "../utils/p9-form-generator";
-import { aggregateP9PayslipRows } from "../utils/p9-forms";
+import {
+  aggregateP9PayrollAndPayslipRows,
+  aggregateP9PayrollRows,
+  aggregateP9PayslipRows,
+  resolveP9TaxNumber,
+} from "../utils/p9-forms";
 
 // minimal data to exercise generator
 const sampleData: P9FormData = {
@@ -27,6 +32,13 @@ const sampleData: P9FormData = {
 };
 
 describe("P9 Form Generator", () => {
+  it("uses tax-number fields from both current and legacy employee tax schemas", () => {
+    expect(resolveP9TaxNumber({ taxNumber: "  TAX-CURRENT " }, "TAX-EMPLOYEE")).toBe("TAX-CURRENT");
+    expect(resolveP9TaxNumber({ taxId: "TAX-LEGACY" }, "TAX-EMPLOYEE")).toBe("TAX-LEGACY");
+    expect(resolveP9TaxNumber(undefined, "TAX-EMPLOYEE")).toBe("TAX-EMPLOYEE");
+    expect(resolveP9TaxNumber(undefined, undefined)).toBe("N/A");
+  });
+
   it("aggregates actual payslip schema fields and deduction breakdowns", () => {
     expect(aggregateP9PayslipRows([{
       basicSalary: 100000,
@@ -44,6 +56,52 @@ describe("P9 Form Generator", () => {
       shif: 2500,
       housingLevy: 1500,
       numberOfPayslips: 1,
+    });
+  });
+
+  it("aggregates processed payroll rows and their statutory breakdown", () => {
+    expect(aggregateP9PayrollRows([{
+      basicSalary: 100000,
+      allowances: 10000,
+      tax: 18000,
+      notes: JSON.stringify({
+        grossSalary: 115000,
+        paye: 18000,
+        nssf: 6000,
+        shif: 2500,
+        housingLevy: 1500,
+      }),
+    }])).toEqual({
+      grossIncome: 115000,
+      paye: 18000,
+      nssf: 6000,
+      shif: 2500,
+      housingLevy: 1500,
+      numberOfPayslips: 1,
+    });
+  });
+
+  it("uses payslip detail instead of double-counting its linked payroll record", () => {
+    expect(aggregateP9PayrollAndPayslipRows(
+      [
+        { id: "payroll-1", basicSalary: 100000, allowances: 10000, tax: 18000 },
+        { id: "payroll-2", basicSalary: 80000, allowances: 0, tax: 9000 },
+      ],
+      [{
+        payrollId: "payroll-1",
+        grossSalary: 110000,
+        payeDeduction: 18000,
+        nssfDeduction: 6000,
+        nhifDeduction: 2500,
+        housingLevy: 1500,
+      }],
+    )).toEqual({
+      grossIncome: 190000,
+      paye: 27000,
+      nssf: 6000,
+      shif: 2500,
+      housingLevy: 1500,
+      numberOfPayslips: 2,
     });
   });
 

@@ -82,7 +82,6 @@ const navItems: NavItem[] = [
     submenu: [
       { title: "Employees", href: "/employees", icon: <Users className="w-4 h-4" /> },
       { title: "Departments", href: "/departments", icon: <Briefcase className="w-4 h-4" /> },
-      { title: "Attendance", href: "/attendance", icon: <BarChart3 className="w-4 h-4" /> },
       { title: "Payroll", href: "/payroll", icon: <DollarSign className="w-4 h-4" /> },
       { title: "Leave", href: "/leave", icon: <BarChart3 className="w-4 h-4" /> },
     ],
@@ -296,4 +295,3 @@ export function Sidenav() {
     </>
   );
 }
-

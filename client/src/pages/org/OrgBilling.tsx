@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useOrgAccess } from "@/hooks/useOrgAccess";
+import { BankNameSelect } from "@/components/BankNameSelect";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -243,8 +244,10 @@ function AddMethodDialog({ open, onOpenChange, onSave, isSaving }: AddMethodDial
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label>Bank Name</Label>
-                <Input value={bank.bankName} onChange={(e) => setBank((b) => ({ ...b, bankName: e.target.value }))}
-                  placeholder="e.g. KCB, Equity, NCBA" />
+                <BankNameSelect
+                  value={bank.bankName}
+                  onValueChange={(bankName) => setBank((b) => ({ ...b, bankName }))}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Account Name</Label>

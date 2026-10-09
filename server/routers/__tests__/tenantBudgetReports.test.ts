@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MySqlDialect } from "drizzle-orm/mysql-core";
-import { accounts, customReports, invoices, subscriptions, users } from "../../../drizzle/schema";
+import {
+  accounts,
+  customReports,
+  invoices,
+  journalEntries,
+  journalEntryLines,
+  subscriptions,
+  users,
+} from "../../../drizzle/schema";
+import { budgetAllocations } from "../../../drizzle/schema-extended";
 
 const { getDbMock } = vi.hoisted(() => ({ getDbMock: vi.fn() }));
 
@@ -34,6 +43,7 @@ function makeDatabaseQuery(conditions: any[], results: unknown[] = []) {
     },
     leftJoin: () => query,
     innerJoin: () => query,
+    groupBy: () => query,
     orderBy: () => query,
     limit: () => query,
     offset: async () => results,
@@ -65,6 +75,83 @@ describe("tenant budget and report isolation", () => {
 
     const summaryWhere = new MySqlDialect().sqlToQuery(conditions[2]);
     expect(summaryWhere.params).toContain("tenant-a");
+  });
+
+  it("includes posted payroll debits in budget-line actuals by account and department", async () => {
+    const conditions: Array<{ source: unknown; condition: any }> = [];
+    const budgetLine = {
+      id: "allocation-1",
+      budgetId: "budget-1",
+      accountId: "salary-account",
+      categoryName: "Staff Salaries",
+      allocatedAmount: 100_000,
+      spentAmount: 10_000,
+      notes: null,
+      departmentId: "department-1",
+      fiscalYear: 2026,
+    };
+    const database = {
+      select: () => {
+        let source: unknown;
+        const query: any = {
+          from: (table: unknown) => { source = table; return query; },
+          innerJoin: () => query,
+          leftJoin: () => query,
+          where: (condition: any) => {
+            conditions.push({ source, condition });
+            return query;
+          },
+          groupBy: () => query,
+          orderBy: () => query,
+          then: (resolve: (value: unknown[]) => unknown, reject: (reason: unknown) => unknown) =>
+            Promise.resolve(source === budgetAllocations
+              ? [budgetLine]
+              : source === journalEntryLines
+                ? [{ accountId: "salary-account", spentAmount: 25_000 }]
+                : []).then(resolve, reject),
+        };
+        return query;
+      },
+    };
+    getDbMock.mockResolvedValue(database);
+
+    const caller = budgetsRouter.createCaller(tenantContext);
+    const result = await caller.listLines("budget-1");
+
+    expect(result).toMatchObject([{
+      accountId: "salary-account",
+      allocatedAmount: 100_000,
+      spentAmount: 35_000,
+      remainingAmount: 65_000,
+      utilizationPercentage: 35,
+    }]);
+
+    const payrollWhere = conditions.find(({ source }) => source === journalEntryLines)?.condition;
+    const payrollQuery = new MySqlDialect().sqlToQuery(payrollWhere);
+    expect(payrollQuery.params).toEqual(expect.arrayContaining([
+      "payroll",
+      "posted",
+      "tenant-a",
+      "department-1",
+      "2026-01-01",
+      "2027-01-01",
+    ]));
+    expect(payrollQuery.sql).toContain(journalEntries.organizationId.name);
+  });
+
+  it("keeps global budget-line reads scoped to global records", async () => {
+    const conditions: any[] = [];
+    getDbMock.mockResolvedValue({ select: () => makeDatabaseQuery(conditions) });
+
+    const caller = budgetsRouter.createCaller({
+      user: { id: "global-user", role: "admin", organizationId: null },
+    } as any);
+    await caller.listLines("global-budget");
+
+    expect(conditions).toHaveLength(1);
+    const where = new MySqlDialect().sqlToQuery(conditions[0]);
+    expect(where.sql.toLowerCase()).toContain("is null");
+    expect(where.params).not.toContain("tenant-a");
   });
 
   it("filters balance sheet accounts by the caller's organization", async () => {

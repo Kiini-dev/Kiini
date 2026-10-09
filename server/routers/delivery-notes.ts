@@ -66,6 +66,7 @@ export const deliveryNotesRouter = router({
       items: z.number().positive(),
       status: z.enum(["pending", "partial", "delivered", "cancelled"]).default("pending"),
       notes: z.string().optional(),
+      templateData: z.record(z.string(), z.unknown()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -82,6 +83,7 @@ export const deliveryNotesRouter = router({
           items: input.items,
           status: input.status,
           notes: input.notes || null,
+          templateData: input.templateData || null,
           createdBy: ctx.user?.id || "",
         });
         const created = await db.select().from(deliveryNotes).where(eq(deliveryNotes.id, id));
@@ -101,6 +103,7 @@ export const deliveryNotesRouter = router({
       items: z.number().positive().optional(),
       status: z.enum(["pending", "partial", "delivered", "cancelled"]).optional(),
       notes: z.string().optional(),
+      templateData: z.record(z.string(), z.unknown()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -117,6 +120,7 @@ export const deliveryNotesRouter = router({
         if (updates.items !== undefined) setObj.items = updates.items;
         if (updates.status !== undefined) setObj.status = updates.status;
         if (updates.notes !== undefined) setObj.notes = updates.notes;
+        if (updates.templateData !== undefined) setObj.templateData = updates.templateData;
 
         await db.update(deliveryNotes).set(setObj).where(eq(deliveryNotes.id, id));
         const updated = await db.select().from(deliveryNotes).where(eq(deliveryNotes.id, id));

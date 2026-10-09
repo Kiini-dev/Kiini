@@ -1,13 +1,8 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CountryCodeSelect } from "@/components/CountryCodeSelect";
+import { PHONE_COUNTRY_CODES } from "@/data/locations";
 import { PHONE_COUNTRY_CODES } from "@/data/locations";
 
 interface PhoneInputProps {
@@ -78,18 +73,9 @@ export function PhoneInput({
         </Label>
       )}
       <div className="flex gap-2">
-        <Select value={code} onValueChange={handleCodeChange} disabled={disabled}>
-          <SelectTrigger className="w-[130px] shrink-0" disabled={disabled}>
-            <SelectValue placeholder="+254" />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.from(new Map(PHONE_COUNTRY_CODES.map((pc) => [pc.code, pc])).values()).map((pc) => (
-              <SelectItem key={pc.code} value={pc.code}>
-                {pc.flag} {pc.code}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="w-[150px] shrink-0">
+          <CountryCodeSelect value={code} onValueChange={handleCodeChange} disabled={disabled} />
+        </div>
         <Input
           id={id}
           value={number}

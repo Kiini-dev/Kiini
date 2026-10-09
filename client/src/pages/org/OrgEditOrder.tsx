@@ -15,6 +15,7 @@ import {
 import { ArrowLeft, Plus, Trash2, Loader2, SaveIcon } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { SupplierSelector } from "@/components/SupplierSelector";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -196,18 +197,7 @@ export default function EditOrder() {
 
               <div className="space-y-2">
                 <Label htmlFor="vendor">Vendor *</Label>
-                <Select value={vendorId} onValueChange={setVendorId}>
-                  <SelectTrigger id="vendor">
-                    <SelectValue placeholder="Select vendor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliers.map((supplier: any) => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.name || supplier.companyName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SupplierSelector id="vendor" value={vendorId} onChange={setVendorId} required valueMode="id" label="" placeholder="Select vendor" />
               </div>
 
               <div className="space-y-2">
@@ -369,4 +359,3 @@ export default function EditOrder() {
     </ModuleLayout>
   );
 }
-

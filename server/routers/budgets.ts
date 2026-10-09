@@ -4,14 +4,28 @@ import { getDb } from "../db";
 import { v4 as uuidv4 } from "uuid";
 import * as db from "../db";
 import { TRPCError } from "@trpc/server";
-import { accounts, budgets, departments, expenses } from "../../drizzle/schema";
+import {
+  accounts,
+  budgets,
+  departments,
+  expenses,
+  journalEntries,
+  journalEntryLines,
+  payrollCostCenters,
+} from "../../drizzle/schema";
 import { budgetAllocations } from "../../drizzle/schema-extended";
-import { eq, desc, sql, and, isNull } from "drizzle-orm";
+import { eq, desc, sql, and, gte, isNull, lt } from "drizzle-orm";
 
 function budgetById(budgetId: string, organizationId?: string | null) {
   return organizationId
     ? and(eq(budgets.id, budgetId), eq(budgets.organizationId, organizationId))
     : eq(budgets.id, budgetId);
+}
+
+function organizationScopeCondition(column: any, organizationId: string | null | undefined) {
+  return organizationId
+    ? eq(column, organizationId)
+    : isNull(column);
 }
 
 export const budgetsRouter = router({
@@ -21,7 +35,7 @@ export const budgetsRouter = router({
       try {
         const database = await getDb();
         if (!database) return [];
-        const organizationId = ctx.user.organizationId;
+        const organizationId = ctx.user.organizationId ?? null;
 
         const rows = await database
           .select({
@@ -32,15 +46,19 @@ export const budgetsRouter = router({
             allocatedAmount: budgetAllocations.allocatedAmount,
             spentAmount: sql<number>`COALESCE(SUM(${expenses.amount}), 0)`,
             notes: budgetAllocations.notes,
+            departmentId: budgets.departmentId,
+            fiscalYear: budgets.fiscalYear,
           })
           .from(budgetAllocations)
           .innerJoin(budgets, eq(budgets.id, budgetAllocations.budgetId))
-          .leftJoin(expenses, organizationId
-            ? and(eq(expenses.budgetAllocationId, budgetAllocations.id), eq(expenses.organizationId, organizationId))
-            : eq(expenses.budgetAllocationId, budgetAllocations.id))
-          .where(organizationId
-            ? and(eq(budgetAllocations.budgetId, input), eq(budgets.organizationId, organizationId))
-            : eq(budgetAllocations.budgetId, input))
+          .leftJoin(expenses, and(
+            eq(expenses.budgetAllocationId, budgetAllocations.id),
+            organizationScopeCondition(expenses.organizationId, organizationId),
+          ))
+          .where(and(
+            eq(budgetAllocations.budgetId, input),
+            organizationScopeCondition(budgets.organizationId, organizationId),
+          ))
           .groupBy(
             budgetAllocations.id,
             budgetAllocations.budgetId,
@@ -48,12 +66,44 @@ export const budgetsRouter = router({
             budgetAllocations.categoryName,
             budgetAllocations.allocatedAmount,
             budgetAllocations.notes,
+            budgets.departmentId,
+            budgets.fiscalYear,
           )
           .orderBy(budgetAllocations.categoryName);
 
+        const budget = rows[0];
+        const payrollSpentByAccount = new Map<string, number>();
+        if (budget && rows.length > 0) {
+          const year = Number(budget.fiscalYear);
+          if (!Number.isInteger(year)) {
+            throw new Error(`Budget ${input} has an invalid fiscal year`);
+          }
+          const payrollRows = await database
+            .select({
+              accountId: journalEntryLines.accountId,
+              spentAmount: sql<number>`COALESCE(SUM(${journalEntryLines.debit}), 0)`,
+            })
+            .from(journalEntryLines)
+            .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.journalEntryId))
+            .innerJoin(payrollCostCenters, eq(payrollCostCenters.id, journalEntries.costCenterId))
+            .where(and(
+              eq(journalEntries.referenceType, "payroll"),
+              eq(journalEntries.status, "posted"),
+              organizationScopeCondition(journalEntries.organizationId, organizationId),
+              organizationScopeCondition(payrollCostCenters.organizationId, organizationId),
+              eq(payrollCostCenters.departmentId, budget.departmentId),
+              gte(journalEntries.entryDate, `${year}-01-01`),
+              lt(journalEntries.entryDate, `${year + 1}-01-01`),
+            ))
+            .groupBy(journalEntryLines.accountId);
+          for (const row of payrollRows) {
+            payrollSpentByAccount.set(row.accountId, Number(row.spentAmount || 0));
+          }
+        }
+
         return rows.map((row) => {
           const allocated = Number(row.allocatedAmount || 0);
-          const spent = Number(row.spentAmount || 0);
+          const spent = Number(row.spentAmount || 0) + (payrollSpentByAccount.get(row.accountId) || 0);
           const remaining = allocated - spent;
           const utilization = allocated > 0 ? Math.round((spent / allocated) * 100) : 0;
           const status = remaining <= 0 ? "exhausted" : "active";

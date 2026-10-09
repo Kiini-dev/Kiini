@@ -190,12 +190,12 @@ export default function Benefits() {
           />
           <StatsCard
             title="Employee Cost"
-            value={formatCurrency(totalEmployeeCost)}
+            value={formatCurrency(totalEmployeeCost / 100)}
             description="Per benefit"
           />
           <StatsCard
             title="Employer Cost"
-            value={formatCurrency(totalEmployerCost)}
+            value={formatCurrency(totalEmployerCost / 100)}
             description="Per benefit"
           />
         </div>
@@ -345,10 +345,10 @@ export default function Benefits() {
                           <RichTextDisplay html={benefit.coverage} className="text-sm text-muted-foreground line-clamp-2" />
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {formatCurrency(benefit.employeeCost)}
+                          {formatCurrency(benefit.employeeCost / 100)}
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {formatCurrency(benefit.employerCost)}
+                          {formatCurrency(benefit.employerCost / 100)}
                         </TableCell>
                         <TableCell>
                           <Badge variant={benefit.isActive ? "default" : "secondary"}>

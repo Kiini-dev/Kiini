@@ -11,6 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { toast } from "sonner";
 import { FileText, ArrowLeft, Loader2, Users, DollarSign, Calendar, ClipboardList, Save, Target } from "lucide-react";
 
@@ -32,7 +33,6 @@ export default function EditProposal() {
   const [isLoading, setIsLoading] = useState(true);
 
   const { data: proposal } = trpc.opportunities.getById.useQuery(id || "", { enabled: !!id });
-  const { data: clients = [] } = trpc.clients.list.useQuery({});
 
   useEffect(() => {
     if (proposal) {
@@ -147,14 +147,7 @@ export default function EditProposal() {
           <CardContent>
             <div className="space-y-2 md:w-1/2">
               <Label>Client *</Label>
-              <Select value={formData.clientId} onValueChange={v => setFormData({ ...formData, clientId: v })}>
-                <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
-                <SelectContent>
-                  {Array.isArray(clients) && clients.map((client: any) => (
-                    <SelectItem key={client.id} value={client.id}>{client.companyName || client.contactPerson}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientSelector value={formData.clientId} onChange={(clientId) => setFormData({ ...formData, clientId })} />
             </div>
           </CardContent>
         </Card>
@@ -229,5 +222,3 @@ export default function EditProposal() {
     </ModuleLayout>
   );
 }
-
-

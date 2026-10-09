@@ -20,6 +20,7 @@ import { Users, UserPlus, Plus, Upload, X, Copy, Check, Save, Shield, CreditCard
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmployeeAccountSection } from "@/components/EmployeeAccountSection";
 import { PhoneInput } from "@/components/PhoneInput";
+import { BankNameSelect } from "@/components/BankNameSelect";
 
 export default function CreateEmployee() {
   const [, navigate] = useLocation();
@@ -152,7 +153,7 @@ export default function CreateEmployee() {
           department: formData.department || undefined,
           position: formData.position || undefined,
           jobGroupId: formData.jobGroupId,
-          salary: formData.salary ? Math.round(parseFloat(formData.salary)) : undefined,
+          salary: formData.salary ? parseFloat(formData.salary) : undefined,
           employmentType: formData.employmentType || undefined,
           status: (formData.status as any) || undefined,
           photoUrl: photoDataUrl,
@@ -194,7 +195,7 @@ export default function CreateEmployee() {
         department: formData.department || undefined,
         position: formData.position || undefined,
         jobGroupId: formData.jobGroupId,
-        salary: formData.salary ? Math.round(parseFloat(formData.salary)) : undefined,
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
         employmentType: formData.employmentType || undefined,
         status: (formData.status as any) || undefined,
         nationalId: formData.nationalId || undefined,
@@ -440,6 +441,7 @@ export default function CreateEmployee() {
                       <SelectItem value="on_leave">🟡 On Leave</SelectItem>
                       <SelectItem value="suspended">🟠 Suspended</SelectItem>
                       <SelectItem value="terminated">🔴 Terminated</SelectItem>
+                      <SelectItem value="resigned">Resigned</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -574,6 +576,14 @@ export default function CreateEmployee() {
                   <PhoneInput label="Phone Number" value={formData.emergencyContactPhone} onChange={(emergencyContactPhone) => setFormData({ ...formData, emergencyContactPhone })} placeholder="722 000 000" />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Emergency Notes</Label>
+                <Input
+                  value={formData.emergencyContact}
+                  onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
+                  placeholder="Additional emergency information"
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -588,23 +598,11 @@ export default function CreateEmployee() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Bank Name</Label>
-                  <Select value={formData.bankName} onValueChange={(v) => setFormData({ ...formData, bankName: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select bank" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="KCB Bank">KCB Bank</SelectItem>
-                      <SelectItem value="Equity Bank">Equity Bank</SelectItem>
-                      <SelectItem value="Co-operative Bank">Co-operative Bank</SelectItem>
-                      <SelectItem value="ABSA Bank">ABSA Bank</SelectItem>
-                      <SelectItem value="Standard Chartered">Standard Chartered</SelectItem>
-                      <SelectItem value="NCBA Bank">NCBA Bank</SelectItem>
-                      <SelectItem value="I&M Bank">I&M Bank</SelectItem>
-                      <SelectItem value="Diamond Trust Bank">Diamond Trust Bank</SelectItem>
-                      <SelectItem value="Stanbic Bank">Stanbic Bank</SelectItem>
-                      <SelectItem value="Family Bank">Family Bank</SelectItem>
-                      <SelectItem value="M-Pesa">M-Pesa (Safaricom)</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <BankNameSelect
+                    placeholder="Select bank"
+                    value={formData.bankName}
+                    onValueChange={(bankName) => setFormData({ ...formData, bankName })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Bank Branch</Label>

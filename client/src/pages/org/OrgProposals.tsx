@@ -32,6 +32,7 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import { FileText, Plus, Search, Eye, Edit, Trash2, Download, Send, TrendingUp, Clock, CheckCircle2, DollarSign, Loader2, Copy, ClipboardList } from "lucide-react";
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { toast } from "sonner";
 import { downloadCSV } from "@/lib/export-utils";
 import { useLocation, useSearch } from "wouter";
@@ -245,14 +246,7 @@ export default function Proposals() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="client">Client *</Label>
-                        <Select onValueChange={(val) => setNewProposal({...newProposal, clientId: val})}>
-                          <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-                          <SelectContent>
-                            {clients.map(client => (
-                              <SelectItem key={client.id} value={client.id}>{client.companyName}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <ClientSelector value={newProposal.clientId} onChange={(clientId) => setNewProposal({ ...newProposal, clientId })} required />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="stage">Stage</Label>
@@ -419,4 +413,3 @@ export default function Proposals() {
     </ModuleLayout>
   );
 }
-

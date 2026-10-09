@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeftRight, HandCoins } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { useAuthWithPersistence } from "@/_core/hooks/useAuthWithPersistence";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { ReportNavigation } from "@/components/ReportNavigation";
@@ -54,7 +55,6 @@ export default function NonSalesInflows() {
   const [categoryAccountId, setCategoryAccountId] = useState("");
   const [bankAccountId, setBankAccountId] = useState("");
   const [sourceBankTransactionId, setSourceBankTransactionId] = useState("");
-  const [fxRate, setFxRate] = useState("");
   const [donorName, setDonorName] = useState("");
   const [donorTaxId, setDonorTaxId] = useState("");
   const [receiptNumber, setReceiptNumber] = useState("");
@@ -68,7 +68,7 @@ export default function NonSalesInflows() {
   const [maturityDate, setMaturityDate] = useState("");
   const currency = configurationQuery.data?.currency ?? "KES";
   const amountCents = Math.round((Number(amount) || 0) * 100);
-  const fx = Number(fxRate);
+  const fx = configurationQuery.data?.usdToOrganizationFxRate ?? 0;
   const taxIdThresholdCents = configurationQuery.data ? 25_000 * fx : Number.POSITIVE_INFINITY;
   const donorTaxIdRequired = inflowType === "donation" && fx > 0 && amountCents > taxIdThresholdCents;
   const accounts = accountsQuery.data ?? [];
@@ -99,6 +99,10 @@ export default function NonSalesInflows() {
       toast.error("Enter an amount greater than zero.");
       return;
     }
+    if (inflowType === "donation" && fx <= 0) {
+      toast.error("The current USD exchange rate is unavailable. Try again shortly.");
+      return;
+    }
     if (!cashAccountId || !categoryAccountId) {
       toast.error("Choose both the cash/bank account and the classification account.");
       return;
@@ -113,7 +117,7 @@ export default function NonSalesInflows() {
       categoryAccountId,
       bankAccountId: bankAccountId || undefined,
       sourceBankTransactionId: sourceBankTransactionId || undefined,
-      usdToOrganizationFxRate: fxRate ? fx : undefined,
+      usdToOrganizationFxRate: fx || undefined,
       donorName: donorName.trim() || undefined,
       donorTaxId: donorTaxId.trim() || undefined,
       receiptNumber: receiptNumber.trim() || undefined,
@@ -238,17 +242,11 @@ export default function NonSalesInflows() {
               <div className="lg:col-span-2"><label className="mb-1 block text-sm font-medium">Description</label><Input maxLength={500} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the source and purpose of these funds" /></div>
               <div>
                 <label className="mb-1 block text-sm font-medium">Cash / bank asset account</label>
-                <Select value={cashAccountId} onValueChange={setCashAccountId}>
-                  <SelectTrigger><SelectValue placeholder="Select asset account" /></SelectTrigger>
-                  <SelectContent>{cashAccounts.map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} — {account.accountName}</SelectItem>)}</SelectContent>
-                </Select>
+                <ChartOfAccountsSelector accounts={cashAccounts} value={cashAccountId} onChange={setCashAccountId} placeholder="Select asset account" />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium">Classification account</label>
-                <Select value={categoryAccountId} onValueChange={setCategoryAccountId}>
-                  <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
-                  <SelectContent>{categoryAccounts.map((account: any) => <SelectItem key={account.id} value={account.id}>{account.accountCode} — {account.accountName}</SelectItem>)}</SelectContent>
-                </Select>
+                <ChartOfAccountsSelector accounts={categoryAccounts} value={categoryAccountId} onChange={setCategoryAccountId} placeholder="Select account" />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium">Bank account for reconciliation (optional)</label>
@@ -261,7 +259,24 @@ export default function NonSalesInflows() {
                 </Select>
               </div>
               {inflowType === "donation" && <>
-                <div><label className="mb-1 block text-sm font-medium">USD to {currency} rate</label><Input type="number" min="0.00000001" step="0.00000001" value={fxRate} onChange={(event) => setFxRate(event.target.value)} placeholder="Required for the USD 250 rule" /></div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Current USD to {currency} exchange rate</label>
+                  <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm" aria-live="polite">
+                    {configurationQuery.isLoading
+                      ? "Loading current rate..."
+                      : fx > 0
+                        ? `1 USD = ${fx.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${currency}`
+                        : "Current exchange rate unavailable"}
+                  </p>
+                  {configurationQuery.data?.exchangeRateUpdatedAt && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Rate updated {new Date(configurationQuery.data.exchangeRateUpdatedAt).toLocaleString()}.
+                    </p>
+                  )}
+                  {configurationQuery.data?.exchangeRateError && (
+                    <p role="alert" className="mt-1 text-xs text-destructive">{configurationQuery.data.exchangeRateError}</p>
+                  )}
+                </div>
                 <div><label className="mb-1 block text-sm font-medium">Donor name</label><Input value={donorName} onChange={(event) => setDonorName(event.target.value)} /></div>
                 <div><label className="mb-1 block text-sm font-medium">Donor tax ID {donorTaxIdRequired ? "(required above USD 250)" : "(required above threshold)"}</label><Input value={donorTaxId} onChange={(event) => setDonorTaxId(event.target.value)} /></div>
                 <div><label className="mb-1 block text-sm font-medium">Receipt number (optional)</label><Input value={receiptNumber} onChange={(event) => setReceiptNumber(event.target.value)} /></div>
@@ -290,7 +305,10 @@ export default function NonSalesInflows() {
                 USD 250 threshold: {money(Math.round(25_000 * fx), currency)}. The applied exchange rate is stored with this donation for audit.
               </p>
             )}
-            <Button onClick={handleCreate} disabled={createMutation.isPending || !description.trim()}>
+            {inflowType === "donation" && configurationQuery.isError && (
+              <p role="alert" className="text-sm text-destructive">The current exchange rate could not be loaded. Refresh the page before posting this donation.</p>
+            )}
+            <Button onClick={handleCreate} disabled={createMutation.isPending || !description.trim() || (inflowType === "donation" && (configurationQuery.isLoading || fx <= 0))}>
               <ArrowLeftRight className="mr-2 h-4 w-4" /> {createMutation.isPending ? "Posting..." : "Post deposit"}
             </Button>
           </CardContent>

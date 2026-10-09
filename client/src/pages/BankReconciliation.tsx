@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRequireFeature } from "@/lib/permissions";
+import { BankNameSelect } from "@/components/BankNameSelect";
 import { Spinner } from "@/components/ui/spinner";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,7 @@ import {
 import { CreditCard, CheckCircle2, AlertCircle, Upload, Plus, Trash2, X } from "lucide-react";
 import { StatsCard } from "@/components/ui/stats-card";
 import { trpc } from "@/lib/trpc";
+import { ChartOfAccountsSelector } from "@/components/ChartOfAccountsSelector";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -315,6 +317,10 @@ export default function BankReconciliation() {
 
   const handleCreateAccount = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!bankName) {
+      toast.error("Select a bank.");
+      return;
+    }
     createAccountMutation.mutate({ accountName, bankName, accountNumber, currency: "KES" });
   };
 
@@ -400,7 +406,7 @@ export default function BankReconciliation() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bank-name">Bank</Label>
-                  <Input id="bank-name" value={bankName} onChange={(event) => setBankName(event.target.value)} required maxLength={255} />
+                  <BankNameSelect id="bank-name" value={bankName} onValueChange={setBankName} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bank-account-number">Account number</Label>
@@ -626,14 +632,7 @@ export default function BankReconciliation() {
                         </SelectContent>
                       </Select>
                       {ruleAction === "auto_match_category" && (
-                        <Select value={ruleTargetAccountId} onValueChange={setRuleTargetAccountId}>
-                          <SelectTrigger aria-label="Suggested account"><SelectValue placeholder="Select target account" /></SelectTrigger>
-                          <SelectContent>
-                            {ruleTargetAccounts.map((account: any) => (
-                              <SelectItem key={account.id} value={account.id}>{account.accountCode} · {account.accountName}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <ChartOfAccountsSelector accounts={ruleTargetAccounts} value={ruleTargetAccountId} onChange={setRuleTargetAccountId} placeholder="Select target account" ariaLabel="Suggested account" />
                       )}
                       <Button type="submit" disabled={createRuleMutation.isPending || (ruleAction === "auto_match_category" && !ruleTargetAccounts.length)}>{createRuleMutation.isPending ? "Saving..." : "Add rule"}</Button>
                     </form>

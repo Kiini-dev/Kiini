@@ -19,6 +19,7 @@ import { ArrowLeft, Save, Loader2, Heart } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import mutateAsync from "@/lib/mutationHelpers";
 import { Spinner } from "@/components/ui/spinner";
+import { toMinorCurrencyAmount } from "../../../shared/currency";
 
 const BENEFIT_TYPES = [
   "Health Insurance",
@@ -88,8 +89,8 @@ export default function EditBenefit() {
         benefitType: formData.benefitType,
         provider: formData.provider || undefined,
         coverage: formData.coverage || undefined,
-        cost: formData.cost ? parseInt(formData.cost) * 100 : undefined,
-        employerCost: formData.employerCost ? parseInt(formData.employerCost) * 100 : undefined,
+        cost: formData.cost ? toMinorCurrencyAmount(formData.cost) : undefined,
+        employerCost: formData.employerCost ? toMinorCurrencyAmount(formData.employerCost) : undefined,
         notes: formData.notes || undefined,
       });
     } finally {
@@ -181,4 +182,3 @@ export default function EditBenefit() {
     </ModuleLayout>
   );
 }
-

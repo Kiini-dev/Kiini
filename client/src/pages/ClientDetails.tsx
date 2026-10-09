@@ -47,6 +47,7 @@ import {
 import { logDelete } from "@/lib/activityLog";
 import { RichTextDisplay } from "@/components/RichTextEditor";
 import { trpc } from "@/lib/trpc";
+import { BankNameSelect } from "@/components/BankNameSelect";
 import mutateAsync from "@/lib/mutationHelpers";
 import { computeHealthScore } from "@/lib/healthScore";
 import { useFavorite } from "@/hooks/useFavorite";
@@ -907,10 +908,10 @@ export default function ClientDetails() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="bankName">Bank Name</Label>
-                    <Input
+                    <BankNameSelect
                       id="bankName"
                       value={financialInfo.bankName}
-                      onChange={(e) => setFinancialInfo({ ...financialInfo, bankName: e.target.value })}
+                      onValueChange={(bankName) => setFinancialInfo({ ...financialInfo, bankName })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -1214,4 +1215,3 @@ export default function ClientDetails() {
     </ModuleLayout>
   );
 }
-

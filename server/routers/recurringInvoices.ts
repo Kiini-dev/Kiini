@@ -1,6 +1,6 @@
 import { protectedProcedure, router, createFeatureRestrictedProcedure } from "../_core/trpc";
 import { z } from "zod";
-import { recurringInvoices, invoices, lineItems, clientSubscriptions } from "../../drizzle/schema";
+import { recurringInvoices, invoices, invoiceItems, lineItems, clientSubscriptions } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { eq, and, lte, gte, desc, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -41,7 +41,8 @@ const createRecurringInvoiceSchema = z.object({
 const updateRecurringInvoiceSchema = z.object({
   id: z.string(),
   frequency: z.enum(["weekly", "biweekly", "monthly", "quarterly", "annually"]).optional(),
-  endDate: z.string().datetime().optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().nullable().optional(),
   isActive: z.boolean().optional(),
   description: z.string().optional(),
   noteToInvoice: z.string().optional(),
@@ -265,9 +266,13 @@ export const recurringInvoicesRouter = router({
           updatedAt: toMySqlDateFormat(new Date().toISOString()),
         };
 
-        if (updateData.frequency) {
-          updates.frequency = updateData.frequency;
-          // Recalculate next due date if frequency changed
+        const nextFrequency = updateData.frequency || existing[0].frequency;
+        if (updateData.frequency) updates.frequency = updateData.frequency;
+        if (updateData.startDate !== undefined) {
+          const startDate = parseIsoDateInput(updateData.startDate);
+          updates.startDate = toMySqlDateFormat(updateData.startDate);
+          updates.nextDueDate = toMySqlDateFormat(calculateNextDueDate(startDate, nextFrequency).toISOString());
+        } else if (updateData.frequency) {
           const nextDueDate = calculateNextDueDate(
             new Date(existing[0].nextDueDate),
             updateData.frequency
@@ -276,7 +281,7 @@ export const recurringInvoicesRouter = router({
         }
 
         if (updateData.endDate !== undefined) {
-          updates.endDate = toMySqlDateFormat(updateData.endDate);
+          updates.endDate = updateData.endDate ? toMySqlDateFormat(updateData.endDate) : null;
         }
 
         if (updateData.isActive !== undefined) {
@@ -299,12 +304,25 @@ export const recurringInvoicesRouter = router({
           .set(updates)
           .where(eq(recurringInvoices.id, id));
 
-        if (updateData.frequency || updateData.endDate !== undefined) {
+        if (
+          updateData.frequency ||
+          updateData.startDate !== undefined ||
+          updateData.endDate !== undefined ||
+          updateData.isActive !== undefined
+        ) {
           const linked = existing[0].clientSubscriptionId;
           if (linked) {
             const subscriptionUpdates: any = {};
             if (updateData.frequency) subscriptionUpdates.frequency = updateData.frequency;
+            if (updateData.frequency) subscriptionUpdates.nextBillingDate = updates.nextDueDate;
+            if (updateData.startDate !== undefined) {
+              subscriptionUpdates.startDate = toMySqlDateFormat(updateData.startDate);
+              subscriptionUpdates.nextBillingDate = updates.nextDueDate;
+            }
             if (updateData.endDate !== undefined) subscriptionUpdates.endDate = updateData.endDate ? toMySqlDateFormat(updateData.endDate) : null;
+            if (updateData.isActive !== undefined) {
+              subscriptionUpdates.status = updateData.isActive ? "active" : "paused";
+            }
             if (Object.keys(subscriptionUpdates).length > 0) {
               await db.update(clientSubscriptions)
                 .set(subscriptionUpdates)
@@ -404,7 +422,12 @@ export const recurringInvoicesRouter = router({
           });
         }
 
-        // Fetch template line items
+        // Invoices store their visible items in invoiceItems; lineItems is a legacy document table.
+        const templateInvoiceItems = await db
+          .select()
+          .from(invoiceItems)
+          .where(eq(invoiceItems.invoiceId, template[0].id));
+
         const templateLineItems = await db
           .select()
           .from(lineItems)
@@ -456,7 +479,25 @@ export const recurringInvoicesRouter = router({
           createdBy: ctx.user.id,
         });
 
-        // Copy line items
+        // Copy invoice items so generated invoices retain the template's actual products and totals.
+        if (templateInvoiceItems.length > 0) {
+          await db.insert(invoiceItems).values(
+            templateInvoiceItems.map((item: any) => ({
+              id: nanoid(),
+              invoiceId: newInvoiceId,
+              itemType: item.itemType,
+              itemId: item.itemId,
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              taxRate: item.taxRate,
+              discountPercent: item.discountPercent,
+              total: item.total,
+            }))
+          );
+        }
+
+        // Copy legacy line items for invoices created before invoiceItems was introduced.
         if (templateLineItems.length > 0) {
           await db.insert(lineItems).values(
             templateLineItems.map((item: any) => ({

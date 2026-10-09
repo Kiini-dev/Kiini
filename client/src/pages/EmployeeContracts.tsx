@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ModuleLayout } from "@/components/ModuleLayout";
 import { trpc } from "@/lib/trpc";
+import { ContractTypeSelector } from "@/components/ContractTypeSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -140,12 +141,7 @@ export default function EmployeeContractsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Contract Type</label>
-                  <Select value={form.contractType} onValueChange={(v) => setForm({ ...form, contractType: v })}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(CONTRACT_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <ContractTypeSelector options={Object.entries(CONTRACT_TYPES).map(([value, label]) => ({ value, label }))} value={form.contractType} onChange={(contractType) => setForm({ ...form, contractType })} />
                 </div>
                 <div>
                   <label className="text-sm font-medium">Title</label>
@@ -178,10 +174,7 @@ export default function EmployeeContractsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Contract Type</label>
-                  <Select value={form.contractType} onValueChange={(v) => setForm({ ...form, contractType: v })}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>{Object.entries(CONTRACT_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <ContractTypeSelector options={Object.entries(CONTRACT_TYPES).map(([value, label]) => ({ value, label }))} value={form.contractType} onChange={(contractType) => setForm({ ...form, contractType })} />
                 </div>
                 <div><label className="text-sm font-medium">Title</label><Input className="mt-1" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
               </div>
@@ -205,4 +198,3 @@ export default function EmployeeContractsPage() {
     </ModuleLayout>
   );
 }
-

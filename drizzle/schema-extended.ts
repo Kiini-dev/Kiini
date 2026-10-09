@@ -210,6 +210,8 @@ export const salaryAllowances = mysqlTable("salaryAllowances", {
   id: varchar("id", { length: 64 }).primaryKey(),
   employeeId: varchar("employeeId", { length: 64 }).notNull(),
   allowanceType: varchar("allowanceType", { length: 100 }).notNull(), // house, transport, meals, phone, etc.
+  departmentIdOverride: varchar("departmentIdOverride", { length: 64 }),
+  glAccountId: varchar("glAccountId", { length: 64 }),
   amount: int("amount").notNull(), // in cents
   frequency: mysqlEnum("frequency", ["monthly", "quarterly", "annual", "one_time"]).notNull(),
   effectiveDate: datetime("effectiveDate").notNull(),
@@ -232,6 +234,8 @@ export const salaryDeductions = mysqlTable("salaryDeductions", {
   id: varchar("id", { length: 64 }).primaryKey(),
   employeeId: varchar("employeeId", { length: 64 }).notNull(),
   deductionType: varchar("deductionType", { length: 100 }).notNull(), // loan, pension, insurance, tax, etc.
+  departmentIdOverride: varchar("departmentIdOverride", { length: 64 }),
+  glAccountId: varchar("glAccountId", { length: 64 }),
   amount: int("amount").notNull(), // in cents
   frequency: mysqlEnum("frequency", ["monthly", "quarterly", "annual", "one_time"]).notNull(),
   effectiveDate: datetime("effectiveDate").notNull(),
@@ -255,6 +259,8 @@ export const employeeBenefits = mysqlTable("employeeBenefits", {
   id: varchar("id", { length: 64 }).primaryKey(),
   employeeId: varchar("employeeId", { length: 64 }).notNull(),
   benefitType: varchar("benefitType", { length: 100 }).notNull(), // health_insurance, life_insurance, pension, etc.
+  departmentIdOverride: varchar("departmentIdOverride", { length: 64 }),
+  glAccountId: varchar("glAccountId", { length: 64 }),
   provider: varchar("provider", { length: 255 }), // insurance company, pension fund, etc.
   enrollDate: datetime("enrollDate").notNull(),
   endDate: datetime("endDate"), // null if ongoing
@@ -270,6 +276,20 @@ export const employeeBenefits = mysqlTable("employeeBenefits", {
   employeeIdx: index("employee_idx").on(table.employeeId),
   typeIdx: index("type_idx").on(table.benefitType),
   isActiveIdx: index("is_active_idx").on(table.isActive),
+}));
+
+export const payrollComponentMappings = mysqlTable("payrollComponentMappings", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  organizationId: varchar("organizationId", { length: 64 }),
+  componentType: varchar("componentType", { length: 50 }).notNull(),
+  componentName: varchar("componentName", { length: 100 }).notNull(),
+  accountId: varchar("accountId", { length: 64 }).notNull(),
+  createdBy: varchar("createdBy", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+}, (table) => ({
+  organizationIdx: index("payroll_component_mapping_org_idx").on(table.organizationId),
+  componentIdx: index("payroll_component_mapping_component_idx").on(table.componentType, table.componentName),
 }));
 
 /**
@@ -497,7 +517,7 @@ export type InsertDepartmentalHead = typeof departmentalHeads.$inferInsert;
  */
 export const p9Forms = mysqlTable("p9_forms", {
   id: varchar("id", { length: 64 }).primaryKey(),
-  organizationId: varchar("organizationId", { length: 64 }).notNull(),
+  organizationId: varchar("organizationId", { length: 64 }),
   employeeId: varchar("employeeId", { length: 64 }).notNull(),
   taxYear: int("taxYear").notNull(), // e.g., 2024 (Jan-Dec)
   taxNumber: varchar("taxNumber", { length: 30 }),
@@ -663,6 +683,7 @@ export const imprests = mysqlTable("imprests", {
   imprestNumber: varchar("imprestNumber", { length: 50 }).notNull(),
   userId: varchar("userId", { length: 64 }).notNull(),
   purpose: text("purpose"),
+  templateData: json("templateData"),
   amount: int("amount").notNull(),
   status: mysqlEnum("status", ["requested","approved","rejected","settled"]).default("requested").notNull(),
   createdBy: varchar("createdBy", { length: 64 }),
@@ -850,6 +871,7 @@ export const departmentBudgets = mysqlTable(
     remaining: int("remaining").notNull(), // in cents
     budgetStatus: mysqlEnum("budgetStatus", ["under", "at", "over"]).notNull(),
     category: varchar("category", { length: 100 }), // e.g. payroll, operations, marketing
+    budgetCode: varchar("budgetCode", { length: 100 }),
     notes: text("notes"),
     createdBy: varchar("createdBy", { length: 64 }),
     createdAt: timestamp("createdAt").defaultNow(),
@@ -970,6 +992,7 @@ export type InsertOrganizationAccountingPolicy = typeof organizationAccountingPo
 export const journalEntries = mysqlTable("journalEntries", {
   id: varchar("id", { length: 36 }).primaryKey(),
   organizationId: varchar("organizationId", { length: 36 }).notNull(),
+  costCenterId: varchar("costCenterId", { length: 36 }),
   entryDate: datetime("entryDate").notNull(),
   entryMonth: varchar("entryMonth", { length: 7 }).notNull(), // YYYY-MM
   reference: varchar("reference", { length: 50 }).notNull(),

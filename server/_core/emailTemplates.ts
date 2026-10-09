@@ -47,6 +47,9 @@ export function resolveEmailLinks(html: string, baseUrl = process.env.APP_URL ||
   const resolved = html.replace(/\b(href|src)=(['"])(.*?)\2/gi, (_match, attribute: string, quote: string, rawValue: string) => {
     const value = rawValue.replace(/&amp;/gi, '&').trim();
     if (!value || value.startsWith('{{') || value.startsWith('${')) return `${attribute}=${quote}${quote}`;
+    if (attribute.toLowerCase() === 'src' && /^data:image\/[^;]+;base64,/i.test(value)) {
+      return `${attribute}=${quote}${normalizedBase}/logo.png${quote}`;
+    }
     if (value.startsWith('#')) return `${attribute}=${quote}${value}${quote}`;
     try {
       const parsed = new URL(value, `${normalizedBase}/`);

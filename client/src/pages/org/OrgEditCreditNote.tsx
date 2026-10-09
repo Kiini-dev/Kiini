@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { FileText, Plus, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { ClientSelector } from "@/components/ClientSelector";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -166,21 +167,17 @@ export default function EditCreditNote() {
           <div className="grid gap-4">
             <div className="grid grid-cols-[140px_1fr] items-center gap-3">
               <Label className="text-right text-sm">Client *</Label>
-              <Select
+              <ClientSelector
                 value={clientId}
-                onValueChange={(v) => {
+                onChange={(v) => {
                   setClientId(v);
                   const c = (clients as any[]).find((c: any) => c.id === v);
                   if (c) setClientName(c.companyName || c.name || "");
                 }}
-              >
-                <SelectTrigger><SelectValue placeholder="Select client..." /></SelectTrigger>
-                <SelectContent>
-                  {(clients as any[]).map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>{c.companyName || c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                required
+                placeholder="Select client..."
+                label=""
+              />
             </div>
             <div className="grid grid-cols-[140px_1fr] items-center gap-3">
               <Label className="text-right text-sm">Number *</Label>

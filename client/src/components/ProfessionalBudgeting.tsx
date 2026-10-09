@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { ModuleLayout } from '@/components/ModuleLayout';
 import { trpc } from '@/lib/trpc';
+import { ChartOfAccountsSelector } from '@/components/ChartOfAccountsSelector';
 import { toast } from 'sonner';
 import {
   Card,
@@ -544,22 +545,11 @@ export default function ProfessionalBudgeting() {
                       {createFormData.budgetLines.map((line, idx) => (
                         <TableRow key={idx}>
                           <TableCell>
-                            <Select value={line.accountId} onValueChange={(val) => {
+                            <ChartOfAccountsSelector accounts={coaAccounts ?? []} value={line.accountId} onChange={(val) => {
                               const newLines = [...createFormData.budgetLines];
                               newLines[idx].accountId = val;
                               setCreateFormData(prev => ({ ...prev, budgetLines: newLines }));
-                            }}>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select account" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {coaAccounts?.map(acc => (
-                                  <SelectItem key={acc.id} value={acc.id}>
-                                    {acc.accountCode} - {acc.accountName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            }} placeholder="Select account" />
                           </TableCell>
                           <TableCell>
                             <Input
@@ -664,4 +654,3 @@ export default function ProfessionalBudgeting() {
     </ModuleLayout>
   );
 }
-

@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Users, UserPlus, Plus, Upload, X, Copy, Check, Save, Shield, CreditCard, MapPin, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmployeeAccountSection } from "@/components/EmployeeAccountSection";
+import { BankNameSelect } from "@/components/BankNameSelect";
 import { PhoneInput } from "@/components/PhoneInput";
 
 export default function CreateEmployee() {
@@ -152,7 +153,7 @@ export default function CreateEmployee() {
           department: formData.department || undefined,
           position: formData.position || undefined,
           jobGroupId: formData.jobGroupId,
-          salary: formData.salary ? Math.round(parseFloat(formData.salary)) : undefined,
+          salary: formData.salary ? parseFloat(formData.salary) : undefined,
           employmentType: formData.employmentType || undefined,
           status: (formData.status as any) || undefined,
           photoUrl: photoDataUrl,
@@ -194,7 +195,7 @@ export default function CreateEmployee() {
         department: formData.department || undefined,
         position: formData.position || undefined,
         jobGroupId: formData.jobGroupId,
-        salary: formData.salary ? Math.round(parseFloat(formData.salary)) : undefined,
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
         employmentType: formData.employmentType || undefined,
         status: (formData.status as any) || undefined,
         nationalId: formData.nationalId || undefined,
@@ -587,23 +588,10 @@ export default function CreateEmployee() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Bank Name</Label>
-                  <Select value={formData.bankName} onValueChange={(v) => setFormData({ ...formData, bankName: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select bank" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="KCB Bank">KCB Bank</SelectItem>
-                      <SelectItem value="Equity Bank">Equity Bank</SelectItem>
-                      <SelectItem value="Co-operative Bank">Co-operative Bank</SelectItem>
-                      <SelectItem value="ABSA Bank">ABSA Bank</SelectItem>
-                      <SelectItem value="Standard Chartered">Standard Chartered</SelectItem>
-                      <SelectItem value="NCBA Bank">NCBA Bank</SelectItem>
-                      <SelectItem value="I&M Bank">I&M Bank</SelectItem>
-                      <SelectItem value="Diamond Trust Bank">Diamond Trust Bank</SelectItem>
-                      <SelectItem value="Stanbic Bank">Stanbic Bank</SelectItem>
-                      <SelectItem value="Family Bank">Family Bank</SelectItem>
-                      <SelectItem value="M-Pesa">M-Pesa (Safaricom)</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <BankNameSelect
+                    value={formData.bankName}
+                    onValueChange={(bankName) => setFormData({ ...formData, bankName })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Bank Branch</Label>

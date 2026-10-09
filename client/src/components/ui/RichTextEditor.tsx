@@ -35,6 +35,31 @@ interface RichTextEditorProps {
   readOnly?: boolean;
 }
 
+function ToolbarButton({
+  onClick,
+  active,
+  title,
+  children,
+}: {
+  onClick: () => void;
+  active?: boolean;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      type="button"
+      variant={active ? "secondary" : "ghost"}
+      size="sm"
+      className={cn("h-7 w-7 p-0", active && "bg-muted")}
+      onClick={onClick}
+      title={title}
+    >
+      {children}
+    </Button>
+  );
+}
+
 export function RichTextEditor({
   value = "",
   onChange,
@@ -63,29 +88,6 @@ export function RichTextEditor({
   });
 
   if (!editor) return null;
-
-  const ToolbarButton = ({
-    onClick,
-    active,
-    title,
-    children,
-  }: {
-    onClick: () => void;
-    active?: boolean;
-    title: string;
-    children: React.ReactNode;
-  }) => (
-    <Button
-      type="button"
-      variant={active ? "secondary" : "ghost"}
-      size="sm"
-      className={cn("h-7 w-7 p-0", active && "bg-muted")}
-      onClick={onClick}
-      title={title}
-    >
-      {children}
-    </Button>
-  );
 
   const setLink = () => {
     const prev = editor.getAttributes("link").href;

@@ -4,6 +4,7 @@ import { PhoneInput } from "@/components/PhoneInput";
 import { FormField, FormTextInput, FormTextarea, FormSelect } from "@/components/FormField";
 import { CountrySelect, CitySelect, IndustrySelect } from "@/components/LocationSelects";
 import { trpc } from "@/lib/trpc";
+import { BankNameSelect } from "@/components/BankNameSelect";
 
 export interface SupplierFormData {
   companyName: string;
@@ -198,10 +199,11 @@ export function SupplierForm({ formData, setFormData, teamMembers, errors = {} }
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Bank Name" error={errors.bankName}>
-              <FormSelect value={formData.bankName} onValueChange={(value) => handleInputChange("bankName", value)}>
-                <option value="">Select bank...</option>
-                {bankNames.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
-              </FormSelect>
+              <BankNameSelect
+                value={formData.bankName}
+                onValueChange={(value) => handleInputChange("bankName", value)}
+                extraOptions={bankNames}
+              />
             </FormField>
 
             <FormField label="Bank Branch" error={errors.bankBranch}>
