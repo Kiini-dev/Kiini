@@ -11,4 +11,4 @@ CREATE TABLE IF NOT EXISTS `organizationSettings` (
   UNIQUE KEY `org_settings_scope_key_idx` (`organizationId`, `category`, `key`),
   CONSTRAINT `organizationSettings_org_fk`
     FOREIGN KEY (`organizationId`) REFERENCES `organizations` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

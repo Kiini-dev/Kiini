@@ -20,7 +20,7 @@ ADD CONSTRAINT fk_employees_jobGroupId FOREIGN KEY (jobGroupId) REFERENCES jobGr
 -- Create attendance table for tracking employee attendance
 CREATE TABLE IF NOT EXISTS attendance (
     id VARCHAR(64) PRIMARY KEY,
-    employeeId VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+    employeeId VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
     date DATE NOT NULL,
     status ENUM('present', 'absent', 'leave', 'half_day', 'remote') DEFAULT 'absent' NOT NULL,
     checkInTime TIME NULL,
@@ -32,4 +32,4 @@ CREATE TABLE IF NOT EXISTS attendance (
     INDEX attendance_date_idx (date),
     INDEX attendance_status_idx (status),
     FOREIGN KEY (employeeId) REFERENCES employees(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
