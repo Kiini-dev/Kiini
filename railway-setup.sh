@@ -63,6 +63,20 @@ if ! railway volume list 2>/dev/null | grep -q "$UPLOAD_MOUNT"; then
     || echo "Volume add failed - add it in the dashboard (Service > Volumes)."
 fi
 
+# Attach the custom domain (host taken from APP_URL). Railway prints the
+# DNS record(s) to create at your registrar.
+CUSTOM_DOMAIN="${APP_URL#*://}"; CUSTOM_DOMAIN="${CUSTOM_DOMAIN%%/*}"
+if [[ "$CUSTOM_DOMAIN" != *.up.railway.app ]]; then
+  echo "Attaching custom domain $CUSTOM_DOMAIN..."
+  railway domain "$CUSTOM_DOMAIN" --service "$SERVICE" \
+    || echo "Domain add failed - add it in the dashboard (Service > Settings > Networking)."
+  # Per-org subdomains (org.kiini.africa) need a wildcard domain too
+  railway domain "*.$CUSTOM_DOMAIN" --service "$SERVICE" \
+    || echo "Wildcard add failed - add *.$CUSTOM_DOMAIN in the dashboard."
+  echo "Create the DNS record Railway shows above, then wait for it to verify."
+  echo "Apex domain? Use a registrar/DNS host with CNAME flattening/ALIAS (e.g. Cloudflare)."
+fi
+
 echo
 echo "Done. VITE_* values are baked in at build time, so deploy now:"
 echo "  railway up --service $SERVICE"
