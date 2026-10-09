@@ -172,7 +172,7 @@
   --sidebar-ring: #1abb9c;
 }
 
-.dark {
+:root.dark:not(.public-website) {
   --primary: #1abb9c;
   --primary-foreground: #ffffff;
   --sidebar-primary: #1abb9c;
@@ -215,8 +215,37 @@
     @apply bg-background text-foreground transition-colors duration-200;
   }
 
-  .dark {
+  :root.dark:not(.public-website) {
     color-scheme: dark;
+  }
+
+  :root.dark.public-website {
+    color-scheme: light !important;
+    --primary: var(--theme-light-primary, #1abb9c) !important;
+    --primary-foreground: #ffffff !important;
+    --sidebar-primary: var(--theme-light-primary, #1abb9c) !important;
+    --sidebar-primary-foreground: #ffffff !important;
+    --background: var(--theme-light-bg, #f5f7fb) !important;
+    --foreground: var(--theme-light-text, #1e2633) !important;
+    --card: var(--theme-light-surface, #ffffff) !important;
+    --card-foreground: var(--theme-light-text, #1e2633) !important;
+    --popover: var(--theme-light-surface, #ffffff) !important;
+    --popover-foreground: var(--theme-light-text, #1e2633) !important;
+    --secondary: var(--theme-light-bg, #f9fafb) !important;
+    --secondary-foreground: var(--theme-light-secondary, #626d7d) !important;
+    --muted: var(--theme-light-bg, #f9fafb) !important;
+    --muted-foreground: var(--theme-light-secondary, #7e8896) !important;
+    --accent: var(--theme-light-accent, rgba(26, 187, 156, 0.08)) !important;
+    --accent-foreground: var(--theme-light-primary, #169f85) !important;
+    --border: #e6e7eb !important;
+    --input: #e6e7eb !important;
+    --ring: var(--theme-light-primary, #1abb9c) !important;
+    --sidebar: var(--theme-light-surface, #ffffff) !important;
+    --sidebar-foreground: var(--theme-light-text, #1f2937) !important;
+    --sidebar-accent: var(--theme-light-accent, rgba(26, 187, 156, 0.08)) !important;
+    --sidebar-accent-foreground: #0f172a !important;
+    --sidebar-border: rgba(15, 23, 42, 0.08) !important;
+    --sidebar-ring: var(--theme-light-primary, #1abb9c) !important;
   }
 
 
@@ -511,227 +540,227 @@
    */
 
   /* Base card styling */
-  .dark .card,
-  .dark [class*="card"] {
+  :root.dark:not(.public-website) .card,
+  :root.dark:not(.public-website) [class*="card"] {
     @apply bg-slate-800/80 text-slate-50 border-slate-700 hover:border-slate-600 transition-all duration-200;
   }
 
   /* Statistical cards with enhanced gradients */
-  .dark .stat-card,
-  .dark [class*="stat-card"] {
+  :root.dark:not(.public-website) .stat-card,
+  :root.dark:not(.public-website) [class*="stat-card"] {
     @apply bg-gradient-to-br from-slate-800 to-slate-700/50 text-slate-50 border-slate-700 shadow-lg hover:shadow-xl hover:border-blue-600/30 transition-all;
   }
 
   /* Module action cards */
-  .dark .module-card,
-  .dark [class*="module-card"] {
+  :root.dark:not(.public-website) .module-card,
+  :root.dark:not(.public-website) [class*="module-card"] {
     @apply bg-slate-800 text-slate-50 border-slate-700 hover:bg-slate-700/80 hover:border-blue-600/30 transition-all duration-300;
   }
 
   /* Overview metric cards */
-  .dark [class*="overview"] {
+  :root.dark:not(.public-website) [class*="overview"] {
     @apply bg-slate-800/70 text-slate-50 border-slate-700 hover:bg-slate-700/80 transition-colors;
   }
 
   /* Tables */
-  .dark .data-table,
-  .dark table {
+  :root.dark:not(.public-website) .data-table,
+  :root.dark:not(.public-website) table {
     @apply bg-slate-800 text-slate-100;
   }
 
-  .dark .data-table thead,
-  .dark table thead {
+  :root.dark:not(.public-website) .data-table thead,
+  :root.dark:not(.public-website) table thead {
     @apply bg-slate-700/60 text-slate-50 font-semibold;
   }
 
-  .dark .data-table tbody tr,
-  .dark table tbody tr {
+  :root.dark:not(.public-website) .data-table tbody tr,
+  :root.dark:not(.public-website) table tbody tr {
     @apply border-slate-700 hover:bg-slate-700/50 transition-colors;
   }
 
-  .dark .data-table tbody tr:hover,
-  .dark table tbody tr:hover {
+  :root.dark:not(.public-website) .data-table tbody tr:hover,
+  :root.dark:not(.public-website) table tbody tr:hover {
     @apply bg-slate-700/50;
   }
 
-  .dark .data-table td,
-  .dark table td {
+  :root.dark:not(.public-website) .data-table td,
+  :root.dark:not(.public-website) table td {
     @apply border-slate-700/50 text-slate-100;
   }
 
-  .dark .data-table th,
-  .dark table th {
+  :root.dark:not(.public-website) .data-table th,
+  :root.dark:not(.public-website) table th {
     @apply border-slate-700 text-slate-50 font-semibold;
   }
 
   /* Form elements */
-  .dark .form-input,
-  .dark input:not([type="checkbox"]):not([type="radio"]),
-  .dark textarea,
-  .dark select {
+  :root.dark:not(.public-website) .form-input,
+  :root.dark:not(.public-website) input:not([type="checkbox"]):not([type="radio"]),
+  :root.dark:not(.public-website) textarea,
+  :root.dark:not(.public-website) select {
     @apply bg-slate-700/80 text-slate-50 border-slate-600 placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500/20 transition-all;
   }
 
-  .dark .form-input:focus,
-  .dark input:focus,
-  .dark textarea:focus,
-  .dark select:focus {
+  :root.dark:not(.public-website) .form-input:focus,
+  :root.dark:not(.public-website) input:focus,
+  :root.dark:not(.public-website) textarea:focus,
+  :root.dark:not(.public-website) select:focus {
     @apply bg-slate-700 text-slate-50 border-blue-500 ring-2 ring-blue-500/20;
   }
 
   /* Badges and labels */
-  .dark .badge,
-  .dark [class*="badge"] {
+  :root.dark:not(.public-website) .badge,
+  :root.dark:not(.public-website) [class*="badge"] {
     @apply bg-slate-700/80 text-slate-100 border-slate-600/50;
   }
 
-  .dark .badge-success {
+  :root.dark:not(.public-website) .badge-success {
     @apply bg-green-950/50 text-green-200 border-green-800/60 font-medium;
   }
 
-  .dark .badge-warning {
+  :root.dark:not(.public-website) .badge-warning {
     @apply bg-amber-950/50 text-amber-200 border-amber-800/60 font-medium;
   }
 
-  .dark .badge-error {
+  :root.dark:not(.public-website) .badge-error {
     @apply bg-red-950/50 text-red-200 border-red-800/60 font-medium;
   }
 
-  .dark .badge-info {
+  :root.dark:not(.public-website) .badge-info {
     @apply bg-blue-950/50 text-blue-200 border-blue-800/60 font-medium;
   }
 
   /* Button variants */
-  .dark button,
-  .dark [role="button"] {
+  :root.dark:not(.public-website) button,
+  :root.dark:not(.public-website) [role="button"] {
     @apply transition-all duration-200 text-slate-100;
   }
 
-  .dark .button-secondary,
-  .dark [class*="secondary"] {
+  :root.dark:not(.public-website) .button-secondary,
+  :root.dark:not(.public-website) [class*="secondary"] {
     @apply bg-slate-700 text-slate-100 hover:bg-slate-600 border-slate-600;
   }
 
-  .dark .button-ghost {
+  :root.dark:not(.public-website) .button-ghost {
     @apply text-slate-100 hover:bg-slate-700/50 hover:text-slate-50;
   }
 
   /* Dialog and modal backgrounds */
-  .dark [role="dialog"],
-  .dark .dialog {
+  :root.dark:not(.public-website) [role="dialog"],
+  :root.dark:not(.public-website) .dialog {
     @apply bg-slate-800 border-slate-700;
   }
 
-  .dark .dialog-content {
+  :root.dark:not(.public-website) .dialog-content {
     @apply bg-slate-800 text-slate-50;
   }
 
   /* Dropdown menus */
-  .dark [role="menu"],
-  .dark .dropdown {
+  :root.dark:not(.public-website) [role="menu"],
+  :root.dark:not(.public-website) .dropdown {
     @apply bg-slate-800 border-slate-700;
   }
 
-  .dark [role="menuitem"],
-  .dark .dropdown-item {
+  :root.dark:not(.public-website) [role="menuitem"],
+  :root.dark:not(.public-website) .dropdown-item {
     @apply text-slate-100 hover:bg-slate-700 focus:bg-slate-700 focus:text-slate-50;
   }
 
   /* Popover */
-  .dark .popover {
+  :root.dark:not(.public-website) .popover {
     @apply bg-slate-800 border-slate-700;
   }
 
   /* Links */
-  .dark a {
+  :root.dark:not(.public-website) a {
     @apply text-blue-400 hover:text-blue-300 transition-colors font-medium;
   }
 
   /* Separator lines */
-  .dark [role="separator"],
-  .dark hr {
+  :root.dark:not(.public-website) [role="separator"],
+  :root.dark:not(.public-website) hr {
     @apply border-slate-700;
   }
 
   /* Alerts and notifications */
-  .dark .alert {
+  :root.dark:not(.public-website) .alert {
     @apply bg-slate-800 border-slate-700 text-slate-100;
   }
 
-  .dark .alert-success {
+  :root.dark:not(.public-website) .alert-success {
     @apply bg-green-950/40 border-green-800/60 text-green-200;
   }
 
-  .dark .alert-warning {
+  :root.dark:not(.public-website) .alert-warning {
     @apply bg-amber-950/40 border-amber-800/60 text-amber-200;
   }
 
-  .dark .alert-error {
+  :root.dark:not(.public-website) .alert-error {
     @apply bg-red-950/40 border-red-800/60 text-red-200;
   }
 
   /* Enhanced text color hierarchy */
-  .dark .text-primary,
-  .dark h1,
-  .dark h2,
-  .dark h3,
-  .dark h4,
-  .dark h5,
-  .dark h6 {
+  :root.dark:not(.public-website) .text-primary,
+  :root.dark:not(.public-website) h1,
+  :root.dark:not(.public-website) h2,
+  :root.dark:not(.public-website) h3,
+  :root.dark:not(.public-website) h4,
+  :root.dark:not(.public-website) h5,
+  :root.dark:not(.public-website) h6 {
     @apply text-slate-50 font-semibold;
   }
 
-  .dark .text-secondary {
+  :root.dark:not(.public-website) .text-secondary {
     @apply text-slate-300;
   }
 
-  .dark .text-muted,
-  .dark .text-muted-foreground {
+  :root.dark:not(.public-website) .text-muted,
+  :root.dark:not(.public-website) .text-muted-foreground {
     @apply text-slate-400;
   }
 
-  .dark .text-subtle {
+  :root.dark:not(.public-website) .text-subtle {
     @apply text-slate-500;
   }
 
   /* Code and technical text */
-  .dark code,
-  .dark pre,
-  .dark .code {
+  :root.dark:not(.public-website) code,
+  :root.dark:not(.public-website) pre,
+  :root.dark:not(.public-website) .code {
     @apply bg-slate-900/60 text-cyan-300 border-slate-700;
   }
 
   /* List items */
-  .dark li {
+  :root.dark:not(.public-website) li {
     @apply text-slate-100;
   }
 
   /* Paragraph text */
-  .dark p {
+  :root.dark:not(.public-website) p {
     @apply text-slate-200;
   }
 
   /* Small text and captions */
-  .dark small,
-  .dark .text-sm,
-  .dark .caption {
+  :root.dark:not(.public-website) small,
+  :root.dark:not(.public-website) .text-sm,
+  :root.dark:not(.public-website) .caption {
     @apply text-slate-400;
   }
 
   /* Label text */
-  .dark label {
+  :root.dark:not(.public-website) label {
     @apply text-slate-100 font-medium;
   }
 
   /* Help text and hints */
-  .dark .help-text,
-  .dark .hint {
+  :root.dark:not(.public-website) .help-text,
+  :root.dark:not(.public-website) .hint {
     @apply text-slate-400 text-sm italic;
   }
 
   /* Disabled elements */
-  .dark :disabled,
-  .dark [aria-disabled="true"] {
+  :root.dark:not(.public-website) :disabled,
+  :root.dark:not(.public-website) [aria-disabled="true"] {
     @apply text-slate-500 opacity-60;
   }
 
@@ -883,4 +912,3 @@
     }
   }
 }
-

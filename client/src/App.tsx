@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense, useEffect, useLayoutEffect } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch, Router as WouterRouter, useLocation } from "wouter";
 import { useBrowserLocation } from "wouter/use-browser-location";
@@ -783,7 +783,40 @@ function useTenantLocation(): [string, (path: string, ...args: any[]) => any] {
   return [internalPath, navigate] as [string, (to: string, ...args: any[]) => any];
 }
 
+function isPublicWebsitePath(pathname: string) {
+  const path = pathname.split("?")[0].replace(/\/+$/, "") || "/";
+  return path === "/"
+    || [
+      "/landing",
+      "/demo",
+      "/book-a-demo",
+      "/become-a-partner",
+      "/features",
+      "/pricing",
+      "/about",
+      "/contact",
+      "/blog",
+      "/privacy-policy",
+      "/terms-and-conditions",
+      "/documentation",
+      "/user-guide",
+      "/troubleshooting",
+    ].some((route) => path === route || path.startsWith(`${route}/`))
+    || path.startsWith("/page/")
+    || path.startsWith("/documentation/")
+    || path.startsWith("/user-guide/")
+    || path.startsWith("/troubleshooting/");
+}
+
 function Router() {
+  const [location] = useLocation();
+
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("public-website", isPublicWebsitePath(location));
+    return () => root.classList.remove("public-website");
+  }, [location]);
+
   return (
     <RouteGuard>
     <Switch>
