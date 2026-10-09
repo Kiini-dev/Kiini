@@ -49,10 +49,10 @@ CREATE TABLE IF NOT EXISTS `dashboardWidgetData` (
   CONSTRAINT `fk_widgetdata_widget` FOREIGN KEY (`widget_id`) REFERENCES `dashboardWidgets`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- 4. Attendance table (uses utf8mb4_general_ci for compatibility with employees.id)
+-- 4. Match employees.id's database-default collation for the foreign key.
 CREATE TABLE IF NOT EXISTS `attendance` (
     `id` VARCHAR(64) PRIMARY KEY,
-    `employeeId` VARCHAR(64) NOT NULL,
+    `employeeId` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
     `date` DATE NOT NULL,
     `status` ENUM('present', 'absent', 'leave', 'half_day', 'remote') DEFAULT 'absent' NOT NULL,
     `checkInTime` TIME NULL,
