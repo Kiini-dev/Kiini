@@ -1579,7 +1579,6 @@ export default function Settings() {
       if (themeData) {
         const savedColorMode = (themeData.colorMode === "dark" ? "dark" : "light") as "light" | "dark";
         setThemeSettings({ mainTheme: themeData.mainTheme || "Light Mode", resetUsersTheme: themeData.resetUsersTheme === "true", primaryColor: themeData.primaryColor || "#3b82f6", sidebarColor: themeData.sidebarColor || "#1e293b", headerColor: themeData.headerColor || "#ffffff", fontFamily: themeData.fontFamily || "Inter", borderRadius: themeData.borderRadius || "8", sidebarStyle: themeData.sidebarStyle || "dark", compactMode: themeData.compactMode === "true", htmlHead: themeData.htmlHead || "", htmlBody: themeData.htmlBody || "", cssStyle: themeData.cssStyle || "", colorMode: savedColorMode });
-        setTheme(savedColorMode);
       }
   }, [themeData]);
   useEffect(() => {
