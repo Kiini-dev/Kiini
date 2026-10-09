@@ -107,6 +107,42 @@ const globalDunningProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+const globalDocumentNumberingProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "super_admin" || ctx.user.organizationId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Only the global app super admin can manage document numbering" });
+  }
+  return next({ ctx });
+});
+
+const documentNumberTypes = [
+  "invoice", "estimate", "receipt", "proposal", "expense", "payment", "contract",
+  "quotation", "purchase_order", "project", "credit_note", "debit_note", "delivery_note",
+  "lpo", "grn", "work_order", "service_invoice", "imprest", "imprest_surrender",
+  "payslip", "supplier", "order", "warranty", "ticket", "product", "service",
+  "subscription", "department", "rfq", "expense_claim", "dn", "service_report",
+  "service_request", "service_order", "service_agreement", "service_contract",
+  "service_quote", "service_proposal", "service_estimate", "service_payment",
+  "service_receipt", "service_credit_note", "service_debit_note", "service_delivery_note",
+  "service_lpo", "service_grn", "service_work_order", "service_rfq",
+  "service_expense_claim", "service_dn",
+] as const;
+
+const defaultNumberPrefixes: Record<(typeof documentNumberTypes)[number], string> = {
+  invoice: "INV", estimate: "EST", receipt: "REC", proposal: "PROP", expense: "EXP",
+  payment: "PAY", contract: "CON", quotation: "QT", purchase_order: "PO", project: "PRJ",
+  credit_note: "CN", debit_note: "DN", delivery_note: "DN", lpo: "LPO", grn: "GRN",
+  work_order: "WO", service_invoice: "SI", imprest: "IMP", imprest_surrender: "IMPS",
+  payslip: "PS", supplier: "SUP", order: "ORD", warranty: "WRT", ticket: "TKT",
+  product: "PROD", service: "SRV", subscription: "SUB", department: "DEPT", rfq: "RFQ",
+  expense_claim: "EC", dn: "DN", service_report: "SR", service_request: "SR",
+  service_order: "SO", service_agreement: "SA", service_contract: "SC", service_quote: "SQ",
+  service_proposal: "SP", service_estimate: "SE", service_payment: "SPAY",
+  service_receipt: "SREC", service_credit_note: "SCN", service_debit_note: "SDN",
+  service_delivery_note: "SDN", service_lpo: "SLPO", service_grn: "SGRN",
+  service_work_order: "SWO", service_rfq: "SRFQ", service_expense_claim: "SEC",
+  service_dn: "SDN",
+};
+
 const defaultProductGuidance = {
   enabled: true,
   overlay: { enabled: true, opacity: 0.45, color: "#0f172a", closeOnOutsideClick: true },
@@ -146,6 +182,48 @@ const productGuidanceInput = z.object({
 });
 
 export const settingsRouter = router({
+  getDocumentNumberConfigurations: globalDocumentNumberingProcedure.query(async () => {
+    const database = await getDb();
+    if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    const rows = await database.select().from(documentNumberFormats);
+    const byType = new Map(rows.map((row) => [row.documentType, row]));
+    return documentNumberTypes.map((documentType) => {
+      const row = byType.get(documentType);
+      return {
+        documentType,
+        prefix: row?.prefix ?? defaultNumberPrefixes[documentType],
+        separator: row?.separator ?? "-",
+        padding: row?.padding ?? 6,
+        nextNumber: Math.max(1, row?.currentNumber ?? 1),
+      };
+    });
+  }),
+
+  updateDocumentNumberConfiguration: globalDocumentNumberingProcedure
+    .input(z.object({
+      documentType: z.enum(documentNumberTypes),
+      prefix: z.string().max(50).regex(/^[A-Za-z0-9_-]*$/),
+      separator: z.string().max(5),
+      padding: z.number().int().min(1).max(12),
+      nextNumber: z.number().int().min(1).max(2_147_483_647),
+    }))
+    .mutation(async ({ input }) => {
+      await db.updateDocumentNumberFormat(input.documentType, {
+        prefix: input.prefix,
+        separator: input.separator,
+        padding: input.padding,
+        currentNumber: input.nextNumber,
+      });
+      return { success: true };
+    }),
+
+  resetDocumentNumberConfiguration: globalDocumentNumberingProcedure
+    .input(z.object({ documentType: z.enum(documentNumberTypes) }))
+    .mutation(async ({ input }) => {
+      await db.resetDocumentNumberFormatCounter(input.documentType, 1);
+      return { success: true, nextNumber: 1 };
+    }),
+
   getDunningPolicy: globalDunningProcedure.query(async () => {
     const database = await getDb();
     if (!database) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });

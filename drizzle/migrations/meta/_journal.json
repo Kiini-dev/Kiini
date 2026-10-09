@@ -554,6 +554,13 @@
       "when": 1700000078000,
       "tag": "0080_add_permission_audit_and_delegation_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1700000079000,
+      "tag": "0163_document_number_formats_string_types",
+      "breakpoints": true
     }
   ]
 }

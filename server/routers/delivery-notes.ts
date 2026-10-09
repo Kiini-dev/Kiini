@@ -14,6 +14,12 @@ const editProcedure = createFeatureRestrictedProcedure("delivery_notes:edit");
 const deleteProcedure = createFeatureRestrictedProcedure("delivery_notes:delete");
 
 export const deliveryNotesRouter = router({
+  getNextNumber: createProcedure.mutation(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+    return { documentNumber: await generateNextDocumentNumber(db, "delivery_note") };
+  }),
+
   list: viewProcedure
     .input(z.object({
       limit: z.number().optional(),
@@ -60,6 +66,7 @@ export const deliveryNotesRouter = router({
 
   create: createProcedure
     .input(z.object({
+      dnNo: z.string().trim().min(1).max(100).optional(),
       supplier: z.string().min(1),
       orderId: z.string().optional(),
       deliveryDate: z.string(),
@@ -73,7 +80,7 @@ export const deliveryNotesRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       try {
         const id = uuidv4();
-        const dnNo = await generateNextDocumentNumber(db, "delivery_note");
+        const dnNo = input.dnNo || await generateNextDocumentNumber(db, "delivery_note");
         await db.insert(deliveryNotes).values({
           id,
           dnNo,

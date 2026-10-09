@@ -80,7 +80,7 @@ export const estimatesRouter = router({
       return await (baseQuery as any).limit(input?.limit || 50).offset(input?.offset || 0);
     }),
 
-  getNextEstimateNumber: createFeatureRestrictedProcedure("estimates:read")
+  getNextEstimateNumber: createFeatureRestrictedProcedure("estimates:create")
     .query(async () => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -207,6 +207,7 @@ export const estimatesRouter = router({
 
   create: createFeatureRestrictedProcedure("estimates:create")
     .input(z.object({
+      estimateNumber: z.string().trim().min(1).max(100).optional(),
       clientId: z.string(),
       projectId: z.string().nullable().optional(),
       title: z.string().optional(),
@@ -226,7 +227,7 @@ export const estimatesRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       
-      const estimateNumber = await generateNextEstimateNumber(db);
+      const estimateNumber = input.estimateNumber || await generateNextEstimateNumber(db);
 
       const id = uuidv4();
       const { lineItems, ...estimateData } = input;

@@ -22,6 +22,7 @@ const materialSchema = z.object({
 });
 
 const createWorkOrderSchema = z.object({
+  workOrderNumber: z.string().trim().min(1).max(100).optional(),
   issueDate: z.coerce.date(),
   description: z.string(),
   assignedTo: z.string(),
@@ -38,6 +39,12 @@ const createWorkOrderSchema = z.object({
 });
 
 export const workOrdersRouter = router({
+  getNextNumber: createProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    return { documentNumber: await generateNextDocumentNumber(db, "work_order") };
+  }),
+
   list: viewProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
@@ -76,7 +83,7 @@ export const workOrdersRouter = router({
       if (!db) throw new Error("Database not available");
       try {
         const id = uuidv4();
-        const workOrderNumber = await generateNextDocumentNumber(db, "work_order");
+        const workOrderNumber = input.workOrderNumber || await generateNextDocumentNumber(db, "work_order");
         const newRecord = await db.insert(workOrders).values({
           id,
           workOrderNumber,

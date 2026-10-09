@@ -903,7 +903,7 @@ export const templates = mysqlTable("templates", {
 
 export const documentNumberFormats = mysqlTable("documentNumberFormats", {
     id: varchar({ length: 64 }).primaryKey(),
-    documentType: mysqlEnum(['invoice','estimate','receipt','proposal','expense','payment','contract','quotation','purchase_order','project','credit_note','debit_note','delivery_note','lpo','grn','work_order','service_invoice']).notNull(),
+    documentType: varchar({ length: 50 }).notNull(),
     prefix: varchar({ length: 50 }).default('').notNull(),
     padding: int().default(6).notNull(),
     separator: varchar({ length: 5 }).default('-').notNull(),

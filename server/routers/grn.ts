@@ -15,6 +15,12 @@ const editProcedure = createFeatureRestrictedProcedure("grn:edit");
 const deleteProcedure = createFeatureRestrictedProcedure("grn:delete");
 
 export const grnRouter = router({
+  getNextNumber: createProcedure.mutation(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+    return { documentNumber: await generateNextDocumentNumber(db, "grn") };
+  }),
+
   list: viewProcedure
     .input(z.object({
       limit: z.number().optional(),
@@ -63,6 +69,7 @@ export const grnRouter = router({
 
   create: createProcedure
     .input(z.object({
+      grnNo: z.string().trim().min(1).max(100).optional(),
       supplier: z.string().min(1),
       invNo: z.string().optional(),
       receivedDate: z.string(),
@@ -77,7 +84,7 @@ export const grnRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       try {
         const id = uuidv4();
-        const grnNo = await generateNextDocumentNumber(db, "grn");
+        const grnNo = input.grnNo || await generateNextDocumentNumber(db, "grn");
         await db.insert(grnRecords).values({
           id,
           organizationId: ctx.user?.organizationId || null,

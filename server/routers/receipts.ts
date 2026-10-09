@@ -82,7 +82,7 @@ export const receiptsRouter = router({
       }
     }),
 
-  getNextReceiptNumber: viewProcedure
+  getNextReceiptNumber: createProcedure
     .query(async () => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -187,6 +187,7 @@ export const receiptsRouter = router({
 
   create: createProcedure
     .input(z.object({
+      receiptNumber: z.string().trim().min(1).max(100).optional(),
       clientId: z.string(),
       paymentId: z.string().optional(),
       amount: z.number(),
@@ -208,7 +209,7 @@ export const receiptsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const receiptNumber = await generateNextReceiptNumber(db);
+      const receiptNumber = input.receiptNumber || await generateNextReceiptNumber(db);
 
       const id = uuidv4();
       const { lineItems: items, ...receiptData } = input;

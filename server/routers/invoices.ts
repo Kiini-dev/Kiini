@@ -196,7 +196,7 @@ export const invoicesRouter = router({
       }
     }),
 
-  getNextInvoiceNumber: viewProcedure
+  getNextInvoiceNumber: createProcedure
     .query(async () => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -272,6 +272,7 @@ export const invoicesRouter = router({
 
   create: createProcedure
     .input(z.object({
+      invoiceNumber: z.string().trim().min(1).max(100).optional(),
       clientId: z.string(),
       projectId: z.string().nullable().optional(),
       title: z.string().optional(),
@@ -296,7 +297,7 @@ export const invoicesRouter = router({
       const id = uuidv4();
       const { lineItems, ...invoiceData } = input;
 
-      const invoiceNumber = await generateNextInvoiceNumber(db);
+      const invoiceNumber = input.invoiceNumber || await generateNextInvoiceNumber(db);
 
       // Convert dates to MySQL DATETIME format (YYYY-MM-DD HH:MM:SS)
       // MySQL doesn't accept ISO 8601 format for DATETIME/TIMESTAMP fields

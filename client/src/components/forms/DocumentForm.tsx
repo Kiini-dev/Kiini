@@ -130,6 +130,35 @@ export default function DocumentForm({
     { category: "invoice_categories" },
     { staleTime: 60_000, enabled: type === "invoice" }
   );
+  const { data: nextInvoiceNumber } = trpc.invoices.getNextInvoiceNumber.useQuery(undefined, {
+    enabled: mode === "create" && type === "invoice" && !initialData?.documentNumber,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const { data: nextEstimateNumber } = trpc.estimates.getNextEstimateNumber.useQuery(undefined, {
+    enabled: mode === "create" && type === "estimate" && !initialData?.documentNumber,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const { data: nextReceiptNumber } = trpc.receipts.getNextReceiptNumber.useQuery(undefined, {
+    enabled: mode === "create" && type === "receipt" && !initialData?.documentNumber,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  useEffect(() => {
+    if (mode !== "create" || documentNumber) return;
+    const generatedNumber = type === "invoice"
+      ? nextInvoiceNumber?.invoiceNumber
+      : type === "estimate"
+        ? nextEstimateNumber?.estimateNumber
+        : type === "receipt"
+          ? nextReceiptNumber?.receiptNumber
+          : undefined;
+    if (generatedNumber) setDocumentNumber(generatedNumber);
+  }, [mode, type, documentNumber, nextInvoiceNumber, nextEstimateNumber, nextReceiptNumber]);
   const configuredEstimateCategories = (() => {
     try {
       const parsed = JSON.parse(estimateCategorySettings?.list || "null");

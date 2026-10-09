@@ -64,6 +64,7 @@ export default function CreateInvoice() {
     const total = data.grandTotal || (subtotal + taxAmount);
 
     const invoiceData = {
+      invoiceNumber: data.documentNumber,
       clientId: data.clientId || `guest_${Date.now()}`,
       projectId: data.projectId || undefined,
       title: data.clientName ? `Invoice for ${data.clientName}` : undefined,
@@ -104,6 +105,7 @@ export default function CreateInvoice() {
     const total = data.grandTotal || (subtotal + taxAmount);
 
     const invoiceData = {
+      invoiceNumber: data.documentNumber,
       clientId: data.clientId || `guest_${Date.now()}`,
       projectId: data.projectId || undefined,
       title: data.clientName ? `Invoice for ${data.clientName}` : undefined,

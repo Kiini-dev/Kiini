@@ -1247,13 +1247,50 @@ function getDefaultPrefix(documentType: string): string {
     proposal: 'PROP-',
     expense: 'EXP-',
     payment: 'PAY-',
-    project: 'PROJ-',
+    project: 'PRJ-',
     contract: 'CON-',
-    quotation: 'QUO-',
-    purchase_order: 'LPO-',
+    quotation: 'QT-',
+    purchase_order: 'PO-',
     lpo: 'LPO-',
     credit_note: 'CN-',
     debit_note: 'DN-',
+    delivery_note: 'DN-',
+    grn: 'GRN-',
+    work_order: 'WO-',
+    service_invoice: 'SI-',
+    imprest: 'IMP-',
+    imprest_surrender: 'IMPS-',
+    payslip: 'PS-',
+    rfq: 'RFQ-',
+    expense_claim: 'EC-',
+    supplier: 'SUP-',
+    order: 'ORD-',
+    warranty: 'WRT-',
+    ticket: 'TKT-',
+    product: 'PROD-',
+    service: 'SRV-',
+    subscription: 'SUB-',
+    department: 'DEPT-',
+    dn: 'DN-',
+    service_report: 'SR-',
+    service_request: 'SR-',
+    service_order: 'SO-',
+    service_agreement: 'SA-',
+    service_contract: 'SC-',
+    service_quote: 'SQ-',
+    service_proposal: 'SP-',
+    service_estimate: 'SE-',
+    service_payment: 'SPAY-',
+    service_receipt: 'SREC-',
+    service_credit_note: 'SCN-',
+    service_debit_note: 'SDN-',
+    service_delivery_note: 'SDN-',
+    service_lpo: 'SLPO-',
+    service_grn: 'SGRN-',
+    service_work_order: 'SWO-',
+    service_rfq: 'SRFQ-',
+    service_expense_claim: 'SEC-',
+    service_dn: 'SDN-',
   };
   
   return prefixes[documentType] || 'DOC-';
@@ -1321,6 +1358,7 @@ export async function updateDocumentNumberFormat(
     prefix?: string;
     padding?: number;
     separator?: string;
+    currentNumber?: number;
   }
 ) {
   const db = await getDb();
@@ -1337,6 +1375,7 @@ export async function updateDocumentNumberFormat(
           prefix: format.prefix !== undefined ? format.prefix : existing.prefix,
           padding: format.padding !== undefined ? format.padding : existing.padding,
           separator: format.separator !== undefined ? format.separator : existing.separator,
+          currentNumber: format.currentNumber !== undefined ? format.currentNumber : existing.currentNumber,
           updatedAt: now,
         })
         .where(eq(documentNumberFormats.documentType, documentType as any));
@@ -1350,7 +1389,7 @@ export async function updateDocumentNumberFormat(
         prefix: format.prefix || '',
         padding: format.padding || 6,
         separator: format.separator || '-',
-        currentNumber: 1,
+        currentNumber: format.currentNumber ?? 1,
         createdAt: now,
         updatedAt: now,
       } as any);
@@ -1479,7 +1518,16 @@ function generateFormatExample(prefix: string, padding: number, separator: strin
 export async function resetDocumentNumberFormatCounter(documentType: string, startNumber: number = 1) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+  const existing = await getDocumentNumberFormat(documentType);
+  if (!existing) {
+    await updateDocumentNumberFormat(documentType, {
+      prefix: getDefaultPrefix(documentType).replace(/-$/, ""),
+      padding: 6,
+      separator: "-",
+      currentNumber: startNumber,
+    });
+    return;
+  }
   await db
     .update(documentNumberFormats)
     .set({
@@ -2731,4 +2779,3 @@ export async function markTenantMessageRead(messageId: string) {
   if (!db) throw new Error('Database not available');
   await db.update(tenantMessages).set({ isRead: 1 }).where(eq(tenantMessages.id, messageId));
 }
-

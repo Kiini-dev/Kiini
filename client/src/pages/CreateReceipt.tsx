@@ -35,6 +35,7 @@ export default function CreateReceipt() {
     const discountAmount = lineDiscountAmount + docDiscountAmount;
 
     const receiptData = {
+      receiptNumber: data.documentNumber,
       clientId: data.clientId || `guest_${Date.now()}`,
       paymentId: undefined,
       amount: Math.round(amount * 100),
@@ -70,6 +71,7 @@ export default function CreateReceipt() {
     const discountAmount = lineDiscountAmount + docDiscountAmount;
 
     const receiptData = {
+      receiptNumber: data.documentNumber,
       clientId: data.clientId || `guest_${Date.now()}`,
       paymentId: undefined,
       amount: Math.round(amount * 100),

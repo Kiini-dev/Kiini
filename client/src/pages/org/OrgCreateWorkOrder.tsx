@@ -24,6 +24,12 @@ import { OperationalTemplateFields, createOperationalTemplateDefaults, normalize
 export default function CreateWorkOrder() {
   const [, setLocation] = useLocation();
   const { allowed, isLoading: permLoading } = useRequireFeature("operations:work-orders:create");
+  const { data: workOrderNumberData, error: workOrderNumberError } = trpc.workOrders.getNextNumber.useQuery(undefined, {
+    enabled: allowed,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [templateData, setTemplateData] = useState<OperationalTemplateData>(() => createOperationalTemplateDefaults("work-order"));
 
@@ -56,6 +62,10 @@ export default function CreateWorkOrder() {
       toast.error("Please select or enter the assigned employee");
       return;
     }
+    if (!workOrderNumberData?.documentNumber) {
+      toast.error(`Unable to generate a work order number${workOrderNumberError ? `: ${workOrderNumberError.message}` : ""}`);
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -68,6 +78,7 @@ export default function CreateWorkOrder() {
       const total = laborCost + serviceCost + materialsTotal;
 
       createMutation.mutate({
+        workOrderNumber: workOrderNumberData?.documentNumber,
         issueDate: new Date(formData.issueDate),
         description: formData.description,
         assignedTo: formData.assignedTo,
@@ -106,6 +117,11 @@ export default function CreateWorkOrder() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <Label htmlFor="workOrderNumber">Work Order Number</Label>
+              <Input id="workOrderNumber" value={workOrderNumberData?.documentNumber || ""} readOnly placeholder="Generating number..." />
+              {workOrderNumberError && <p className="text-sm text-destructive">{workOrderNumberError.message}</p>}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="issueDate">Issue Date *</Label>
@@ -224,7 +240,7 @@ export default function CreateWorkOrder() {
             </div>
 
             <div className="flex gap-4">
-              <Button type="submit" disabled={isLoading || createMutation.isPending}>
+              <Button type="submit" disabled={isLoading || createMutation.isPending || !workOrderNumberData?.documentNumber}>
                 {isLoading || createMutation.isPending ? "Creating..." : "Create Work Order"}
               </Button>
               <Button

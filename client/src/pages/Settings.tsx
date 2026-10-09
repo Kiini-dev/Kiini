@@ -182,6 +182,10 @@ const NAV_GROUPS: NavGroup[] = [
     children: [S("platform-dunning", "Dunning Policies", "platform-dunning")],
   },
   {
+    id: "platform-document-numbering", label: "Document Numbering", icon: <Hash className="h-4 w-4" />,
+    children: [S("platform-document-numbering", "Formats & Counters", "platform-document-numbering")],
+  },
+  {
     id: "email-group", label: "Email", icon: <Mail className="h-4 w-4" />,
     children: [
       S("email-settings",   "Email Settings",   "email"),
@@ -636,6 +640,24 @@ export default function Settings() {
     const hash = window.location.hash.replace("#", "");
     return hash || "general";
   });
+  const [numberConfigurationForms, setNumberConfigurationForms] = useState<Record<string, {
+    prefix: string;
+    separator: string;
+    padding: string;
+    nextNumber: string;
+  }>>({});
+  useEffect(() => {
+    if (!numberConfigurations) return;
+    setNumberConfigurationForms(Object.fromEntries(numberConfigurations.map((configuration) => [
+      configuration.documentType,
+      {
+        prefix: configuration.prefix,
+        separator: configuration.separator,
+        padding: String(configuration.padding),
+        nextNumber: String(configuration.nextNumber),
+      },
+    ])));
+  }, [numberConfigurations]);
   const isGlobalAppAdmin = (user?.role === "super_admin" || user?.role === "ict_manager") && !user.organizationId;
   const isGlobalSuperAdmin = user?.role === "super_admin" && !user.organizationId;
   const { data: dunningPolicy } = trpc.settings.getDunningPolicy.useQuery(undefined, { enabled: isGlobalSuperAdmin });
@@ -644,6 +666,20 @@ export default function Settings() {
   useEffect(() => { if (dunningPolicy) setDunningForm(dunningPolicy as typeof dunningForm); }, [dunningPolicy]);
   const { data: emailLogData, isLoading: emailLogLoading } = trpc.emailQueue.getLogs.useQuery({ limit: 100, offset: 0 }, {
     enabled: activeSection === "email-log",
+  });
+  const updateNumberConfiguration = trpc.settings.updateDocumentNumberConfiguration.useMutation({
+    onSuccess: async () => {
+      toast.success("Document numbering configuration saved");
+      await refetchNumberConfigurations();
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const resetNumberConfiguration = trpc.settings.resetDocumentNumberConfiguration.useMutation({
+    onSuccess: async () => {
+      toast.success("Document counter reset to 1");
+      await refetchNumberConfigurations();
+    },
+    onError: (error) => toast.error(error.message),
   });
   const { data: emailQueueData, isLoading: emailQueueLoading } = trpc.emailQueue.getQueue.useQuery({ limit: 100, offset: 0 }, {
     enabled: activeSection === "email-queue",
@@ -672,7 +708,7 @@ export default function Settings() {
   const renderSidebarNav = () => (
     <nav className="space-y-0.5">
       {NAV_GROUPS
-        .filter((group) => isGlobalSuperAdmin || group.id !== "platform-billing")
+        .filter((group) => isGlobalSuperAdmin || !["platform-billing", "platform-document-numbering"].includes(group.id))
         .map((group) => ({
           ...group,
           children: group.children.filter((child) => child.id !== "company-logo" || isGlobalAppAdmin),
@@ -1120,6 +1156,10 @@ export default function Settings() {
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: companyData, refetch: refetchCompany } = trpc.settings.getCompanyInfo.useQuery();
   const { data: docData, refetch: refetchDocs }        = trpc.settings.getDocumentNumberingSettings.useQuery();
+  const { data: numberConfigurations, refetch: refetchNumberConfigurations } =
+    trpc.settings.getDocumentNumberConfigurations.useQuery(undefined, {
+      enabled: isGlobalSuperAdmin && activeSection === "platform-document-numbering",
+    });
   const { data: notifyData }                           = trpc.settings.getNotificationPreferences.useQuery();
   const { data: generalData }                          = trpc.settings.getByCategory.useQuery({ category: "general" });
   const { data: appearanceData }                       = trpc.settings.getByCategory.useQuery({ category: "appearance" });
@@ -1788,6 +1828,79 @@ export default function Settings() {
                 onClick={() => save("general", () => updateByCategory.mutateAsync({ category: "general", values: general }))}
               />
               <ResetButton onClick={() => resetSection("general")} />
+            </div>
+          </Section>
+        );
+
+      case "platform-document-numbering":
+        if (!isGlobalSuperAdmin) {
+          return <Section title="Access denied" description="Only the global super admin can manage document numbering." />;
+        }
+        return (
+          <Section
+            title="Document Number Formats & Counters"
+            description="Control prefixes, separators, padding, and the next number allocated across the application."
+          >
+            <div className="space-y-4">
+              {(numberConfigurations || []).map(({ documentType }) => {
+                const form = numberConfigurationForms[documentType];
+                if (!form) return null;
+                const padding = Math.max(1, Math.min(12, Number(form.padding) || 1));
+                const nextNumber = Math.max(1, Number(form.nextNumber) || 1);
+                const preview = `${form.prefix}${form.prefix ? form.separator : ""}${String(nextNumber).padStart(padding, "0")}`;
+                const label = documentType.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+                const updateField = (field: keyof typeof form, value: string) => {
+                  setNumberConfigurationForms((previous) => ({
+                    ...previous,
+                    [documentType]: { ...previous[documentType], [field]: value },
+                  }));
+                };
+                return (
+                  <div key={documentType} className="grid grid-cols-1 items-end gap-3 rounded-lg border p-3 lg:grid-cols-[1.2fr_1fr_0.7fr_0.7fr_1fr_auto_auto]">
+                    <div className="pb-2 text-sm font-medium">{label}</div>
+                    <Field label="Prefix">
+                      <Input value={form.prefix} maxLength={50} onChange={(event) => updateField("prefix", event.target.value)} />
+                    </Field>
+                    <Field label="Separator">
+                      <Input value={form.separator} maxLength={5} onChange={(event) => updateField("separator", event.target.value)} />
+                    </Field>
+                    <Field label="Padding">
+                      <Input type="number" min={1} max={12} value={form.padding} onChange={(event) => updateField("padding", event.target.value)} />
+                    </Field>
+                    <Field label="Next number">
+                      <Input type="number" min={1} value={form.nextNumber} onChange={(event) => updateField("nextNumber", event.target.value)} />
+                    </Field>
+                    <div className="pb-2 text-xs text-muted-foreground" aria-label={`${label} example`}>{preview}</div>
+                    <div className="flex gap-2 pb-1">
+                      <Button
+                        size="sm"
+                        disabled={updateNumberConfiguration.isPending}
+                        onClick={() => updateNumberConfiguration.mutate({
+                          documentType,
+                          prefix: form.prefix,
+                          separator: form.separator,
+                          padding: Number(form.padding),
+                          nextNumber: Number(form.nextNumber),
+                        })}
+                      >
+                        <Save className="mr-1 h-4 w-4" /> Save
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={resetNumberConfiguration.isPending}
+                        onClick={() => {
+                          if (window.confirm(`Reset the ${label} counter to 1?`)) {
+                            resetNumberConfiguration.mutate({ documentType });
+                          }
+                        }}
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </Section>
         );

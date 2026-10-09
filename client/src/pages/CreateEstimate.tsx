@@ -31,6 +31,7 @@ export default function CreateEstimate() {
     const total = data.grandTotal || (subtotal + taxAmount);
 
     const estimateData = {
+      estimateNumber: data.documentNumber,
       clientId: data.clientId || `guest_${Date.now()}`,
       projectId: data.projectId || undefined,
       title: data.clientName ? `Quotation for ${data.clientName}` : undefined,
@@ -70,6 +71,7 @@ export default function CreateEstimate() {
     const total = data.grandTotal || (subtotal + taxAmount);
 
     const estimateData = {
+      estimateNumber: data.documentNumber,
       clientId: data.clientId || `guest_${Date.now()}`,
       projectId: data.projectId || undefined,
       title: data.clientName ? `Quotation for ${data.clientName}` : undefined,

@@ -37,6 +37,7 @@ type GRNFormData = typeof emptyForm;
 function GRNFormFields({ form, setForm, templateData, setTemplateData }: { form: GRNFormData; setForm: React.Dispatch<React.SetStateAction<GRNFormData>>; templateData: OperationalTemplateData; setTemplateData: React.Dispatch<React.SetStateAction<OperationalTemplateData>> }) {
   return (
     <div className="grid gap-4 py-2">
+      <div className="space-y-1"><Label>GRN Number</Label><Input value={form.grnNo} readOnly placeholder="Generating number..." /></div>
       <div className="grid grid-cols-2 gap-3">
         <SupplierSelector value={form.supplier} onChange={supplier => setForm(f => ({ ...f, supplier }))} required />
       </div>
@@ -103,6 +104,15 @@ export default function GoodsReceivedNotes() {
     onSuccess: () => { utils.grn.list.invalidate(); toast.success("GRN created"); setCreateOpen(false); setForm({ ...emptyForm }); },
     onError: (err: any) => toast.error(err.message),
   });
+  const allocateDocumentNumber = trpc.grn.getNextNumber.useMutation({
+    onSuccess: ({ documentNumber }) => setForm((previous) => ({ ...previous, grnNo: documentNumber })),
+    onError: (error) => toast.error(`Unable to generate GRN number: ${error.message}`),
+  });
+  useEffect(() => {
+    if (createOpen && !editingGRN && !form.grnNo && !allocateDocumentNumber.isPending) {
+      allocateDocumentNumber.mutate();
+    }
+  }, [createOpen, editingGRN, form.grnNo]);
   const updateMutation = trpc.grn.update.useMutation({
     onSuccess: () => { utils.grn.list.invalidate(); toast.success("GRN updated"); setEditingGRN(null); },
     onError: (err: any) => toast.error(err.message),
@@ -167,7 +177,7 @@ export default function GoodsReceivedNotes() {
     const parsedValue = parseFloat(form.value) || calculatedValue || lineValue;
     if (!parsedItems || parsedItems <= 0) { toast.error("Add at least one received quantity or enter a positive item count"); return; }
     if (!parsedValue || parsedValue <= 0) { toast.error("Enter the verified value or item prices"); return; }
-    const payload = { supplier: form.supplier, invNo: form.invNo || undefined, receivedDate: form.receivedDate, items: parsedItems, value: parsedValue, status: form.status, notes: form.notes || undefined, templateData: normalizedTemplateData };
+    const payload = { grnNo: form.grnNo || undefined, supplier: form.supplier, invNo: form.invNo || undefined, receivedDate: form.receivedDate, items: parsedItems, value: parsedValue, status: form.status, notes: form.notes || undefined, templateData: normalizedTemplateData };
     if (isEdit && editingGRN) updateMutation.mutate({ id: editingGRN.id, ...payload });
     else createMutation.mutate(payload);
   };
@@ -303,8 +313,8 @@ export default function GoodsReceivedNotes() {
           <GRNFormFields form={form} setForm={setForm} templateData={templateData} setTemplateData={setTemplateData} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.supplier || !form.receivedDate || (!form.items && !(templateData.lineItems || []).length) || (!form.value && !templateData.subtotal && !(templateData.lineItems || []).length)}>
-              {createMutation.isPending ? "Saving..." : "Create GRN"}
+            <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.grnNo || !form.supplier || !form.receivedDate || (!form.items && !(templateData.lineItems || []).length) || (!form.value && !templateData.subtotal && !(templateData.lineItems || []).length)}>
+              {createMutation.isPending ? "Saving..." : !form.grnNo ? "Generating number..." : "Create GRN"}
             </Button>
           </DialogFooter>
         </DialogContent>

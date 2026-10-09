@@ -67,6 +67,15 @@ export default function DeliveryNotes() {
     onSuccess: () => { utils.deliveryNotes.list.invalidate(); toast.success("Delivery note created"); setCreateOpen(false); setForm({ ...emptyForm }); },
     onError: (err: any) => toast.error(err.message),
   });
+  const allocateDocumentNumber = trpc.deliveryNotes.getNextNumber.useMutation({
+    onSuccess: ({ documentNumber }) => setForm((previous) => ({ ...previous, dnNo: documentNumber })),
+    onError: (error) => toast.error(`Unable to generate delivery note number: ${error.message}`),
+  });
+  useEffect(() => {
+    if (createOpen && !editingDN && !form.dnNo && !allocateDocumentNumber.isPending) {
+      allocateDocumentNumber.mutate();
+    }
+  }, [createOpen, editingDN, form.dnNo]);
   const updateMutation = trpc.deliveryNotes.update.useMutation({
     onSuccess: () => { utils.deliveryNotes.list.invalidate(); toast.success("Delivery note updated"); setEditingDN(null); },
     onError: (err: any) => toast.error(err.message),
@@ -145,13 +154,14 @@ export default function DeliveryNotes() {
     const normalizedTemplateData = normalizeOperationalTemplateData("delivery-note", templateData);
     const lineItems = normalizedTemplateData.lineItems || [];
     const lineItemCount = lineItems.reduce((sum: number, item: any) => sum + Number(item.quantityShipped || item.quantityOrdered || 0), 0);
-    const payload = { supplier: form.supplier, orderId: form.orderId || undefined, deliveryDate: form.deliveryDate, items: parseInt(form.items) || lineItemCount, status: form.status, notes: form.notes || undefined, templateData: normalizedTemplateData };
+    const payload = { dnNo: form.dnNo || undefined, supplier: form.supplier, orderId: form.orderId || undefined, deliveryDate: form.deliveryDate, items: parseInt(form.items) || lineItemCount, status: form.status, notes: form.notes || undefined, templateData: normalizedTemplateData };
     if (isEdit && editingDN) updateMutation.mutate({ id: editingDN.id, ...payload });
     else createMutation.mutate(payload);
   };
 
   const DNForm = () => (
     <div className="grid gap-4 py-2">
+      <div className="space-y-1"><Label>Delivery Note Number</Label><Input value={form.dnNo} readOnly placeholder="Generating number..." /></div>
       <div className="grid grid-cols-2 gap-3">
         <SupplierSelector value={form.supplier} onChange={supplier => setForm(f => ({ ...f, supplier }))} required />
       </div>
@@ -295,8 +305,8 @@ export default function DeliveryNotes() {
           {DNForm()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.supplier || !form.deliveryDate || (!form.items && !(templateData.lineItems || []).length)}>
-              {createMutation.isPending ? "Saving..." : "Create Delivery Note"}
+            <Button onClick={() => handleSubmit(false)} disabled={createMutation.isPending || !form.dnNo || !form.supplier || !form.deliveryDate || (!form.items && !(templateData.lineItems || []).length)}>
+              {createMutation.isPending ? "Saving..." : !form.dnNo ? "Generating number..." : "Create Delivery Note"}
             </Button>
           </DialogFooter>
         </DialogContent>
