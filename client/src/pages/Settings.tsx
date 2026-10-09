@@ -646,18 +646,6 @@ export default function Settings() {
     padding: string;
     nextNumber: string;
   }>>({});
-  useEffect(() => {
-    if (!numberConfigurations) return;
-    setNumberConfigurationForms(Object.fromEntries(numberConfigurations.map((configuration) => [
-      configuration.documentType,
-      {
-        prefix: configuration.prefix,
-        separator: configuration.separator,
-        padding: String(configuration.padding),
-        nextNumber: String(configuration.nextNumber),
-      },
-    ])));
-  }, [numberConfigurations]);
   const isGlobalAppAdmin = (user?.role === "super_admin" || user?.role === "ict_manager") && !user.organizationId;
   const isGlobalSuperAdmin = user?.role === "super_admin" && !user.organizationId;
   const { data: dunningPolicy } = trpc.settings.getDunningPolicy.useQuery(undefined, { enabled: isGlobalSuperAdmin });
@@ -1160,6 +1148,18 @@ export default function Settings() {
     trpc.settings.getDocumentNumberConfigurations.useQuery(undefined, {
       enabled: isGlobalSuperAdmin && activeSection === "platform-document-numbering",
     });
+  useEffect(() => {
+    if (!numberConfigurations) return;
+    setNumberConfigurationForms(Object.fromEntries(numberConfigurations.map((configuration) => [
+      configuration.documentType,
+      {
+        prefix: configuration.prefix,
+        separator: configuration.separator,
+        padding: String(configuration.padding),
+        nextNumber: String(configuration.nextNumber),
+      },
+    ])));
+  }, [numberConfigurations]);
   const { data: notifyData }                           = trpc.settings.getNotificationPreferences.useQuery();
   const { data: generalData }                          = trpc.settings.getByCategory.useQuery({ category: "general" });
   const { data: appearanceData }                       = trpc.settings.getByCategory.useQuery({ category: "appearance" });
