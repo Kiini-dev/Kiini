@@ -1,1 +1,0 @@
-import{ar as a,aG as s,ao as r,ap as i,as as x}from"./index-DP2X6t_f.js";var A=a({chartName:"AreaChart",GraphicalChild:s,axisComponents:[{axisType:"xAxis",AxisComp:r},{axisType:"yAxis",AxisComp:i}],formatAxisMap:x});export{A};

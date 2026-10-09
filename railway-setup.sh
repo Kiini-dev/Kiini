@@ -56,6 +56,18 @@ done
 echo "Setting ${#V[@]} variables on service '$SERVICE'..."
 railway variables --service "$SERVICE" --skip-deploys "${args[@]}"
 
+# Verify DATABASE_URL actually resolves (an unresolved reference renders empty)
+if command -v jq >/dev/null; then
+  RESOLVED="$(railway variables --service "$SERVICE" --json | jq -r '.DATABASE_URL // ""')"
+  if [ -z "$RESOLVED" ] || [[ "$RESOLVED" == *'${{'* ]]; then
+    echo "ERROR: DATABASE_URL did not resolve. Is '$MYSQL_SERVICE' the exact name of your MySQL service?"
+    echo "Check names with: railway status --json | jq -r '.. | .serviceName? // empty' | sort -u"
+    echo "Then rerun with: MYSQL_SERVICE=<exact name> ./railway-setup.sh $ENV_FILE"
+    exit 1
+  fi
+  echo "DATABASE_URL resolves OK."
+fi
+
 # Persistent volume for uploads (skip if it already exists)
 if ! railway volume list 2>/dev/null | grep -q "$UPLOAD_MOUNT"; then
   echo "Adding volume at $UPLOAD_MOUNT..."

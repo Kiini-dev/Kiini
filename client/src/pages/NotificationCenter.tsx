@@ -16,6 +16,7 @@ import {
   TrendingUp, Filter, Search, Eye, EyeOff, X
 } from 'lucide-react';
 import { ModuleLayout } from "@/components/ModuleLayout";
+import { formatDate } from "@/utils/format";
 
 // Notification Item Component
 const NotificationItem: React.FC<{
@@ -490,7 +491,7 @@ export default function NotificationCenterPage() {
             <div className="space-y-2">
               {(statsQuery.data.trend || []).map((day: any, idx: number) => (
                 <div key={idx} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{day.date}</span>
+                  <span className="text-sm text-gray-600">{formatDate(day.date)}</span>
                   <div className="flex items-center gap-2 flex-1 ml-4">
                     <div className="h-6 bg-blue-200 rounded" style={{ width: `${(day.count / 30) * 100}%` }} />
                     <span className="text-sm font-medium text-gray-700 w-16 text-right">{day.count} sent</span>
@@ -504,4 +505,3 @@ export default function NotificationCenterPage() {
     </ModuleLayout>
   );
 }
-
