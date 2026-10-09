@@ -1463,7 +1463,7 @@ var init_schema = __esm({
       "documentNumberFormats",
       {
         id: varchar2({ length: 64 }).primaryKey(),
-        documentType: mysqlEnum(["invoice", "estimate", "receipt", "proposal", "expense", "payment", "contract", "quotation", "purchase_order", "project", "credit_note", "debit_note", "delivery_note", "lpo", "grn", "work_order", "service_invoice"]).notNull(),
+        documentType: varchar2({ length: 50 }).notNull(),
         prefix: varchar2({ length: 50 }).default("").notNull(),
         padding: int2().default(6).notNull(),
         separator: varchar2({ length: 5 }).default("-").notNull(),

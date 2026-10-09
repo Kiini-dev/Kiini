@@ -1490,7 +1490,7 @@ var init_schema = __esm({
       "documentNumberFormats",
       {
         id: varchar2({ length: 64 }).primaryKey(),
-        documentType: mysqlEnum(["invoice", "estimate", "receipt", "proposal", "expense", "payment", "contract", "quotation", "purchase_order", "project", "credit_note", "debit_note", "delivery_note", "lpo", "grn", "work_order", "service_invoice"]).notNull(),
+        documentType: varchar2({ length: 50 }).notNull(),
         prefix: varchar2({ length: 50 }).default("").notNull(),
         padding: int2().default(6).notNull(),
         separator: varchar2({ length: 5 }).default("-").notNull(),
@@ -11732,13 +11732,50 @@ function getDefaultPrefix(documentType) {
     proposal: "PROP-",
     expense: "EXP-",
     payment: "PAY-",
-    project: "PROJ-",
+    project: "PRJ-",
     contract: "CON-",
-    quotation: "QUO-",
-    purchase_order: "LPO-",
+    quotation: "QT-",
+    purchase_order: "PO-",
     lpo: "LPO-",
     credit_note: "CN-",
-    debit_note: "DN-"
+    debit_note: "DN-",
+    delivery_note: "DN-",
+    grn: "GRN-",
+    work_order: "WO-",
+    service_invoice: "SI-",
+    imprest: "IMP-",
+    imprest_surrender: "IMPS-",
+    payslip: "PS-",
+    rfq: "RFQ-",
+    expense_claim: "EC-",
+    supplier: "SUP-",
+    order: "ORD-",
+    warranty: "WRT-",
+    ticket: "TKT-",
+    product: "PROD-",
+    service: "SRV-",
+    subscription: "SUB-",
+    department: "DEPT-",
+    dn: "DN-",
+    service_report: "SR-",
+    service_request: "SR-",
+    service_order: "SO-",
+    service_agreement: "SA-",
+    service_contract: "SC-",
+    service_quote: "SQ-",
+    service_proposal: "SP-",
+    service_estimate: "SE-",
+    service_payment: "SPAY-",
+    service_receipt: "SREC-",
+    service_credit_note: "SCN-",
+    service_debit_note: "SDN-",
+    service_delivery_note: "SDN-",
+    service_lpo: "SLPO-",
+    service_grn: "SGRN-",
+    service_work_order: "SWO-",
+    service_rfq: "SRFQ-",
+    service_expense_claim: "SEC-",
+    service_dn: "SDN-"
   };
   return prefixes[documentType] || "DOC-";
 }
@@ -11785,6 +11822,7 @@ async function updateDocumentNumberFormat(documentType, format) {
         prefix: format.prefix !== void 0 ? format.prefix : existing.prefix,
         padding: format.padding !== void 0 ? format.padding : existing.padding,
         separator: format.separator !== void 0 ? format.separator : existing.separator,
+        currentNumber: format.currentNumber !== void 0 ? format.currentNumber : existing.currentNumber,
         updatedAt: now2
       }).where(eq4(documentNumberFormats.documentType, documentType));
       return existing.id;
@@ -11796,7 +11834,7 @@ async function updateDocumentNumberFormat(documentType, format) {
         prefix: format.prefix || "",
         padding: format.padding || 6,
         separator: format.separator || "-",
-        currentNumber: 1,
+        currentNumber: format.currentNumber ?? 1,
         createdAt: now2,
         updatedAt: now2
       });
@@ -11897,6 +11935,16 @@ async function getNextDocumentNumberWithFormat(documentType) {
 async function resetDocumentNumberFormatCounter(documentType, startNumber = 1) {
   const db2 = await getDb();
   if (!db2) throw new Error("Database not available");
+  const existing = await getDocumentNumberFormat(documentType);
+  if (!existing) {
+    await updateDocumentNumberFormat(documentType, {
+      prefix: getDefaultPrefix(documentType).replace(/-$/, ""),
+      padding: 6,
+      separator: "-",
+      currentNumber: startNumber
+    });
+    return;
+  }
   await db2.update(documentNumberFormats).set({
     currentNumber: startNumber,
     updatedAt: (/* @__PURE__ */ new Date()).toISOString().slice(0, 19).replace("T", " ")
@@ -14832,7 +14880,7 @@ async function generateNextDocumentNumber(db2, documentType) {
       }
     }
     const formatType = documentType;
-    const defaults = { invoice: "INV", estimate: "EST", expense: "EXP", receipt: "REC", proposal: "PROP", payment: "PAY", contract: "CON", quotation: "QT", purchase_order: "PO", project: "PRJ", credit_note: "CN", debit_note: "DN", delivery_note: "DN", lpo: "LPO", grn: "GRN", work_order: "WO", service_invoice: "SI", request_for_quotation: "RFQ", service_request: "SR", service_order: "SO", service_agreement: "SA", service_contract: "SC", service_quote: "SQ", service_proposal: "SP", service_estimate: "SE", service_payment: "SPAY", service_receipt: "SREC", service_credit_note: "SCN", service_debit_note: "SDN", service_delivery_note: "SDN", service_lpo: "SLPO", service_grn: "SGRN", service_work_order: "SWO", service_rfq: "SRFQ", service_expense_claim: "SEC" };
+    const defaults = { invoice: "INV", estimate: "EST", expense: "EXP", receipt: "REC", proposal: "PROP", payment: "PAY", contract: "CON", quotation: "QT", purchase_order: "PO", project: "PRJ", credit_note: "CN", debit_note: "DN", delivery_note: "DN", lpo: "LPO", grn: "GRN", work_order: "WO", service_invoice: "SI", request_for_quotation: "RFQ", rfq: "RFQ", service_request: "SR", service_order: "SO", service_agreement: "SA", service_contract: "SC", service_quote: "SQ", service_proposal: "SP", service_estimate: "SE", service_payment: "SPAY", service_receipt: "SREC", service_credit_note: "SCN", service_debit_note: "SDN", service_delivery_note: "SDN", service_lpo: "SLPO", service_grn: "SGRN", service_work_order: "SWO", service_rfq: "SRFQ", service_expense_claim: "SEC", expense_claim: "EC", imprest: "IMP", imprest_surrender: "IMPS", payslip: "PS", dn: "DN", service_dn: "SDN" };
     prefix = prefix === "DOC" ? defaults[formatType] || "DOC" : prefix;
     return await db2.transaction(async (tx) => {
       const locked = await tx.execute(sql7`SELECT prefix, padding, separator, currentNumber FROM documentNumberFormats WHERE documentType = ${formatType} LIMIT 1 FOR UPDATE`);
@@ -14867,7 +14915,23 @@ var init_document_numbering = __esm({
       expense: "EXP",
       receipt: "REC",
       proposal: "PROP",
-      payment: "PAY"
+      payment: "PAY",
+      contract: "CON",
+      quotation: "QT",
+      purchase_order: "PO",
+      project: "PRJ",
+      credit_note: "CN",
+      debit_note: "DN",
+      delivery_note: "DN",
+      lpo: "LPO",
+      grn: "GRN",
+      work_order: "WO",
+      service_invoice: "SI",
+      imprest: "IMP",
+      imprest_surrender: "IMPS",
+      payslip: "PS",
+      rfq: "RFQ",
+      expense_claim: "EC"
     };
     PREFIX_SETTING_KEYS = {
       invoice: "invoicePrefix",
@@ -14875,7 +14939,23 @@ var init_document_numbering = __esm({
       expense: "expensePrefix",
       receipt: "receiptPrefix",
       proposal: "proposalPrefix",
-      payment: "paymentPrefix"
+      payment: "paymentPrefix",
+      contract: "contractPrefix",
+      quotation: "quotationPrefix",
+      purchase_order: "purchaseOrderPrefix",
+      project: "projectPrefix",
+      credit_note: "creditNotePrefix",
+      debit_note: "debitNotePrefix",
+      delivery_note: "deliveryNotePrefix",
+      lpo: "lpoPrefix",
+      grn: "grnPrefix",
+      work_order: "workOrderPrefix",
+      service_invoice: "serviceInvoicePrefix",
+      imprest: "imprestPrefix",
+      imprest_surrender: "imprestSurrenderPrefix",
+      payslip: "payslipPrefix",
+      rfq: "rfqPrefix",
+      expense_claim: "expenseClaimPrefix"
     };
   }
 });
@@ -26979,7 +27059,7 @@ var invoicesRouter = router({
       throw error;
     }
   }),
-  getNextInvoiceNumber: viewProcedure2.query(async () => {
+  getNextInvoiceNumber: createProcedure2.query(async () => {
     const db2 = await getDb();
     if (!db2) throw new Error("Database not available");
     const nextNumber = await generateNextInvoiceNumber(db2);
@@ -27023,6 +27103,7 @@ var invoicesRouter = router({
     return db2.select().from(invoices).where(and24(...conditions)).orderBy(desc7(invoices.issueDate));
   }),
   create: createProcedure2.input(z12.object({
+    invoiceNumber: z12.string().trim().min(1).max(100).optional(),
     clientId: z12.string(),
     projectId: z12.string().nullable().optional(),
     title: z12.string().optional(),
@@ -27044,7 +27125,7 @@ var invoicesRouter = router({
     if (!db2) throw new Error("Database not available");
     const id2 = uuidv414();
     const { lineItems: lineItems4, ...invoiceData } = input;
-    const invoiceNumber = await generateNextInvoiceNumber(db2);
+    const invoiceNumber = input.invoiceNumber || await generateNextInvoiceNumber(db2);
     const convertToMySQLDateTime2 = (date2) => {
       if (!date2) return (/* @__PURE__ */ new Date()).toISOString().replace("T", " ").substring(0, 19);
       if (typeof date2 === "string") return new Date(date2).toISOString().replace("T", " ").substring(0, 19);
@@ -33464,7 +33545,7 @@ var estimatesRouter = router({
     }).from(estimates);
     return await baseQuery.limit(input?.limit || 50).offset(input?.offset || 0);
   }),
-  getNextEstimateNumber: createFeatureRestrictedProcedure("estimates:read").query(async () => {
+  getNextEstimateNumber: createFeatureRestrictedProcedure("estimates:create").query(async () => {
     const db2 = await getDb();
     if (!db2) throw new Error("Database not available");
     const nextNumber = await generateNextEstimateNumber(db2);
@@ -33561,6 +33642,7 @@ var estimatesRouter = router({
     return db2.select().from(estimates).where(and36(...conditions)).orderBy(desc12(estimates.issueDate));
   }),
   create: createFeatureRestrictedProcedure("estimates:create").input(z20.object({
+    estimateNumber: z20.string().trim().min(1).max(100).optional(),
     clientId: z20.string(),
     projectId: z20.string().nullable().optional(),
     title: z20.string().optional(),
@@ -33578,7 +33660,7 @@ var estimatesRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db2 = await getDb();
     if (!db2) throw new Error("Database not available");
-    const estimateNumber = await generateNextEstimateNumber(db2);
+    const estimateNumber = input.estimateNumber || await generateNextEstimateNumber(db2);
     const id2 = uuidv424();
     const { lineItems: lineItems4, ...estimateData } = input;
     const issueDate = estimateData.issueDate instanceof Date ? estimateData.issueDate.toISOString().replace("T", " ").substring(0, 19) : estimateData.issueDate;
@@ -34290,7 +34372,7 @@ var receiptsRouter = router({
       return [];
     }
   }),
-  getNextReceiptNumber: viewProcedure5.query(async () => {
+  getNextReceiptNumber: createProcedure7.query(async () => {
     const db2 = await getDb();
     if (!db2) throw new Error("Database not available");
     const nextNumber = await generateNextReceiptNumber(db2);
@@ -34368,6 +34450,7 @@ var receiptsRouter = router({
     };
   }),
   create: createProcedure7.input(z22.object({
+    receiptNumber: z22.string().trim().min(1).max(100).optional(),
     clientId: z22.string(),
     paymentId: z22.string().optional(),
     amount: z22.number(),
@@ -34387,7 +34470,7 @@ var receiptsRouter = router({
   })).mutation(async ({ input, ctx }) => {
     const db2 = await getDb();
     if (!db2) throw new Error("Database not available");
-    const receiptNumber = await generateNextReceiptNumber(db2);
+    const receiptNumber = input.receiptNumber || await generateNextReceiptNumber(db2);
     const id2 = uuidv426();
     const { lineItems: items, ...receiptData } = input;
     const convertToMySQLDateTime2 = (date2) => {
@@ -41671,6 +41754,116 @@ var globalDunningProcedure = protectedProcedure.use(({ ctx, next }) => {
   }
   return next({ ctx });
 });
+var globalDocumentNumberingProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "super_admin" || ctx.user.organizationId) {
+    throw new TRPCError34({ code: "FORBIDDEN", message: "Only the global app super admin can manage document numbering" });
+  }
+  return next({ ctx });
+});
+var documentNumberTypes = [
+  "invoice",
+  "estimate",
+  "receipt",
+  "proposal",
+  "expense",
+  "payment",
+  "contract",
+  "quotation",
+  "purchase_order",
+  "project",
+  "credit_note",
+  "debit_note",
+  "delivery_note",
+  "lpo",
+  "grn",
+  "work_order",
+  "service_invoice",
+  "imprest",
+  "imprest_surrender",
+  "payslip",
+  "supplier",
+  "order",
+  "warranty",
+  "ticket",
+  "product",
+  "service",
+  "subscription",
+  "department",
+  "rfq",
+  "expense_claim",
+  "dn",
+  "service_report",
+  "service_request",
+  "service_order",
+  "service_agreement",
+  "service_contract",
+  "service_quote",
+  "service_proposal",
+  "service_estimate",
+  "service_payment",
+  "service_receipt",
+  "service_credit_note",
+  "service_debit_note",
+  "service_delivery_note",
+  "service_lpo",
+  "service_grn",
+  "service_work_order",
+  "service_rfq",
+  "service_expense_claim",
+  "service_dn"
+];
+var defaultNumberPrefixes = {
+  invoice: "INV",
+  estimate: "EST",
+  receipt: "REC",
+  proposal: "PROP",
+  expense: "EXP",
+  payment: "PAY",
+  contract: "CON",
+  quotation: "QT",
+  purchase_order: "PO",
+  project: "PRJ",
+  credit_note: "CN",
+  debit_note: "DN",
+  delivery_note: "DN",
+  lpo: "LPO",
+  grn: "GRN",
+  work_order: "WO",
+  service_invoice: "SI",
+  imprest: "IMP",
+  imprest_surrender: "IMPS",
+  payslip: "PS",
+  supplier: "SUP",
+  order: "ORD",
+  warranty: "WRT",
+  ticket: "TKT",
+  product: "PROD",
+  service: "SRV",
+  subscription: "SUB",
+  department: "DEPT",
+  rfq: "RFQ",
+  expense_claim: "EC",
+  dn: "DN",
+  service_report: "SR",
+  service_request: "SR",
+  service_order: "SO",
+  service_agreement: "SA",
+  service_contract: "SC",
+  service_quote: "SQ",
+  service_proposal: "SP",
+  service_estimate: "SE",
+  service_payment: "SPAY",
+  service_receipt: "SREC",
+  service_credit_note: "SCN",
+  service_debit_note: "SDN",
+  service_delivery_note: "SDN",
+  service_lpo: "SLPO",
+  service_grn: "SGRN",
+  service_work_order: "SWO",
+  service_rfq: "SRFQ",
+  service_expense_claim: "SEC",
+  service_dn: "SDN"
+};
 var defaultProductGuidance = {
   enabled: true,
   overlay: { enabled: true, opacity: 0.45, color: "#0f172a", closeOnOutsideClick: true },
@@ -41708,6 +41901,41 @@ var productGuidanceInput = z33.object({
   hotspots: z33.object({ enabled: z33.boolean(), color: z33.string().min(4), pulse: z33.boolean(), showUnreadBadges: z33.boolean() })
 });
 var settingsRouter = router({
+  getDocumentNumberConfigurations: globalDocumentNumberingProcedure.query(async () => {
+    const database2 = await getDb();
+    if (!database2) throw new TRPCError34({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    const rows = await database2.select().from(documentNumberFormats);
+    const byType = new Map(rows.map((row) => [row.documentType, row]));
+    return documentNumberTypes.map((documentType) => {
+      const row = byType.get(documentType);
+      return {
+        documentType,
+        prefix: row?.prefix ?? defaultNumberPrefixes[documentType],
+        separator: row?.separator ?? "-",
+        padding: row?.padding ?? 6,
+        nextNumber: Math.max(1, row?.currentNumber ?? 1)
+      };
+    });
+  }),
+  updateDocumentNumberConfiguration: globalDocumentNumberingProcedure.input(z33.object({
+    documentType: z33.enum(documentNumberTypes),
+    prefix: z33.string().max(50).regex(/^[A-Za-z0-9_-]*$/),
+    separator: z33.string().max(5),
+    padding: z33.number().int().min(1).max(12),
+    nextNumber: z33.number().int().min(1).max(2147483647)
+  })).mutation(async ({ input }) => {
+    await updateDocumentNumberFormat(input.documentType, {
+      prefix: input.prefix,
+      separator: input.separator,
+      padding: input.padding,
+      currentNumber: input.nextNumber
+    });
+    return { success: true };
+  }),
+  resetDocumentNumberConfiguration: globalDocumentNumberingProcedure.input(z33.object({ documentType: z33.enum(documentNumberTypes) })).mutation(async ({ input }) => {
+    await resetDocumentNumberFormatCounter(input.documentType, 1);
+    return { success: true, nextNumber: 1 };
+  }),
   getDunningPolicy: globalDunningProcedure.query(async () => {
     const database2 = await getDb();
     if (!database2) throw new TRPCError34({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
@@ -67155,6 +67383,11 @@ var createProcedure27 = createFeatureRestrictedProcedure("grn:create");
 var editProcedure3 = createFeatureRestrictedProcedure("grn:edit");
 var deleteProcedure21 = createFeatureRestrictedProcedure("grn:delete");
 var grnRouter = router({
+  getNextNumber: createProcedure27.mutation(async () => {
+    const db2 = await getDb();
+    if (!db2) throw new TRPCError72({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+    return { documentNumber: await generateNextDocumentNumber(db2, "grn") };
+  }),
   list: viewProcedure12.input(z102.object({
     limit: z102.number().optional(),
     offset: z102.number().optional(),
@@ -67188,6 +67421,7 @@ var grnRouter = router({
     }
   }),
   create: createProcedure27.input(z102.object({
+    grnNo: z102.string().trim().min(1).max(100).optional(),
     supplier: z102.string().min(1),
     invNo: z102.string().optional(),
     receivedDate: z102.string(),
@@ -67201,7 +67435,7 @@ var grnRouter = router({
     if (!db2) throw new TRPCError72({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
     try {
       const id2 = uuidv481();
-      const grnNo = await generateNextDocumentNumber(db2, "grn");
+      const grnNo = input.grnNo || await generateNextDocumentNumber(db2, "grn");
       await db2.insert(grnRecords).values({
         id: id2,
         organizationId: ctx.user?.organizationId || null,
@@ -67290,6 +67524,11 @@ var createProcedure28 = createFeatureRestrictedProcedure("delivery_notes:create"
 var editProcedure4 = createFeatureRestrictedProcedure("delivery_notes:edit");
 var deleteProcedure22 = createFeatureRestrictedProcedure("delivery_notes:delete");
 var deliveryNotesRouter = router({
+  getNextNumber: createProcedure28.mutation(async () => {
+    const db2 = await getDb();
+    if (!db2) throw new TRPCError73({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+    return { documentNumber: await generateNextDocumentNumber(db2, "delivery_note") };
+  }),
   list: viewProcedure13.input(z103.object({
     limit: z103.number().optional(),
     offset: z103.number().optional(),
@@ -67321,6 +67560,7 @@ var deliveryNotesRouter = router({
     }
   }),
   create: createProcedure28.input(z103.object({
+    dnNo: z103.string().trim().min(1).max(100).optional(),
     supplier: z103.string().min(1),
     orderId: z103.string().optional(),
     deliveryDate: z103.string(),
@@ -67333,7 +67573,7 @@ var deliveryNotesRouter = router({
     if (!db2) throw new TRPCError73({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
     try {
       const id2 = uuidv482();
-      const dnNo = await generateNextDocumentNumber(db2, "delivery_note");
+      const dnNo = input.dnNo || await generateNextDocumentNumber(db2, "delivery_note");
       await db2.insert(deliveryNotes).values({
         id: id2,
         dnNo,
@@ -74680,6 +74920,7 @@ var materialSchema = z118.object({
   total: z118.number().nonnegative()
 });
 var createWorkOrderSchema = z118.object({
+  workOrderNumber: z118.string().trim().min(1).max(100).optional(),
   issueDate: z118.coerce.date(),
   description: z118.string(),
   assignedTo: z118.string(),
@@ -74695,6 +74936,11 @@ var createWorkOrderSchema = z118.object({
   templateData: z118.record(z118.string(), z118.unknown()).optional()
 });
 var workOrdersRouter = router({
+  getNextNumber: createProcedure36.query(async () => {
+    const db2 = await getDb();
+    if (!db2) throw new Error("Database not available");
+    return { documentNumber: await generateNextDocumentNumber(db2, "work_order") };
+  }),
   list: viewProcedure19.query(async ({ ctx }) => {
     const db2 = await getDb();
     if (!db2) throw new Error("Database not available");
@@ -74725,7 +74971,7 @@ var workOrdersRouter = router({
     if (!db2) throw new Error("Database not available");
     try {
       const id2 = uuidv492();
-      const workOrderNumber = await generateNextDocumentNumber(db2, "work_order");
+      const workOrderNumber = input.workOrderNumber || await generateNextDocumentNumber(db2, "work_order");
       const newRecord = await db2.insert(workOrders).values({
         id: id2,
         workOrderNumber,

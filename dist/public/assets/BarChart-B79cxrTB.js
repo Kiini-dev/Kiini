@@ -1,0 +1,1 @@
+import{ar as a,aq as s,ao as i,ap as t,as as r}from"./index-D7Dwr_Vd.js";var o=a({chartName:"BarChart",GraphicalChild:s,defaultTooltipEventType:"axis",validateTooltipEventTypes:["axis","item"],axisComponents:[{axisType:"xAxis",AxisComp:i},{axisType:"yAxis",AxisComp:t}],formatAxisMap:r});export{o as B};
