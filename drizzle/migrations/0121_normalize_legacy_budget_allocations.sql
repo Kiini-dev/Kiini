@@ -18,7 +18,7 @@ JOIN (
     SUM(spentAmount) AS spentTotal
   FROM `budgetAllocations`
   GROUP BY budgetId
-) AS allocationTotals ON allocationTotals.budgetId = budget.id
+) AS allocationTotals ON allocationTotals.budgetId COLLATE utf8mb4_unicode_ci = budget.id COLLATE utf8mb4_unicode_ci
 SET budget.totalBudgeted = ROUND(allocationTotals.allocationTotal / 100),
   budget.totalActual = ROUND(allocationTotals.spentTotal / 100),
   budget.remaining = GREATEST(0, budget.amount - ROUND(allocationTotals.spentTotal / 100)),
